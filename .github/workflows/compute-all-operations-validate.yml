@@ -1,0 +1,167 @@
+name: Validate All Compute Capabilities
+
+on:
+  pull_request:
+    paths:
+      - "compute-center/**"
+      - "architecture/three-center-isolation-contract.json"
+      - "tools/validate_three_center_isolation.py"
+      - ".github/workflows/compute-all-operations-validate.yml"
+  push:
+    branches: [main]
+    paths:
+      - "compute-center/**"
+      - "architecture/three-center-isolation-contract.json"
+      - "tools/validate_three_center_isolation.py"
+      - ".github/workflows/compute-all-operations-validate.yml"
+  workflow_dispatch:
+  schedule:
+    - cron: "41 5 * * 0"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: validate-all-compute-capabilities-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  validate-all-capabilities:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    steps:
+      - name: Checkout pinned source
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+
+      - name: Set up Python 3.12
+        uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: |
+            compute-center/requirements.txt
+            compute-center/requirements-finance.txt
+            compute-center/requirements-mesa.txt
+            compute-center/requirements-missing-data.txt
+            compute-center/requirements-diffusion.txt
+            compute-center/requirements-causal.txt
+            compute-center/requirements-bayesian-network.txt
+
+      - name: Install complete isolated compute environment
+        run: |
+          set -euo pipefail
+          python -m pip install --disable-pip-version-check --no-input -r compute-center/requirements-mesa.txt
+          python -m pip install --disable-pip-version-check --no-input -r compute-center/requirements-finance.txt
+          python -m pip install --disable-pip-version-check --no-input -r compute-center/requirements-missing-data.txt
+          python -m pip install --disable-pip-version-check --no-input -r compute-center/requirements-diffusion.txt
+          python -m pip install --disable-pip-version-check --no-input -r compute-center/requirements-causal.txt
+          python -m pip install --disable-pip-version-check --no-input -r compute-center/requirements-bayesian-network.txt
+          python -m pip check
+
+      - name: Compile production runtime and validators
+        run: |
+          set -euo pipefail
+          python -m py_compile compute-center/*.py compute-center/tests/*.py tools/validate_three_center_isolation.py
+
+      - name: Enforce GPTs-only three-center topology
+        run: |
+          set -o pipefail
+          mkdir -p architecture-validation-artifacts
+          python tools/validate_three_center_isolation.py 2>&1 | tee architecture-validation-artifacts/three-center-isolation-audit.json
+
+      - name: Validate sixteen institutional libraries
+        run: |
+          set -o pipefail
+          python compute-center/governance_catalog.py 2>&1 | tee institutional-library-validation.json
+
+      - name: Run complete compute unit and integration suite
+        run: |
+          set -o pipefail
+          python -m unittest discover -s compute-center/tests -v 2>&1 | tee compute-test-console.log
+
+      - name: Execute all 26 production operations
+        run: |
+          set -o pipefail
+          python compute-center/validate_all_operations.py --output-dir all-compute-operation-artifacts 2>&1 | tee all-compute-operations-console.log
+          cp all-compute-operations-console.log all-compute-operation-artifacts/
+
+      - name: Execute all 22 Decision Intelligence modes
+        run: |
+          set -o pipefail
+          python compute-center/validate_all_decision_intelligence_modes.py --output-dir all-decision-intelligence-mode-artifacts 2>&1 | tee all-decision-intelligence-modes-console.log
+          cp all-decision-intelligence-modes-console.log all-decision-intelligence-mode-artifacts/
+
+      - name: Verify aggregate acceptance evidence
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import json
+          from pathlib import Path
+
+          governance = json.loads(Path('institutional-library-validation.json').read_text(encoding='utf-8'))
+          assert governance['status'] == 'PASS', governance
+          assert governance['institutional_library_count'] == 16, governance
+          assert governance['strategy_count'] >= 8, governance
+          assert governance['credibility_factor_count'] == 12, governance
+          assert governance['unverified_domain_truth_prepopulation_allowed'] is False, governance
+          assert governance['single_weighted_credibility_score_allowed'] is False, governance
+
+          operation_root = Path('all-compute-operation-artifacts')
+          operation_summary = json.loads((operation_root / 'all-operations-validation-summary.json').read_text(encoding='utf-8'))
+          assert operation_summary['status'] == 'PASS', operation_summary
+          assert operation_summary['operation_count_expected'] == 26, operation_summary
+          assert operation_summary['operation_count_executed'] == 26, operation_summary
+          assert operation_summary['passed'] == 26 and operation_summary['failed'] == 0, operation_summary
+          assert len(operation_summary['registry']) == 26
+          assert len(operation_summary['rows']) == 26
+          required = (
+              'compute-result.json', 'compute-audit.json', 'compute-diagnostics.json',
+              'compute-preflight.json', 'compute-data-gap-plan.json',
+              'compute-expert-review-request.json', 'compute-model-governance.json',
+              'compute-assumption-plan.json', 'compute-assumption-assurance.json',
+              'compute-experiment-assurance.json', 'compute-experiment-execution.json',
+              'compute-calibration-assurance.json', 'compute-validation-result.json',
+              'compute-maturity-assessment.json', 'compute-credibility-case.json',
+              'compute-constraint-precheck.json', 'compute-constraint-calibrated-precheck.json',
+              'compute-constraint-postcheck.json', 'artifact-manifest.json'
+          )
+          for row in operation_summary['rows']:
+              assert row['status'] == 'PASS', row
+              root = operation_root / row['operation']
+              for name in required:
+                  assert (root / name).is_file(), (row['operation'], name)
+
+          mode_root = Path('all-decision-intelligence-mode-artifacts')
+          mode_summary = json.loads((mode_root / 'all-decision-intelligence-modes-validation-summary.json').read_text(encoding='utf-8'))
+          assert mode_summary['status'] == 'PASS', mode_summary
+          assert mode_summary['mode_count_expected'] == 22, mode_summary
+          assert mode_summary['mode_count_executed'] == 22, mode_summary
+          assert mode_summary['passed'] == 22 and mode_summary['failed'] == 0, mode_summary
+          assert len(mode_summary['modes']) == 22
+          assert mode_summary['network_used'] is False
+          assert mode_summary['model_calls'] == 0
+          assert mode_summary['sole_relay'] == 'gpts-usage-center'
+          for row in mode_summary['rows']:
+              assert row['status'] == 'PASS', row
+              root = mode_root / row['mode']
+              for name in ('compute-result.json', 'compute-audit.json', 'compute-diagnostics.json', 'compute-preflight.json', 'compute-data-gap-plan.json', 'compute-expert-review-request.json', 'artifact-manifest.json'):
+                  assert (root / name).is_file(), (row['mode'], name)
+
+          print(json.dumps({'status': 'PASS', 'operations': 26, 'managed_modes': 69, 'institutional_libraries': 16, 'credibility_factors': 12, 'decision_intelligence_modes': 22, 'operation_summary_sha256': operation_summary['summary_sha256'], 'mode_summary_sha256': mode_summary['summary_sha256'], 'sole_relay': 'gpts-usage-center', 'compute_network_policy': 'deny'}))
+          PY
+
+      - name: Upload exhaustive compute evidence
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: all-compute-capabilities-${{ github.run_id }}
+          path: |
+            architecture-validation-artifacts/
+            institutional-library-validation.json
+            compute-test-console.log
+            all-compute-operation-artifacts/
+            all-decision-intelligence-mode-artifacts/
+          if-no-files-found: error
+          retention-days: 30
