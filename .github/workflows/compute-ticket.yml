@@ -117,6 +117,24 @@ jobs:
               2>&1 | tee compute-artifacts/compute-console.log
           "
 
+      - name: Restore runner ownership after isolated execution
+        id: restore_ownership
+        if: always() && steps.prepare.outputs.accepted == 'true'
+        continue-on-error: true
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -d compute-artifacts
+          if find compute-artifacts -type l -print -quit | grep -q .; then
+            echo "symbolic links are forbidden in compute artifacts" >&2
+            exit 1
+          fi
+          sudo chown -R -- "$(id -u):$(id -g)" compute-artifacts
+          test -w compute-artifacts
+          if [[ -e compute-artifacts/artifact-manifest.json ]]; then
+            test -w compute-artifacts/artifact-manifest.json
+          fi
+
       - name: Refresh Artifact manifest after console capture
         id: refresh_manifest
         if: always() && steps.prepare.outputs.accepted == 'true'
@@ -158,6 +176,7 @@ jobs:
         if: >-
           steps.prepare.outputs.accepted == 'true' &&
           steps.execute.outcome == 'success' &&
+          steps.restore_ownership.outcome == 'success' &&
           steps.refresh_manifest.outcome == 'success' &&
           steps.upload.outcome == 'success' &&
           steps.upload.outputs['artifact-id'] != ''
@@ -254,12 +273,14 @@ jobs:
         if: >-
           steps.prepare.outputs.accepted == 'true' &&
           (steps.execute.outcome != 'success' ||
+           steps.restore_ownership.outcome != 'success' ||
            steps.refresh_manifest.outcome != 'success' ||
            steps.upload.outcome != 'success' ||
            steps.upload.outputs['artifact-id'] == '')
         env:
           ARTIFACT_URL: ${{ steps.upload.outputs['artifact-url'] }}
           EXECUTE_OUTCOME: ${{ steps.execute.outcome }}
+          OWNERSHIP_OUTCOME: ${{ steps.restore_ownership.outcome }}
           MANIFEST_OUTCOME: ${{ steps.refresh_manifest.outcome }}
           UPLOAD_OUTCOME: ${{ steps.upload.outcome }}
         run: |
@@ -280,6 +301,7 @@ jobs:
               f"- Message: `{str(error.get('message') or 'unknown')[:4000]}`",
               f"- Retryable: `{str(bool(error.get('retryable'))).lower()}`",
               f"- Execute outcome: `{os.environ['EXECUTE_OUTCOME']}`",
+              f"- Ownership restore outcome: `{os.environ['OWNERSHIP_OUTCOME']}`",
               f"- Manifest outcome: `{os.environ['MANIFEST_OUTCOME']}`",
               f"- Artifact upload outcome: `{os.environ['UPLOAD_OUTCOME']}`",
               "- Model calls: `0`", "- External data fetches: `0`",
@@ -295,6 +317,7 @@ jobs:
           always() &&
           (steps.prepare.outputs.accepted != 'true' ||
            steps.execute.outcome != 'success' ||
+           steps.restore_ownership.outcome != 'success' ||
            steps.refresh_manifest.outcome != 'success' ||
            steps.upload.outcome != 'success' ||
            steps.upload.outputs['artifact-id'] == '' ||
