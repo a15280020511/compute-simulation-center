@@ -1,0 +1,56 @@
+{
+  "schema_version": "institutional-entrypoints-v1",
+  "policy": {
+    "legacy_libraries_preserved": true,
+    "delete_duplicates_only_after_compatibility_validation": true,
+    "gpts_exposes_only_entrypoints": true
+  },
+  "entrypoints": [
+    {
+      "id": "model-method",
+      "maps": [
+        "model-library",
+        "method-library",
+        "mechanism-coverage-library"
+      ]
+    },
+    {
+      "id": "assumption-evidence",
+      "maps": [
+        "assumption-library",
+        "distribution-prior-library",
+        "data-evidence-library",
+        "sample-library"
+      ]
+    },
+    {
+      "id": "calibration-uncertainty",
+      "maps": [
+        "parameter-calibration-library",
+        "credibility-library"
+      ]
+    },
+    {
+      "id": "constraint-experiment",
+      "maps": [
+        "constraint-library",
+        "scenario-library",
+        "experiment-design-library"
+      ]
+    },
+    {
+      "id": "benchmark-trust",
+      "maps": [
+        "benchmark-validation-library",
+        "rule-library"
+      ]
+    },
+    {
+      "id": "feedback-performance",
+      "maps": [
+        "feedback-results-library",
+        "strategy-library"
+      ]
+    }
+  ]
+}

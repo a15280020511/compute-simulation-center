@@ -21,3 +21,7 @@
 ## 迁移证据
 
 查看 `MIGRATION_MANIFEST.json`、`MIGRATION.md` 和 `governance-compatibility.json`。
+
+## V3 accuracy enhancement
+
+See `compute-center/accuracy-enhancement-capabilities.json`, `compute-center/ACCURACY_ENHANCEMENT_STATUS.md`, the institutional quality matrix, and the separate allowlisted literature-evidence workflow. New modes remain controlled-preview until domain benchmarks pass.
