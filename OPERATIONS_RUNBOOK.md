@@ -1,22 +1,26 @@
-# Computation & Simulation Center 本地运行手册
+# Computation & Simulation Center 运行手册
 
-## 正式入口
+## 入口
 
-Issue 前缀：`[compute]`
+- `[compute]`：断网数值计算。
+- `[literature]` / `[compute-literature]`：OpenAlex＋Crossref 冻结候选证据。
 
-## 本仓库工作流
+## 权威工作流
 
-- `.github/workflows/compute-all-operations-validate.yml`
-- `.github/workflows/compute-network-isolation-validate.yml`
-- `.github/workflows/compute-quality-benchmarks.yml`
-- `.github/workflows/compute-ticket.yml`
-- `.github/workflows/compute-validate.yml`
-- `.github/workflows/mesa-validate.yml`
+- `compute-ticket.yml`：正式数值票据；
+- `literature-evidence-ticket.yml`：正式文献票据；
+- `compute-all-operations-validate.yml`：全部生产操作和决策智能模式；
+- `compute-quality-benchmarks.yml`：机构级质量门；
+- `institutional-quality-matrix.yml`：可选依赖隔离矩阵；
+- `compute-network-isolation-validate.yml`：数值断网边界；
+- `literature-evidence-validate.yml`：文献主机白名单和票据合同；
+- `mesa-validate.yml`：Agent 仿真；
+- `repository-line-audit.yml`：全仓静态审计。
 
-## 运行纪律
+## 纪律
 
-1. 只接受本中心票据，不接受另外两个中心的业务任务。
-2. 结果必须以业务完成状态、正文、Artifact、Manifest 和 SHA 为准，不能只看 Workflow success。
-3. Secret 只在本仓库或本仓库 Environment 中重新配置，不从旧仓库复制值。
-4. 依赖升级先经本仓库 CI；禁止跨仓库复用业务运行工作流。
-5. 迁移验收完成前，旧仓库入口仅作为回滚源，不与新入口同时承接同一正式任务。
+1. 每个任务只安装对应受管依赖；CVXPY/HiGHS 与 OR-Tools 不在同一进程加载。
+2. 正式输出以业务完成状态、正文、Artifact、Manifest 和 SHA 为准。
+3. 新增模式先进入 `controlled-preview`，不得用工具已安装替代领域基准。
+4. 依赖升级必须通过本仓库全部相关 CI；禁止运行时安装票据指定包。
+5. 故障只做有限重试；重复任务使用 task ID、语义指纹和当前运行锁阻断。
