@@ -61,8 +61,8 @@ def main() -> int:
     )
     text = replace_once(
         text,
-        "            steps.execute.outcome != 'success' ||\n            steps.refresh_manifest.outcome != 'success' ||",
-        "            steps.execute.outcome != 'success' ||\n            steps.restore_ownership.outcome != 'success' ||\n            steps.refresh_manifest.outcome != 'success' ||",
+        "           steps.execute.outcome != 'success' ||\n           steps.refresh_manifest.outcome != 'success' ||",
+        "           steps.execute.outcome != 'success' ||\n           steps.restore_ownership.outcome != 'success' ||\n           steps.refresh_manifest.outcome != 'success' ||",
     )
     WORKFLOW.write_text(text, encoding='utf-8')
 
