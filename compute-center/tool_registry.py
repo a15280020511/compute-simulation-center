@@ -14,6 +14,7 @@ from jsonschema import Draft202012Validator
 from capability_manager import load_registered_operations, requirements_for_ticket, runtime_plan
 from governance_runtime import install as install_governance_runtime
 from json_normalization import wrap_operation
+from systems_matrix import load_systems_matrix, route_for_ticket
 
 
 def register_into(target: dict[str, Callable[[Mapping[str, Any]], dict[str, Any]]]) -> None:
@@ -39,6 +40,12 @@ def requirement_files_for_ticket(ticket: Mapping[str, Any]) -> list[str]:
     return requirements_for_ticket(ticket)
 
 
+def managed_runtime_plan(ticket: Mapping[str, Any]) -> dict[str, Any]:
+    plan = runtime_plan(ticket)
+    plan["systems_route"] = route_for_ticket(ticket)
+    return plan
+
+
 def main() -> int:
     parser = argparse.ArgumentParser()
     sub = parser.add_subparsers(dest="command", required=True)
@@ -50,7 +57,14 @@ def main() -> int:
     args = parser.parse_args()
     if args.command == "validate":
         operations = load_registered_operations()
-        print(json.dumps({"status": "PASS", "manager_version": 2, "registered_operations": sorted(operations)}))
+        matrix = load_systems_matrix()
+        print(json.dumps({
+            "status": "PASS",
+            "manager_version": 2,
+            "registered_operations": sorted(operations),
+            "systems_matrix_schema": matrix["schema_version"],
+            "systems_matrix_operation_count": len(matrix["routes"]),
+        }, ensure_ascii=False))
         return 0
     ticket = json.loads(Path(args.ticket).read_text(encoding="utf-8"))
     if not isinstance(ticket, Mapping):
@@ -59,7 +73,7 @@ def main() -> int:
         for requirement in requirements_for_ticket(ticket):
             print(requirement)
         return 0
-    print(json.dumps(runtime_plan(ticket), ensure_ascii=False, indent=2))
+    print(json.dumps(managed_runtime_plan(ticket), ensure_ascii=False, indent=2))
     return 0
 
 
