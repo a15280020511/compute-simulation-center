@@ -6,3 +6,5 @@ ticket-artifacts/
 runtime-state/
 performance-state/
 tmp-test-artifacts/
+
+audit-artifacts/

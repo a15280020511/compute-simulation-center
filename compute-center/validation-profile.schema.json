@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://github.com/a15280020511/test/compute-center/validation-profile.schema.json",
+  "$id": "https://github.com/a15280020511/compute-simulation-center/compute-center/validation-profile.schema.json",
   "title": "Compute Validation Profile",
   "type": "object",
   "additionalProperties": false,

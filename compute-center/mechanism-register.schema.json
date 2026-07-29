@@ -1,6 +1,6 @@
 {
   "$schema":"https://json-schema.org/draft/2020-12/schema",
-  "$id":"https://github.com/a15280020511/test/compute-center/mechanism-register.schema.json",
+  "$id":"https://github.com/a15280020511/compute-simulation-center/compute-center/mechanism-register.schema.json",
   "title":"Phenomena and Mechanism Coverage Register",
   "type":"array",
   "maxItems":200,

@@ -545,69 +545,78 @@ def pattern_discovery(inputs: Mapping[str, Any]) -> dict[str, Any]:
     }
 
 
+def _assumption_range_check(inputs: Mapping[str, Any], data: np.ndarray) -> tuple[dict[str, Any] | None, bool, bool]:
+    expected_min, expected_max = inputs.get("expected_minimum"), inputs.get("expected_maximum")
+    if expected_min is None and expected_max is None:
+        return None, False, False
+    low = -math.inf if expected_min is None else _finite(expected_min, "inputs.expected_minimum")
+    high = math.inf if expected_max is None else _finite(expected_max, "inputs.expected_maximum")
+    if low > high:
+        raise ComputeError("expected_minimum cannot exceed expected_maximum")
+    outside = float(np.mean((data < low) | (data > high)))
+    return {"name": "expected_range", "outside_fraction": outside, "pass": outside <= 0.05}, outside > 0.20, outside > 0.05
+
+
+def _assumption_mean_check(inputs: Mapping[str, Any], data: np.ndarray) -> tuple[dict[str, Any] | None, bool, bool, bool]:
+    if "expected_mean" not in inputs:
+        return None, False, False, False
+    expected_mean = _finite(inputs.get("expected_mean"), "inputs.expected_mean")
+    tolerance = _finite(inputs.get("mean_tolerance", max(float(np.std(data)), 1e-9)), "inputs.mean_tolerance")
+    if tolerance <= 0:
+        raise ComputeError("mean_tolerance must be positive")
+    deviation = abs(float(np.mean(data)) - expected_mean)
+    row = {"name": "expected_mean", "deviation": deviation, "tolerance": tolerance, "pass": deviation <= tolerance}
+    return row, deviation > 2 * tolerance, deviation > tolerance, 0.8 * tolerance <= deviation <= 1.2 * tolerance
+
+
+def _distribution_p_value(data: np.ndarray, distribution: str) -> float:
+    if distribution == "normal":
+        mean, std = float(np.mean(data)), float(np.std(data, ddof=0))
+        return 0.0 if std == 0 else float(stats.kstest(data, stats.norm(loc=mean, scale=std).cdf).pvalue)
+    if distribution == "uniform":
+        low, width = float(np.min(data)), float(np.max(data) - np.min(data))
+        return 0.0 if width == 0 else float(stats.kstest(data, stats.uniform(loc=low, scale=width).cdf).pvalue)
+    raise ComputeError("expected_distribution must be normal or uniform")
+
+
+def _assumption_distribution_check(inputs: Mapping[str, Any], data: np.ndarray) -> tuple[dict[str, Any] | None, bool, bool]:
+    raw = inputs.get("expected_distribution")
+    if raw is None:
+        return None, False, False
+    distribution = str(raw)
+    if data.size < 8:
+        return {"name": "distribution_fit", "status": "INSUFFICIENT_DATA"}, False, True
+    p_value = _distribution_p_value(data, distribution)
+    row = {"name": "distribution_fit", "distribution": distribution, "p_value": p_value, "pass": p_value >= 0.05}
+    return row, p_value < 0.001, p_value < 0.05
+
+
+def _assumption_status(size: int, *, conflict: bool, sensitive: bool, weak: bool) -> str:
+    if size < 8:
+        return "INSUFFICIENT_DATA"
+    if conflict:
+        return "CONFLICT"
+    if sensitive:
+        return "HIGHLY_SENSITIVE"
+    return "WEAK" if weak else "PASS"
+
+
 def assumption_validation(inputs: Mapping[str, Any]) -> dict[str, Any]:
-    data = np.asarray([_finite(item, f"inputs.data[{index}]") for index, item in enumerate(_sequence(inputs.get("data"), "inputs.data"))], dtype=float)
+    data = np.asarray([
+        _finite(item, f"inputs.data[{index}]")
+        for index, item in enumerate(_sequence(inputs.get("data"), "inputs.data"))
+    ], dtype=float)
     if not 3 <= data.size <= MAX_SERIES:
         raise ComputeError(f"inputs.data must contain 3 to {MAX_SERIES} values")
-    checks = []
-    conflict = False
-    weak = False
-    sensitive = False
-    expected_min = inputs.get("expected_minimum")
-    expected_max = inputs.get("expected_maximum")
-    if expected_min is not None or expected_max is not None:
-        low = -math.inf if expected_min is None else _finite(expected_min, "inputs.expected_minimum")
-        high = math.inf if expected_max is None else _finite(expected_max, "inputs.expected_maximum")
-        if low > high:
-            raise ComputeError("expected_minimum cannot exceed expected_maximum")
-        outside = float(np.mean((data < low) | (data > high)))
-        checks.append({"name": "expected_range", "outside_fraction": outside, "pass": outside <= 0.05})
-        conflict = conflict or outside > 0.20
-        weak = weak or outside > 0.05
-    if "expected_mean" in inputs:
-        expected_mean = _finite(inputs.get("expected_mean"), "inputs.expected_mean")
-        tolerance = _finite(inputs.get("mean_tolerance", max(float(np.std(data)), 1e-9)), "inputs.mean_tolerance")
-        if tolerance <= 0:
-            raise ComputeError("mean_tolerance must be positive")
-        deviation = abs(float(np.mean(data)) - expected_mean)
-        checks.append({"name": "expected_mean", "deviation": deviation, "tolerance": tolerance, "pass": deviation <= tolerance})
-        conflict = conflict or deviation > 2 * tolerance
-        weak = weak or deviation > tolerance
-        sensitive = sensitive or 0.8 * tolerance <= deviation <= 1.2 * tolerance
-    distribution = inputs.get("expected_distribution")
-    if distribution is not None:
-        distribution = str(distribution)
-        if data.size < 8:
-            checks.append({"name": "distribution_fit", "status": "INSUFFICIENT_DATA"})
-            weak = True
-        elif distribution == "normal":
-            mean = float(np.mean(data))
-            std = float(np.std(data, ddof=0))
-            p_value = 0.0 if std == 0 else float(stats.kstest(data, stats.norm(loc=mean, scale=std).cdf).pvalue)
-            checks.append({"name": "distribution_fit", "distribution": "normal", "p_value": p_value, "pass": p_value >= 0.05})
-            weak = weak or p_value < 0.05
-            conflict = conflict or p_value < 0.001
-        elif distribution == "uniform":
-            low = float(np.min(data))
-            width = float(np.max(data) - low)
-            p_value = 0.0 if width == 0 else float(stats.kstest(data, stats.uniform(loc=low, scale=width).cdf).pvalue)
-            checks.append({"name": "distribution_fit", "distribution": "uniform", "p_value": p_value, "pass": p_value >= 0.05})
-            weak = weak or p_value < 0.05
-            conflict = conflict or p_value < 0.001
-        else:
-            raise ComputeError("expected_distribution must be normal or uniform")
-    if data.size < 8:
-        status = "INSUFFICIENT_DATA"
-    elif conflict:
-        status = "CONFLICT"
-    elif sensitive:
-        status = "HIGHLY_SENSITIVE"
-    elif weak:
-        status = "WEAK"
-    else:
-        status = "PASS"
+    checks: list[dict[str, Any]] = []
+    range_row, range_conflict, range_weak = _assumption_range_check(inputs, data)
+    mean_row, mean_conflict, mean_weak, sensitive = _assumption_mean_check(inputs, data)
+    distribution_row, distribution_conflict, distribution_weak = _assumption_distribution_check(inputs, data)
+    checks.extend(row for row in (range_row, mean_row, distribution_row) if row is not None)
+    conflict = range_conflict or mean_conflict or distribution_conflict
+    weak = range_weak or mean_weak or distribution_weak
     return {
-        "status": status,
+        "status": _assumption_status(data.size, conflict=conflict, sensitive=sensitive, weak=weak),
         "checks": checks,
         "observed": {
             "count": int(data.size),

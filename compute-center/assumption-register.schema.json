@@ -1,6 +1,6 @@
 {
   "$schema":"https://json-schema.org/draft/2020-12/schema",
-  "$id":"https://github.com/a15280020511/test/compute-center/assumption-register.schema.json",
+  "$id":"https://github.com/a15280020511/compute-simulation-center/compute-center/assumption-register.schema.json",
   "title":"Compute Center Assumption Register",
   "type":"array",
   "maxItems":200,

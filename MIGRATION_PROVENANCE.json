@@ -1,0 +1,16 @@
+{
+  "schema_version": "migration-provenance-v1",
+  "source_repository": "a15280020511/test",
+  "source_commit": "abac3d776340c8c162b8fc0c670167fde94f3baa",
+  "package_workflow_run_id": 30465568899,
+  "package_artifact_id": 8729392914,
+  "package_sha256": "1084fc28aa06974b5e636addc95bfdc80a88e63f2e6172e0164828e25b7fe77e",
+  "initial_center_merge_commit": "62ae8bb94a53159f319e3921c334e855ba1616f5",
+  "literature_plane_merge_commit": "9128ccf045ee165f26cc05c436d45f429bf5be45",
+  "governance_repository": "a15280020511/decision-system-governance",
+  "governance_version": "3.2.0",
+  "center_version": "3.1.0",
+  "runtime_cross_repository_read": false,
+  "source_repository_is_runtime_dependency": false,
+  "production_cutover_status": "pending-secrets-gpts-actions-and-shadow-pipeline"
+}

@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://github.com/a15280020511/test/compute-center/compute-preflight.schema.json",
+  "$id": "https://github.com/a15280020511/compute-simulation-center/compute-center/compute-preflight.schema.json",
   "title": "Compute Data Readiness Preflight Result",
   "type": "object",
   "additionalProperties": false,

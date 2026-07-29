@@ -216,304 +216,391 @@ def evaluate_feedback(
     }
 
 
+
+def _quality_check(
+    code: str,
+    status: str,
+    message: str,
+    *,
+    blocking: bool = False,
+) -> dict[str, Any]:
+    return {
+        "code": code,
+        "status": status,
+        "blocking": blocking,
+        "message": message,
+    }
+
+
+def _append_preflight_checks(
+    checks: list[dict[str, Any]],
+    preflight: Mapping[str, Any],
+    profile_policy: Mapping[str, Any],
+    decision_class: str,
+) -> None:
+    strict = str(preflight.get("policy", {}).get("enforcement")) == "strict"
+    checks.append(
+        _quality_check(
+            "STRICT_PREFLIGHT",
+            "PASS" if strict else "FAIL",
+            "Formal computation must use strict preflight.",
+            blocking=decision_class != "exploratory" and not strict,
+        )
+    )
+
+    assumption_ratio = preflight.get("data_summary", {}).get("assumption_ratio")
+    maximum_ratio = float(profile_policy.get("max_assumption_ratio", 0.25))
+    if assumption_ratio is None:
+        checks.append(
+            _quality_check(
+                "ASSUMPTION_RATIO",
+                "WARN",
+                "Variable-level provenance was not declared; assumption ratio cannot be verified.",
+                blocking=decision_class == "high_stakes",
+            )
+        )
+        return
+    ratio = float(assumption_ratio)
+    if ratio <= maximum_ratio:
+        checks.append(
+            _quality_check(
+                "ASSUMPTION_RATIO",
+                "PASS",
+                f"Assumption ratio {ratio:.1%} is within {maximum_ratio:.1%}.",
+            )
+        )
+        return
+    checks.append(
+        _quality_check(
+            "ASSUMPTION_RATIO",
+            "FAIL",
+            f"Assumption ratio {ratio:.1%} exceeds {maximum_ratio:.1%}.",
+            blocking=True,
+        )
+    )
+
+
+def _append_benchmark_check(
+    checks: list[dict[str, Any]],
+    profile: Mapping[str, Any],
+    profile_policy: Mapping[str, Any],
+    decision_class: str,
+) -> tuple[list[str], set[str]]:
+    benchmark_ids = (
+        [str(value) for value in profile.get("benchmark_ids", [])]
+        if isinstance(profile.get("benchmark_ids"), list)
+        else []
+    )
+    approved = _approved_benchmark_ids()
+    unknown = sorted(set(benchmark_ids) - approved)
+    if unknown:
+        checks.append(
+            _quality_check(
+                "BENCHMARK_EVIDENCE",
+                "FAIL",
+                f"Unapproved benchmark IDs: {', '.join(unknown)}.",
+                blocking=decision_class == "high_stakes",
+            )
+        )
+    elif benchmark_ids:
+        checks.append(
+            _quality_check(
+                "BENCHMARK_EVIDENCE",
+                "PASS",
+                f"Approved benchmark evidence: {', '.join(benchmark_ids)}.",
+            )
+        )
+    elif bool(profile_policy.get("benchmark_evidence_required", False)):
+        checks.append(
+            _quality_check(
+                "BENCHMARK_EVIDENCE",
+                "WARN",
+                "No approved golden or frozen-real benchmark ID was attached.",
+                blocking=decision_class == "high_stakes",
+            )
+        )
+    else:
+        checks.append(
+            _quality_check(
+                "BENCHMARK_EVIDENCE",
+                "NOT_REQUIRED",
+                "Benchmark evidence is not required for this profile.",
+            )
+        )
+    return benchmark_ids, approved
+
+
+def _append_independent_check(
+    checks: list[dict[str, Any]],
+    ticket: Mapping[str, Any],
+    profile: Mapping[str, Any],
+    profile_policy: Mapping[str, Any],
+) -> list[Mapping[str, Any]]:
+    evidence = ticket.get("evidence") if isinstance(ticket.get("evidence"), list) else []
+    hashed = [
+        row
+        for row in evidence
+        if isinstance(row, Mapping)
+        and isinstance(row.get("sha256"), str)
+        and len(str(row.get("sha256"))) == 64
+    ]
+    required = bool(profile_policy.get("independent_cross_check_required", False))
+    declared = bool(profile.get("independent_cross_check_passed", False))
+    method = str(profile.get("cross_check_method") or "").strip()
+    verified = bool(declared and method and hashed)
+    if required and not verified:
+        checks.append(
+            _quality_check(
+                "INDEPENDENT_CROSS_CHECK",
+                "FAIL",
+                "High-stakes result requires a passed independent method, a named cross-check method and SHA-256 evidence.",
+                blocking=True,
+            )
+        )
+    elif verified:
+        checks.append(
+            _quality_check(
+                "INDEPENDENT_CROSS_CHECK",
+                "PASS",
+                f"Independent cross-check is evidenced using {method}.",
+            )
+        )
+    return hashed
+
+
+def _append_user_approval_check(
+    checks: list[dict[str, Any]],
+    profile: Mapping[str, Any],
+    profile_policy: Mapping[str, Any],
+) -> None:
+    required = bool(profile_policy.get("user_approval_required", False))
+    if not required:
+        return
+    approved = bool(profile.get("user_approved_for_high_stakes", False))
+    checks.append(
+        _quality_check(
+            "HIGH_STAKES_USER_APPROVAL",
+            "PASS" if approved else "FAIL",
+            "Explicit high-stakes user approval is recorded."
+            if approved
+            else "High-stakes decision use requires explicit user approval in the ticket.",
+            blocking=not approved,
+        )
+    )
+
+
+def _append_probability_check(
+    checks: list[dict[str, Any]],
+    profile: Mapping[str, Any],
+    profile_policy: Mapping[str, Any],
+    feedback: Mapping[str, Any],
+    decision_class: str,
+    policy: Mapping[str, Any],
+) -> tuple[bool, int, Mapping[str, Any] | None]:
+    probability = feedback.get("probability_calibration")
+    probabilistic_claim = bool(profile.get("probabilistic_claim", False)) or probability is not None
+    required = bool(
+        profile_policy.get("calibration_required_for_probabilistic_claims", False)
+    ) and probabilistic_claim
+    thresholds = policy.get("calibration_thresholds") or {}
+    minimum = int(thresholds.get("minimum_feedback_observations", 20))
+    if required and not probability:
+        checks.append(
+            _quality_check(
+                "PROBABILITY_CALIBRATION",
+                "FAIL",
+                "Probabilistic decision claim has no realized-outcome calibration feedback.",
+                blocking=decision_class == "high_stakes",
+            )
+        )
+        return required, minimum, None
+    if not isinstance(probability, Mapping):
+        return required, minimum, None
+
+    brier = float(probability["brier_score"])
+    ece = float(probability["expected_calibration_error"])
+    block = (
+        brier > float(thresholds.get("brier_score_block", 0.35))
+        or ece > float(thresholds.get("expected_calibration_error_block", 0.2))
+    )
+    warn = (
+        brier > float(thresholds.get("brier_score_warning", 0.25))
+        or ece > float(thresholds.get("expected_calibration_error_warning", 0.1))
+        or int(probability["count"]) < minimum
+    )
+    checks.append(
+        _quality_check(
+            "PROBABILITY_CALIBRATION",
+            "FAIL" if block else "WARN" if warn else "PASS",
+            f"Brier={brier:.4f}, ECE={ece:.4f}, n={probability['count']}.",
+            blocking=block,
+        )
+    )
+    return required, minimum, probability
+
+
+def _append_feedback_provenance_check(
+    checks: list[dict[str, Any]],
+    feedback: Mapping[str, Any],
+    decision_class: str,
+) -> None:
+    if decision_class != "high_stakes" or not feedback.get("provided"):
+        return
+    valid = bool(feedback.get("source_snapshot_sha256"))
+    checks.append(
+        _quality_check(
+            "FEEDBACK_PROVENANCE",
+            "PASS" if valid else "FAIL",
+            "High-stakes realized outcomes require an immutable source snapshot SHA-256.",
+            blocking=not valid,
+        )
+    )
+
+
+def _append_interval_check(
+    checks: list[dict[str, Any]],
+    feedback: Mapping[str, Any],
+    policy: Mapping[str, Any],
+) -> None:
+    interval = feedback.get("interval_calibration")
+    if not isinstance(interval, Mapping):
+        return
+    thresholds = policy.get("calibration_thresholds") or {}
+    target = float(thresholds.get("interval_coverage_target", 0.9))
+    tolerance = float(thresholds.get("interval_coverage_tolerance", 0.1))
+    coverage = float(interval["empirical_coverage"])
+    checks.append(
+        _quality_check(
+            "INTERVAL_COVERAGE",
+            "PASS" if abs(coverage - target) <= tolerance else "WARN",
+            f"Empirical interval coverage={coverage:.1%}, target={target:.1%}.",
+        )
+    )
+
+
+def _append_drift_check(
+    checks: list[dict[str, Any]],
+    feedback: Mapping[str, Any],
+    policy: Mapping[str, Any],
+) -> None:
+    drift = feedback.get("drift")
+    if not isinstance(drift, Mapping):
+        return
+    thresholds = policy.get("drift_thresholds") or {}
+    psi = float(drift["population_stability_index"])
+    ks = float(drift["kolmogorov_smirnov_statistic"])
+    shift = float(drift["standardized_mean_shift"])
+    block = (
+        psi > float(thresholds.get("population_stability_index_block", 0.25))
+        or ks > float(thresholds.get("kolmogorov_smirnov_block", 0.3))
+        or shift > float(thresholds.get("standardized_mean_shift_block", 1.0))
+    )
+    warn = (
+        psi > float(thresholds.get("population_stability_index_warning", 0.1))
+        or ks > float(thresholds.get("kolmogorov_smirnov_warning", 0.15))
+        or shift > float(thresholds.get("standardized_mean_shift_warning", 0.5))
+    )
+    checks.append(
+        _quality_check(
+            "DATA_DRIFT",
+            "FAIL" if block else "WARN" if warn else "PASS",
+            f"PSI={psi:.4f}, KS={ks:.4f}, standardized mean shift={shift:.4f}.",
+            blocking=block,
+        )
+    )
+
+
+def _append_reproducibility_check(
+    checks: list[dict[str, Any]],
+    result: Mapping[str, Any],
+) -> None:
+    execution = result.get("execution") if isinstance(result.get("execution"), Mapping) else {}
+    reproducible = execution.get("network_used") is False and int(execution.get("model_calls", 0)) == 0
+    checks.append(
+        _quality_check(
+            "REPRODUCIBILITY",
+            "PASS" if reproducible else "FAIL",
+            "Decision result must be produced with zero network and zero model calls.",
+            blocking=not reproducible,
+        )
+    )
+
+
+def _release_status(checks: Sequence[Mapping[str, Any]]) -> str:
+    if any(row.get("blocking") and row.get("status") == "FAIL" for row in checks):
+        return "DECISION_BLOCKED"
+    if any(row.get("status") in {"WARN", "FAIL"} for row in checks):
+        return "DECISION_CONDITIONAL"
+    return "DECISION_RELEASED"
+
+
+def _result_constraints(
+    checks: Sequence[Mapping[str, Any]],
+    release_status: str,
+    calibration_required: bool,
+    probability: Mapping[str, Any] | None,
+    minimum_feedback: int,
+) -> dict[str, bool]:
+    return {
+        "compute_result_may_be_read": True,
+        "formal_decision_use_allowed": release_status == "DECISION_RELEASED",
+        "must_collect_more_feedback": calibration_required
+        and (not probability or int(probability.get("count", 0)) < minimum_feedback),
+        "must_recalibrate_before_reuse": any(
+            row.get("code") in {"PROBABILITY_CALIBRATION", "DATA_DRIFT"}
+            and row.get("status") == "FAIL"
+            for row in checks
+        ),
+        "must_resolve_evidence_gaps": any(
+            row.get("code")
+            in {
+                "BENCHMARK_EVIDENCE",
+                "INDEPENDENT_CROSS_CHECK",
+                "HIGH_STAKES_USER_APPROVAL",
+                "FEEDBACK_PROVENANCE",
+            }
+            and row.get("status") == "FAIL"
+            for row in checks
+        ),
+    }
+
+
 def build_quality_report(
     ticket: Mapping[str, Any],
     result: Mapping[str, Any],
     preflight: Mapping[str, Any],
     policy: Mapping[str, Any] | None = None,
 ) -> dict[str, Any]:
-    policy = dict(policy or _load_policy())
-    profile = (
-        ticket.get("quality_profile")
-        if isinstance(ticket.get("quality_profile"), Mapping)
-        else {}
-    )
+    resolved_policy = dict(policy or _load_policy())
+    profile = ticket.get("quality_profile") if isinstance(ticket.get("quality_profile"), Mapping) else {}
     decision_class = str(profile.get("decision_class") or "formal")
-    profiles = policy.get("decision_profiles") or {}
-    profile_policy = dict(
-        profiles.get(decision_class) or profiles.get("formal") or {}
-    )
-    feedback = evaluate_feedback(ticket, policy)
+    profiles = resolved_policy.get("decision_profiles") or {}
+    profile_policy = dict(profiles.get(decision_class) or profiles.get("formal") or {})
+    feedback = evaluate_feedback(ticket, resolved_policy)
     checks: list[dict[str, Any]] = []
 
-    def add(
-        code: str,
-        status: str,
-        message: str,
-        *,
-        blocking: bool = False,
-    ) -> None:
-        checks.append(
-            {
-                "code": code,
-                "status": status,
-                "blocking": blocking,
-                "message": message,
-            }
-        )
-
-    strict = str(preflight.get("policy", {}).get("enforcement")) == "strict"
-    add(
-        "STRICT_PREFLIGHT",
-        "PASS" if strict else "FAIL",
-        "Formal computation must use strict preflight.",
-        blocking=decision_class != "exploratory" and not strict,
+    _append_preflight_checks(checks, preflight, profile_policy, decision_class)
+    benchmark_ids, approved_benchmarks = _append_benchmark_check(
+        checks, profile, profile_policy, decision_class
     )
-
-    assumption_ratio = preflight.get("data_summary", {}).get("assumption_ratio")
-    maximum_ratio = float(profile_policy.get("max_assumption_ratio", 0.25))
-    if assumption_ratio is None:
-        add(
-            "ASSUMPTION_RATIO",
-            "WARN",
-            "Variable-level provenance was not declared; assumption ratio cannot be verified.",
-            blocking=decision_class == "high_stakes",
-        )
-    elif float(assumption_ratio) <= maximum_ratio:
-        add(
-            "ASSUMPTION_RATIO",
-            "PASS",
-            f"Assumption ratio {assumption_ratio:.1%} is within {maximum_ratio:.1%}.",
-        )
-    else:
-        add(
-            "ASSUMPTION_RATIO",
-            "FAIL",
-            f"Assumption ratio {assumption_ratio:.1%} exceeds {maximum_ratio:.1%}.",
-            blocking=True,
-        )
-
-    benchmark_ids = (
-        [str(value) for value in profile.get("benchmark_ids", [])]
-        if isinstance(profile.get("benchmark_ids"), list)
-        else []
+    hashed_evidence = _append_independent_check(
+        checks, ticket, profile, profile_policy
     )
-    benchmark_required = bool(
-        profile_policy.get("benchmark_evidence_required", False)
+    _append_user_approval_check(checks, profile, profile_policy)
+    calibration_required, minimum_feedback, probability = _append_probability_check(
+        checks,
+        profile,
+        profile_policy,
+        feedback,
+        decision_class,
+        resolved_policy,
     )
-    approved_benchmarks = _approved_benchmark_ids()
-    unknown_benchmarks = sorted(set(benchmark_ids) - approved_benchmarks)
-    if unknown_benchmarks:
-        add(
-            "BENCHMARK_EVIDENCE",
-            "FAIL",
-            f"Unapproved benchmark IDs: {', '.join(unknown_benchmarks)}.",
-            blocking=decision_class == "high_stakes",
-        )
-    elif benchmark_ids:
-        add(
-            "BENCHMARK_EVIDENCE",
-            "PASS",
-            f"Approved benchmark evidence: {', '.join(benchmark_ids)}.",
-        )
-    elif benchmark_required:
-        add(
-            "BENCHMARK_EVIDENCE",
-            "WARN",
-            "No approved golden or frozen-real benchmark ID was attached.",
-            blocking=decision_class == "high_stakes",
-        )
-    else:
-        add(
-            "BENCHMARK_EVIDENCE",
-            "NOT_REQUIRED",
-            "Benchmark evidence is not required for this profile.",
-        )
+    _append_feedback_provenance_check(checks, feedback, decision_class)
+    _append_interval_check(checks, feedback, resolved_policy)
+    _append_drift_check(checks, feedback, resolved_policy)
+    _append_reproducibility_check(checks, result)
 
-    ticket_evidence = (
-        ticket.get("evidence") if isinstance(ticket.get("evidence"), list) else []
-    )
-    hashed_evidence = [
-        row
-        for row in ticket_evidence
-        if isinstance(row, Mapping)
-        and isinstance(row.get("sha256"), str)
-        and len(str(row.get("sha256"))) == 64
-    ]
-    independent_required = bool(
-        profile_policy.get("independent_cross_check_required", False)
-    )
-    independent_declared = bool(profile.get("independent_cross_check_passed", False))
-    cross_check_method = str(profile.get("cross_check_method") or "").strip()
-    independent_verified = bool(
-        independent_declared and cross_check_method and hashed_evidence
-    )
-    if independent_required and not independent_verified:
-        add(
-            "INDEPENDENT_CROSS_CHECK",
-            "FAIL",
-            "High-stakes result requires a passed independent method, a named cross-check method and SHA-256 evidence.",
-            blocking=True,
-        )
-    elif independent_verified:
-        add(
-            "INDEPENDENT_CROSS_CHECK",
-            "PASS",
-            f"Independent cross-check is evidenced using {cross_check_method}.",
-        )
-
-    user_approval_required = bool(
-        profile_policy.get("user_approval_required", False)
-    )
-    user_approved = bool(profile.get("user_approved_for_high_stakes", False))
-    if user_approval_required and not user_approved:
-        add(
-            "HIGH_STAKES_USER_APPROVAL",
-            "FAIL",
-            "High-stakes decision use requires explicit user approval in the ticket.",
-            blocking=True,
-        )
-    elif user_approval_required:
-        add(
-            "HIGH_STAKES_USER_APPROVAL",
-            "PASS",
-            "Explicit high-stakes user approval is recorded.",
-        )
-
-    probabilistic_claim = bool(profile.get("probabilistic_claim", False)) or (
-        feedback.get("probability_calibration") is not None
-    )
-    calibration_required = bool(
-        profile_policy.get("calibration_required_for_probabilistic_claims", False)
-    ) and probabilistic_claim
-    calibration_thresholds = policy.get("calibration_thresholds") or {}
-    minimum_feedback = int(
-        calibration_thresholds.get("minimum_feedback_observations", 20)
-    )
-    probability = feedback.get("probability_calibration")
-    if calibration_required and not probability:
-        add(
-            "PROBABILITY_CALIBRATION",
-            "FAIL",
-            "Probabilistic decision claim has no realized-outcome calibration feedback.",
-            blocking=decision_class == "high_stakes",
-        )
-    elif probability:
-        brier = float(probability["brier_score"])
-        ece = float(probability["expected_calibration_error"])
-        block = (
-            brier > float(calibration_thresholds.get("brier_score_block", 0.35))
-            or ece
-            > float(
-                calibration_thresholds.get(
-                    "expected_calibration_error_block", 0.2
-                )
-            )
-        )
-        warn = (
-            brier > float(calibration_thresholds.get("brier_score_warning", 0.25))
-            or ece
-            > float(
-                calibration_thresholds.get(
-                    "expected_calibration_error_warning", 0.1
-                )
-            )
-            or int(probability["count"]) < minimum_feedback
-        )
-        add(
-            "PROBABILITY_CALIBRATION",
-            "FAIL" if block else "WARN" if warn else "PASS",
-            f"Brier={brier:.4f}, ECE={ece:.4f}, n={probability['count']}.",
-            blocking=block,
-        )
-
-    if decision_class == "high_stakes" and feedback.get("provided"):
-        feedback_provenance_ok = bool(feedback.get("source_snapshot_sha256"))
-        add(
-            "FEEDBACK_PROVENANCE",
-            "PASS" if feedback_provenance_ok else "FAIL",
-            "High-stakes realized outcomes require an immutable source snapshot SHA-256.",
-            blocking=not feedback_provenance_ok,
-        )
-
-    interval = feedback.get("interval_calibration")
-    if interval:
-        target = float(
-            calibration_thresholds.get("interval_coverage_target", 0.9)
-        )
-        tolerance = float(
-            calibration_thresholds.get("interval_coverage_tolerance", 0.1)
-        )
-        coverage = float(interval["empirical_coverage"])
-        add(
-            "INTERVAL_COVERAGE",
-            "PASS" if abs(coverage - target) <= tolerance else "WARN",
-            f"Empirical interval coverage={coverage:.1%}, target={target:.1%}.",
-        )
-
-    drift = feedback.get("drift")
-    drift_thresholds = policy.get("drift_thresholds") or {}
-    if drift:
-        psi = float(drift["population_stability_index"])
-        ks = float(drift["kolmogorov_smirnov_statistic"])
-        shift = float(drift["standardized_mean_shift"])
-        block = (
-            psi
-            > float(
-                drift_thresholds.get("population_stability_index_block", 0.25)
-            )
-            or ks
-            > float(
-                drift_thresholds.get("kolmogorov_smirnov_block", 0.3)
-            )
-            or shift
-            > float(
-                drift_thresholds.get("standardized_mean_shift_block", 1.0)
-            )
-        )
-        warn = (
-            psi
-            > float(
-                drift_thresholds.get("population_stability_index_warning", 0.1)
-            )
-            or ks
-            > float(
-                drift_thresholds.get("kolmogorov_smirnov_warning", 0.15)
-            )
-            or shift
-            > float(
-                drift_thresholds.get("standardized_mean_shift_warning", 0.5)
-            )
-        )
-        add(
-            "DATA_DRIFT",
-            "FAIL" if block else "WARN" if warn else "PASS",
-            f"PSI={psi:.4f}, KS={ks:.4f}, standardized mean shift={shift:.4f}.",
-            blocking=block,
-        )
-
-    execution = (
-        result.get("execution")
-        if isinstance(result.get("execution"), Mapping)
-        else {}
-    )
-    reproducible = (
-        execution.get("network_used") is False
-        and int(execution.get("model_calls", 0)) == 0
-    )
-    add(
-        "REPRODUCIBILITY",
-        "PASS" if reproducible else "FAIL",
-        "Decision result must be produced with zero network and zero model calls.",
-        blocking=not reproducible,
-    )
-
-    blocking = [
-        row for row in checks if row["blocking"] and row["status"] == "FAIL"
-    ]
-    warnings = [row for row in checks if row["status"] == "WARN"]
-    nonblocking_failures = [
-        row
-        for row in checks
-        if not row["blocking"] and row["status"] == "FAIL"
-    ]
-    if blocking:
-        release_status = "DECISION_BLOCKED"
-    elif warnings or nonblocking_failures:
-        release_status = "DECISION_CONDITIONAL"
-    else:
-        release_status = "DECISION_RELEASED"
-
+    release_status = _release_status(checks)
     return {
         "schema_version": "compute-quality-report-v2",
         "task_id": str(ticket.get("task_id") or ""),
@@ -523,31 +610,13 @@ def build_quality_report(
         "decision_grade": release_status == "DECISION_RELEASED",
         "checks": checks,
         "calibration_feedback": feedback,
-        "constraints": {
-            "compute_result_may_be_read": True,
-            "formal_decision_use_allowed": release_status == "DECISION_RELEASED",
-            "must_collect_more_feedback": calibration_required
-            and (
-                not probability
-                or int(probability.get("count", 0)) < minimum_feedback
-            ),
-            "must_recalibrate_before_reuse": any(
-                row["code"] in {"PROBABILITY_CALIBRATION", "DATA_DRIFT"}
-                and row["status"] == "FAIL"
-                for row in checks
-            ),
-            "must_resolve_evidence_gaps": any(
-                row["code"]
-                in {
-                    "BENCHMARK_EVIDENCE",
-                    "INDEPENDENT_CROSS_CHECK",
-                    "HIGH_STAKES_USER_APPROVAL",
-                    "FEEDBACK_PROVENANCE",
-                }
-                and row["status"] == "FAIL"
-                for row in checks
-            ),
-        },
+        "constraints": _result_constraints(
+            checks,
+            release_status,
+            calibration_required,
+            probability,
+            minimum_feedback,
+        ),
         "evidence_registry": {
             "approved_benchmark_ids": sorted(approved_benchmarks),
             "submitted_benchmark_ids": benchmark_ids,

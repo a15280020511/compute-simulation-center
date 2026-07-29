@@ -1,6 +1,6 @@
 {
   "$schema":"https://json-schema.org/draft/2020-12/schema",
-  "$id":"https://github.com/a15280020511/test/compute-center/constraint-profile.schema.json",
+  "$id":"https://github.com/a15280020511/compute-simulation-center/compute-center/constraint-profile.schema.json",
   "title":"Compute Constraint Profile",
   "type":"object",
   "additionalProperties":false,
