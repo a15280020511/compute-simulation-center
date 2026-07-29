@@ -1,0 +1,36 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/a15280020511/compute-simulation-center/blob/main/compute-center/literature-evidence-ticket.schema.json",
+  "title": "Literature Evidence Ticket",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["task_id", "query"],
+  "properties": {
+    "task_id": {
+      "type": "string",
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9._-]{7,127}$"
+    },
+    "query": {
+      "type": "string",
+      "minLength": 3,
+      "maxLength": 500
+    },
+    "per_page": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 10,
+      "default": 10
+    },
+    "research_context": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "geography": {"type": "string", "maxLength": 120},
+        "time_scope": {"type": "string", "maxLength": 120},
+        "population": {"type": "string", "maxLength": 240},
+        "outcome": {"type": "string", "maxLength": 240},
+        "comparability_notes": {"type": "string", "maxLength": 1000}
+      }
+    }
+  }
+}
