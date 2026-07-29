@@ -1,6 +1,6 @@
 {
   "$schema":"https://json-schema.org/draft/2020-12/schema",
-  "$id":"https://github.com/a15280020511/test/compute-center/model-performance-ledger.schema.json",
+  "$id":"https://github.com/a15280020511/compute-simulation-center/compute-center/model-performance-ledger.schema.json",
   "title":"Append-only Compute Model Performance Ledger Record",
   "type":"object",
   "additionalProperties":false,

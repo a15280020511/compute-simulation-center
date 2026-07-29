@@ -43,7 +43,9 @@ def _parameter_spec(profile: Mapping[str, Any]) -> tuple[list[str], np.ndarray, 
             raise CalibrationError(f"invalid bounds for {name}")
         if not lower <= start <= upper:
             raise CalibrationError(f"initial value is outside bounds for {name}")
-        names.append(name); initial.append(start); bounds.append((lower, upper))
+        names.append(name)
+        initial.append(start)
+        bounds.append((lower, upper))
     return names, np.asarray(initial, dtype=float), bounds
 
 
@@ -51,14 +53,24 @@ def _params(names: Sequence[str], values: Sequence[float]) -> dict[str, float]:
     return {name: float(value) for name, value in zip(names, values, strict=True)}
 
 
-def _predictions(model: Callable[[Mapping[str, float]], Sequence[float]], names: Sequence[str], values: Sequence[float], expected_size: int) -> np.ndarray:
+def _predictions(
+    model: Callable[[Mapping[str, float]], Sequence[float]],
+    names: Sequence[str],
+    values: Sequence[float],
+    expected_size: int,
+) -> np.ndarray:
     prediction = np.asarray(model(_params(names, values)), dtype=float)
     if prediction.ndim != 1 or prediction.size != expected_size or not np.all(np.isfinite(prediction)):
         raise CalibrationError("model must return a finite vector matching observations")
     return prediction
 
 
-def _negative_log_likelihood(observations: np.ndarray, predictions: np.ndarray, likelihood: str, options: Mapping[str, Any]) -> float:
+def _negative_log_likelihood(
+    observations: np.ndarray,
+    predictions: np.ndarray,
+    likelihood: str,
+    options: Mapping[str, Any],
+) -> float:
     epsilon = 1e-12
     if likelihood == "bernoulli":
         if np.any((observations != 0) & (observations != 1)):
@@ -105,14 +117,91 @@ def _covariance_from_jacobian(jacobian: np.ndarray, residuals: np.ndarray) -> np
         return None
     try:
         inverse = np.linalg.pinv(jacobian.T @ jacobian)
-        variance = float(np.sum(residuals ** 2) / max(1, jacobian.shape[0] - jacobian.shape[1]))
+        variance = float(np.sum(residuals**2) / max(1, jacobian.shape[0] - jacobian.shape[1]))
         covariance = inverse * variance
         return covariance if np.all(np.isfinite(covariance)) else None
     except np.linalg.LinAlgError:
         return None
 
 
-def calibrate(model: Callable[[Mapping[str, float]], Sequence[float]], observations: Sequence[float], profile: Mapping[str, Any], *, weights: Sequence[float] | None = None, scipy_constraints: Sequence[Mapping[str, Any]] | None = None) -> dict[str, Any]:
+def _least_squares(
+    residual: Callable[[np.ndarray], np.ndarray],
+    initial: np.ndarray,
+    bounds: list[tuple[float, float]],
+    loss: str,
+    max_iterations: int,
+) -> tuple[np.ndarray, bool, str, float, np.ndarray]:
+    lower, upper = (np.asarray([item[index] for item in bounds]) for index in (0, 1))
+    result = optimize.least_squares(residual, initial, bounds=(lower, upper), loss=loss, max_nfev=max_iterations)
+    values = np.asarray(result.x, dtype=float)
+    return values, bool(result.success), str(result.message), float(np.mean(residual(values) ** 2)), np.asarray(result.jac, dtype=float)
+
+
+def _bounded_minimize(
+    objective: Callable[[np.ndarray], float],
+    initial: np.ndarray,
+    bounds: list[tuple[float, float]],
+    constraints: list[Mapping[str, Any]],
+    max_iterations: int,
+) -> tuple[np.ndarray, bool, str, float]:
+    result = optimize.minimize(
+        objective,
+        initial,
+        method="SLSQP",
+        bounds=bounds,
+        constraints=constraints,
+        options={"maxiter": max_iterations, "ftol": 1e-12},
+    )
+    return np.asarray(result.x, dtype=float), bool(result.success), str(result.message), float(result.fun)
+
+
+def _differential_evolution(
+    objective: Callable[[np.ndarray], float],
+    bounds: list[tuple[float, float]],
+    constraints: list[Mapping[str, Any]],
+    profile: Mapping[str, Any],
+    max_iterations: int,
+) -> tuple[np.ndarray, bool, str, float]:
+    result = optimize.differential_evolution(
+        objective,
+        bounds,
+        constraints=tuple(constraints),
+        seed=int(profile.get("seed", 0)),
+        maxiter=max_iterations,
+        polish=True,
+        updating="immediate",
+    )
+    return np.asarray(result.x, dtype=float), bool(result.success), str(result.message), float(result.fun)
+
+
+def _intervals(names: Sequence[str], values: np.ndarray, covariance: np.ndarray | None) -> tuple[dict[str, list[float]], bool]:
+    if covariance is None:
+        return {}, False
+    standard_errors = np.sqrt(np.clip(np.diag(covariance), 0, None))
+    intervals = {
+        name: [float(value - 1.96 * error), float(value + 1.96 * error)]
+        for name, value, error in zip(names, values, standard_errors, strict=True)
+    }
+    identifiable = bool(np.all(np.isfinite(standard_errors)) and np.linalg.matrix_rank(covariance) == len(names))
+    return intervals, identifiable
+
+
+def _metrics(residuals: np.ndarray) -> dict[str, float]:
+    return {
+        "rmse": float(np.sqrt(np.mean(residuals**2))),
+        "mae": float(np.mean(np.abs(residuals))),
+        "bias": float(np.mean(residuals)),
+    }
+
+
+def calibrate(
+    model: Callable[[Mapping[str, float]], Sequence[float]],
+    observations: Sequence[float],
+    profile: Mapping[str, Any],
+    *,
+    weights: Sequence[float] | None = None,
+    scipy_constraints: Sequence[Mapping[str, Any]] | None = None,
+) -> dict[str, Any]:
     observed = _array(observations, "observations")
     names, initial, bounds = _parameter_spec(profile)
     weight_array = np.ones_like(observed) if weights is None else _array(weights, "weights")
@@ -120,8 +209,7 @@ def calibrate(model: Callable[[Mapping[str, float]], Sequence[float]], observati
         raise CalibrationError("weights must match observations and be positive")
     backend = str(profile.get("backend") or "")
     max_iterations = int(profile.get("max_iterations", 2000))
-    loss = str(profile.get("loss") or "linear")
-    scipy_constraints = list(scipy_constraints or [])
+    constraints = list(scipy_constraints or [])
     evaluation_count = 0
 
     def residual(values: np.ndarray) -> np.ndarray:
@@ -131,39 +219,52 @@ def calibrate(model: Callable[[Mapping[str, float]], Sequence[float]], observati
 
     def objective(values: np.ndarray) -> float:
         values_residual = residual(values)
-        return float(np.mean(np.abs(values_residual))) if profile.get("objective") == "mae" else float(np.mean(values_residual ** 2))
+        if profile.get("objective") == "mae":
+            return float(np.mean(np.abs(values_residual)))
+        return float(np.mean(values_residual**2))
 
-    jacobian = None
+    jacobian: np.ndarray | None = None
     if backend == "least_squares":
-        result = optimize.least_squares(residual, initial, bounds=(np.asarray([item[0] for item in bounds]), np.asarray([item[1] for item in bounds])), loss=loss, max_nfev=max_iterations)
-        values, success, message = result.x, bool(result.success), str(result.message)
-        objective_value = float(np.mean(residual(values) ** 2)); jacobian = np.asarray(result.jac, dtype=float)
+        values, success, message, objective_value, jacobian = _least_squares(
+            residual, initial, bounds, str(profile.get("loss") or "linear"), max_iterations
+        )
     elif backend == "slsqp":
-        result = optimize.minimize(objective, initial, method="SLSQP", bounds=bounds, constraints=scipy_constraints, options={"maxiter": max_iterations, "ftol": 1e-12})
-        values, success, message, objective_value = result.x, bool(result.success), str(result.message), float(result.fun)
+        values, success, message, objective_value = _bounded_minimize(objective, initial, bounds, constraints, max_iterations)
     elif backend == "differential_evolution":
-        result = optimize.differential_evolution(objective, bounds, constraints=tuple(scipy_constraints), seed=int(profile.get("seed", 0)), maxiter=max_iterations, polish=True, updating="immediate")
-        values, success, message, objective_value = result.x, bool(result.success), str(result.message), float(result.fun)
+        values, success, message, objective_value = _differential_evolution(objective, bounds, constraints, profile, max_iterations)
     elif backend == "likelihood":
         likelihood = str(profile.get("likelihood") or "")
         options = profile.get("likelihood_options") if isinstance(profile.get("likelihood_options"), Mapping) else {}
+
         def likelihood_objective(values: np.ndarray) -> float:
             nonlocal evaluation_count
             evaluation_count += 1
-            return _negative_log_likelihood(observed, _predictions(model, names, values, observed.size), likelihood, options)
-        result = optimize.minimize(likelihood_objective, initial, method="SLSQP", bounds=bounds, constraints=scipy_constraints, options={"maxiter": max_iterations, "ftol": 1e-12})
-        values, success, message, objective_value = result.x, bool(result.success), str(result.message), float(result.fun)
+            predictions = _predictions(model, names, values, observed.size)
+            return _negative_log_likelihood(observed, predictions, likelihood, options)
+
+        values, success, message, objective_value = _bounded_minimize(
+            likelihood_objective, initial, bounds, constraints, max_iterations
+        )
     else:
         raise CalibrationError(f"unsupported calibration backend: {backend}")
+
     if not success or not np.all(np.isfinite(values)):
         raise CalibrationError(f"calibration failed: {message}")
     predictions = _predictions(model, names, values, observed.size)
     raw_residuals = predictions - observed
     covariance = _covariance_from_jacobian(jacobian, raw_residuals) if jacobian is not None else None
-    intervals: dict[str, list[float]] = {}
-    identifiable = covariance is not None
-    if covariance is not None:
-        standard_errors = np.sqrt(np.clip(np.diag(covariance), 0, None))
-        intervals = {name: [float(value - 1.96 * error), float(value + 1.96 * error)] for name, value, error in zip(names, values, standard_errors, strict=True)}
-        identifiable = bool(np.all(np.isfinite(standard_errors)) and np.linalg.matrix_rank(covariance) == len(names))
-    return {"schema_version": "compute-calibration-result-v1", "backend": backend, "success": True, "message": message, "objective_value": objective_value, "parameters": _params(names, values), "parameter_intervals_95": intervals, "parameter_identifiable": identifiable, "parameter_non_identifiable": not identifiable, "metrics": {"rmse": float(np.sqrt(np.mean(raw_residuals ** 2))), "mae": float(np.mean(np.abs(raw_residuals))), "bias": float(np.mean(raw_residuals))}, "evaluation_count": evaluation_count, "observation_count": int(observed.size)}
+    intervals, identifiable = _intervals(names, values, covariance)
+    return {
+        "schema_version": "compute-calibration-result-v1",
+        "backend": backend,
+        "success": True,
+        "message": message,
+        "objective_value": objective_value,
+        "parameters": _params(names, values),
+        "parameter_intervals_95": intervals,
+        "parameter_identifiable": identifiable,
+        "parameter_non_identifiable": not identifiable,
+        "metrics": _metrics(raw_residuals),
+        "evaluation_count": evaluation_count,
+        "observation_count": int(observed.size),
+    }

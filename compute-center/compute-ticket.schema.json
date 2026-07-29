@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://github.com/a15280020511/test/compute-center/compute-ticket.schema.json",
+  "$id": "https://github.com/a15280020511/compute-simulation-center/compute-center/compute-ticket.schema.json",
   "title": "Independent Compute Center Ticket",
   "description": "A deterministic compute request prepared by GPTs. The compute center does not call models or fetch external data.",
   "type": "object",

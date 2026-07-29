@@ -1,42 +1,393 @@
 #!/usr/bin/env python3
-"""Install executable model, library, assumption, experiment, validation and constraint governance."""
+"""Install executable model, assumption, experiment and quality governance."""
 from __future__ import annotations
 
 import copy
 import json
-from collections.abc import Mapping
+from collections.abc import Callable, Mapping
 from pathlib import Path
 from typing import Any
 
-from accuracy_runtime import derive_evidence_maturity, execute_calibration, execute_experiment, execute_validation
+from accuracy_runtime import (
+    derive_evidence_maturity,
+    execute_calibration,
+    execute_experiment,
+    execute_validation,
+)
 from assumption_library import assess_assumptions
 from assumption_runtime import build_assumption_plan
 from constraint_engine import ConstraintViolation, enforce_constraints, independent_post_check
 from credibility_engine import build_credibility_case
 from experiment_assurance import assess_experiment
 from library_runtime import resolve_library_selection
-from model_governance import lifecycle_status, registered_model, validate_ticket_governance
+from model_governance import (
+    lifecycle_status,
+    registered_model,
+    validate_ticket_governance,
+)
 
 
 def _constraint_paths(row: Mapping[str, Any]) -> list[str]:
-    paths = []
-    for key in ("field", "left"):
+    paths: list[str] = []
+    for key in ("field", "left", "right"):
         if isinstance(row.get(key), str):
             paths.append(str(row[key]))
-    if isinstance(row.get("right"), str):
-        paths.append(str(row["right"]))
     if isinstance(row.get("fields"), list):
         paths.extend(str(item) for item in row["fields"])
     return paths
 
 
 def _pre_profile(profile: Mapping[str, Any]) -> dict[str, Any]:
-    rows = [row for row in profile.get("hard_constraints", []) if isinstance(row, Mapping) and not any(path.startswith("results.") for path in _constraint_paths(row))]
-    return {"hard_constraints": rows, "soft_constraints": list(profile.get("soft_constraints") or []), "independent_post_check": True}
+    hard_constraints = [
+        row
+        for row in profile.get("hard_constraints", [])
+        if isinstance(row, Mapping)
+        and not any(path.startswith("results.") for path in _constraint_paths(row))
+    ]
+    return {
+        "hard_constraints": hard_constraints,
+        "soft_constraints": list(profile.get("soft_constraints") or []),
+        "independent_post_check": True,
+    }
 
 
 def _default_constraint_report(phase: str) -> dict[str, Any]:
-    return {"schema_version": "compute-constraint-report-v1", "phase": phase, "status": "NOT_PROVIDED", "hard_constraint_count": 0, "violation_count": 0, "checks": [], "violations": []}
+    return {
+        "schema_version": "compute-constraint-report-v1",
+        "phase": phase,
+        "status": "NOT_PROVIDED",
+        "hard_constraint_count": 0,
+        "violation_count": 0,
+        "checks": [],
+        "violations": [],
+    }
+
+
+def _mapping(value: Any) -> Mapping[str, Any]:
+    return value if isinstance(value, Mapping) else {}
+
+
+class _GovernedExecution:
+    """One isolated governance transaction around one fixed compute operation."""
+
+    def __init__(
+        self,
+        compute_runner: Any,
+        original: Callable[[dict[str, Any], Path], dict[str, Any]],
+        ticket: dict[str, Any],
+        output_dir: Path,
+    ) -> None:
+        self.compute_runner = compute_runner
+        self.original = original
+        self.ticket = ticket
+        self.output_dir = output_dir
+        self.governance = validate_ticket_governance(ticket)
+        self.original_inputs = dict(_mapping(ticket.get("inputs")))
+        self.operation = str(ticket.get("operation") or "")
+        self.mode = str(self.original_inputs.get("mode") or "") or None
+        self.model = registered_model(self.operation, self.mode)
+        self.lifecycle = lifecycle_status(self.model)
+        self.decision_class = str(
+            _mapping(ticket.get("quality_profile")).get("decision_class") or "formal"
+        )
+        self.constraint_profile = (
+            dict(ticket["constraint_profile"])
+            if isinstance(ticket.get("constraint_profile"), Mapping)
+            else None
+        )
+
+    def _error(self, message: str, exc: Exception | None = None) -> Exception:
+        error = self.compute_runner.ComputeError(message)
+        if exc is not None:
+            error.__cause__ = exc
+        return error
+
+    def _validate_lifecycle(self) -> None:
+        if self.lifecycle["status"] in {"MODEL_SUSPENDED", "MODEL_RETIRED"}:
+            raise self._error(
+                f"{self.lifecycle['status']}: {self.model['model_id']}"
+            )
+
+    def _resolve_library(self) -> dict[str, Any]:
+        try:
+            return resolve_library_selection(self.ticket)
+        except Exception as exc:
+            raise self._error(f"LIBRARY_SELECTION_FAILED: {exc}", exc)
+
+    def _preuse_assurance(self) -> dict[str, Any]:
+        library_selection = self._resolve_library()
+        assumption_plan = build_assumption_plan(self.ticket)
+        assumption_assurance = assess_assumptions(self.ticket)
+        experiment_assurance = assess_experiment(self.ticket)
+        if self.decision_class == "high_stakes" and not library_selection.get("strategy"):
+            raise self._error("HIGH_STAKES_STRATEGY_NOT_SELECTED")
+        blocked = {
+            "ASSUMPTION_PLAN_UNRESOLVED": assumption_plan["status"] == "BLOCKED",
+            "ASSUMPTION_GOVERNANCE_FAILED": assumption_assurance["status"] == "BLOCKED",
+            "EXPERIMENT_GOVERNANCE_FAILED": experiment_assurance["status"] == "BLOCKED",
+        }
+        for code, active in blocked.items():
+            if active:
+                raise self._error(code)
+        credibility = build_credibility_case(
+            self.ticket,
+            self.model,
+            assumption_assurance,
+            experiment_assurance,
+        )
+        if self.decision_class == "high_stakes" and credibility["status"] == "BLOCKED":
+            raise self._error("CREDIBILITY_PREUSE_FAILED")
+        return {
+            "library_selection": library_selection,
+            "assumption_plan": assumption_plan,
+            "assumption_assurance": assumption_assurance,
+            "experiment_assurance": experiment_assurance,
+            "credibility": credibility,
+        }
+
+    def _precheck(
+        self,
+        inputs: Mapping[str, Any],
+        *,
+        phase: str,
+        failure_code: str,
+    ) -> dict[str, Any]:
+        if self.constraint_profile is None:
+            return _default_constraint_report(phase)
+        subject = {"inputs": dict(inputs), **dict(inputs)}
+        try:
+            report = enforce_constraints(subject, _pre_profile(self.constraint_profile))
+        except ConstraintViolation as exc:
+            raise self._error(f"{failure_code}: {exc}", exc)
+        report["phase"] = phase
+        return report
+
+    def _handler(self) -> Callable[[Mapping[str, Any]], dict[str, Any]]:
+        handler = self.compute_runner.OPERATIONS.get(self.operation)
+        if not callable(handler):
+            raise self._error(
+                f"registered operation handler not found: {self.operation}"
+            )
+        return handler
+
+    def _calibrate(
+        self,
+        handler: Callable[[Mapping[str, Any]], dict[str, Any]],
+    ) -> tuple[dict[str, Any], dict[str, Any]]:
+        profile = self.ticket.get("calibration_profile")
+        profile = profile if isinstance(profile, Mapping) else None
+        try:
+            calibrated_inputs, calibration = execute_calibration(
+                handler, self.original_inputs, profile
+            )
+        except Exception as exc:
+            raise self._error(f"CALIBRATION_EXECUTION_FAILED: {exc}", exc)
+        return dict(calibrated_inputs), calibration
+
+    def _execute_experiment(
+        self,
+        handler: Callable[[Mapping[str, Any]], dict[str, Any]],
+        inputs: Mapping[str, Any],
+    ) -> dict[str, Any]:
+        profile = self.ticket.get("experiment_profile")
+        profile = profile if isinstance(profile, Mapping) else None
+        try:
+            report = execute_experiment(handler, inputs, profile)
+        except Exception as exc:
+            raise self._error(f"EXPERIMENT_EXECUTION_FAILED: {exc}", exc)
+        if report.get("status") == "FAIL" and self.decision_class == "high_stakes":
+            raise self._error("EXPERIMENT_PRECISION_FAILED")
+        return report
+
+    def _execute_operation(self, calibrated_inputs: Mapping[str, Any]) -> dict[str, Any]:
+        executed_ticket = copy.deepcopy(self.ticket)
+        executed_ticket["inputs"] = dict(calibrated_inputs)
+        return self.original(executed_ticket, self.output_dir)
+
+    def _postcheck(
+        self,
+        inputs: Mapping[str, Any],
+        results: Mapping[str, Any],
+    ) -> dict[str, Any]:
+        phase = "post_solver_independent_recheck"
+        if self.constraint_profile is None:
+            return _default_constraint_report(phase)
+        subject = {
+            "inputs": dict(inputs),
+            "results": dict(results),
+            **dict(inputs),
+            **dict(results),
+        }
+        report = independent_post_check(subject, self.constraint_profile)
+        if report["status"] != "PASS":
+            identifiers = ", ".join(
+                str(item.get("id") or "<unnamed>")
+                for item in report["violations"]
+            )
+            raise self._error("CONSTRAINT_POSTCHECK_FAILED: " + identifiers)
+        return report
+
+    def _validate_results(self, results: Mapping[str, Any]) -> dict[str, Any]:
+        profile = self.ticket.get("validation_profile")
+        profile = profile if isinstance(profile, Mapping) else None
+        try:
+            return execute_validation(results, profile)
+        except Exception as exc:
+            raise self._error(f"VALIDATION_EXECUTION_FAILED: {exc}", exc)
+
+    def _maturity(
+        self,
+        calibration: Mapping[str, Any],
+        validation: Mapping[str, Any],
+        experiment: Mapping[str, Any],
+    ) -> dict[str, Any]:
+        report = derive_evidence_maturity(
+            self.model,
+            calibration,
+            validation,
+            experiment,
+            _mapping(self.ticket.get("quality_profile")),
+        )
+        if (
+            self.decision_class == "high_stakes"
+            and report["evidence_maturity"] != "decision-grade"
+        ):
+            raise self._error("EVIDENCE_MATURITY_INSUFFICIENT_FOR_HIGH_STAKES")
+        return report
+
+    def _attach_reports(
+        self,
+        result: dict[str, Any],
+        reports: Mapping[str, Any],
+    ) -> None:
+        result.update(
+            {
+                "model_governance": {
+                    **self.governance,
+                    "lifecycle": self.lifecycle,
+                },
+                "library_selection": reports["library_selection"],
+                "assumption_plan": reports["assumption_plan"],
+                "assumption_assurance": reports["assumption_assurance"],
+                "experiment_assurance": reports["experiment_assurance"],
+                "experiment_execution": reports["experiment_execution"],
+                "credibility_case": reports["credibility"],
+                "constraint_assurance": {
+                    "pre_execution_original_inputs": reports["pre_report"],
+                    "pre_execution_calibrated_inputs": reports["calibrated_pre_report"],
+                    "post_execution": reports["post_report"],
+                },
+                "calibration_assurance": reports["calibration"],
+                "validation_assurance": reports["validation"],
+                "maturity_assessment": reports["maturity"],
+            }
+        )
+
+    def _write_reports(self, result: Mapping[str, Any], reports: Mapping[str, Any]) -> None:
+        self.output_dir.mkdir(parents=True, exist_ok=True)
+        files = {
+            "compute-model-governance.json": result["model_governance"],
+            "compute-library-selection.json": reports["library_selection"],
+            "compute-assumption-plan.json": reports["assumption_plan"],
+            "compute-assumption-assurance.json": reports["assumption_assurance"],
+            "compute-experiment-assurance.json": reports["experiment_assurance"],
+            "compute-experiment-execution.json": reports["experiment_execution"],
+            "compute-credibility-case.json": reports["credibility"],
+            "compute-constraint-precheck.json": reports["pre_report"],
+            "compute-constraint-calibrated-precheck.json": reports[
+                "calibrated_pre_report"
+            ],
+            "compute-constraint-postcheck.json": reports["post_report"],
+            "compute-calibration-assurance.json": reports["calibration"],
+            "compute-validation-result.json": reports["validation"],
+            "compute-maturity-assessment.json": reports["maturity"],
+            "compute-result.json": result,
+        }
+        for filename, value in files.items():
+            self.compute_runner._write_json(self.output_dir / filename, value)
+
+    def _update_audit(self, reports: Mapping[str, Any]) -> None:
+        audit_path = self.output_dir / "compute-audit.json"
+        if not audit_path.is_file():
+            return
+        audit = json.loads(audit_path.read_text(encoding="utf-8"))
+        if not isinstance(audit, dict):
+            return
+        audit.update(
+            {
+                "model_id": self.governance["model_id"],
+                "model_engineering_maturity": reports["maturity"][
+                    "engineering_maturity"
+                ],
+                "model_evidence_maturity": reports["maturity"]["evidence_maturity"],
+                "lifecycle_status": self.lifecycle["status"],
+                "library_selection_status": reports["library_selection"]["status"],
+                "library_selection_sha256": reports["library_selection"][
+                    "selection_sha256"
+                ],
+                "assumption_plan_status": reports["assumption_plan"]["status"],
+                "assumption_assurance_status": reports["assumption_assurance"][
+                    "status"
+                ],
+                "assumption_snapshot_sha256": reports["assumption_assurance"][
+                    "resolved_snapshot_sha256"
+                ],
+                "experiment_assurance_status": reports["experiment_assurance"][
+                    "status"
+                ],
+                "experiment_execution_status": reports["experiment_execution"][
+                    "status"
+                ],
+                "executed_replications": reports["experiment_execution"].get(
+                    "executed_replications", 0
+                ),
+                "calibration_execution_status": reports["calibration"][
+                    "execution_status"
+                ],
+                "validation_status": reports["validation"]["status"],
+                "credibility_case_status": reports["credibility"]["status"],
+                "credibility_gap_count": reports["credibility"]["gap_count"],
+                "constraint_original_precheck_status": reports["pre_report"]["status"],
+                "constraint_calibrated_precheck_status": reports[
+                    "calibrated_pre_report"
+                ]["status"],
+                "constraint_postcheck_status": reports["post_report"]["status"],
+            }
+        )
+        self.compute_runner._write_json(audit_path, audit)
+
+    def run(self) -> dict[str, Any]:
+        self._validate_lifecycle()
+        reports = self._preuse_assurance()
+        reports["pre_report"] = self._precheck(
+            self.original_inputs,
+            phase="pre_execution_original_inputs",
+            failure_code="CONSTRAINT_PRECHECK_FAILED",
+        )
+        handler = self._handler()
+        calibrated_inputs, reports["calibration"] = self._calibrate(handler)
+        reports["calibrated_pre_report"] = self._precheck(
+            calibrated_inputs,
+            phase="pre_execution_calibrated_inputs",
+            failure_code="CALIBRATED_CONSTRAINT_PRECHECK_FAILED",
+        )
+        reports["experiment_execution"] = self._execute_experiment(
+            handler, calibrated_inputs
+        )
+        result = self._execute_operation(calibrated_inputs)
+        results = _mapping(result.get("results"))
+        reports["post_report"] = self._postcheck(calibrated_inputs, results)
+        reports["validation"] = self._validate_results(results)
+        reports["maturity"] = self._maturity(
+            reports["calibration"],
+            reports["validation"],
+            reports["experiment_execution"],
+        )
+        self._attach_reports(result, reports)
+        self._write_reports(result, reports)
+        self._update_audit(reports)
+        self.compute_runner._write_manifest(self.output_dir)
+        return result
 
 
 def install(compute_runner: Any) -> None:
@@ -44,155 +395,10 @@ def install(compute_runner: Any) -> None:
         return
     original = compute_runner.run_ticket
 
-    def governed_run_ticket(ticket: dict[str, Any], output_dir: Path) -> dict[str, Any]:
-        governance = validate_ticket_governance(ticket)
-        original_inputs = ticket.get("inputs") if isinstance(ticket.get("inputs"), Mapping) else {}
-        operation = str(ticket.get("operation") or "")
-        mode = str(original_inputs.get("mode") or "") or None
-        model = registered_model(operation, mode)
-        lifecycle = lifecycle_status(model)
-        if lifecycle["status"] in {"MODEL_SUSPENDED", "MODEL_RETIRED"}:
-            raise compute_runner.ComputeError(f"{lifecycle['status']}: {model['model_id']}")
-
-        try:
-            library_selection = resolve_library_selection(ticket)
-        except Exception as exc:
-            raise compute_runner.ComputeError(f"LIBRARY_SELECTION_FAILED: {exc}") from exc
-
-        assumption_plan = build_assumption_plan(ticket)
-        assumption_assurance = assess_assumptions(ticket)
-        experiment_assurance = assess_experiment(ticket)
-        decision_class = str(((ticket.get("quality_profile") or {}).get("decision_class") if isinstance(ticket.get("quality_profile"), Mapping) else None) or "formal")
-        if decision_class == "high_stakes" and not library_selection.get("strategy"):
-            raise compute_runner.ComputeError("HIGH_STAKES_STRATEGY_NOT_SELECTED")
-        if assumption_plan["status"] == "BLOCKED":
-            raise compute_runner.ComputeError("ASSUMPTION_PLAN_UNRESOLVED")
-        if assumption_assurance["status"] == "BLOCKED":
-            raise compute_runner.ComputeError("ASSUMPTION_GOVERNANCE_FAILED")
-        if experiment_assurance["status"] == "BLOCKED":
-            raise compute_runner.ComputeError("EXPERIMENT_GOVERNANCE_FAILED")
-
-        preliminary_credibility = build_credibility_case(ticket, model, assumption_assurance, experiment_assurance)
-        if decision_class == "high_stakes" and preliminary_credibility["status"] == "BLOCKED":
-            raise compute_runner.ComputeError("CREDIBILITY_PREUSE_FAILED")
-
-        profile = ticket.get("constraint_profile") if isinstance(ticket.get("constraint_profile"), Mapping) else None
-        pre_report = _default_constraint_report("pre_execution_original_inputs")
-        if profile is not None:
-            try:
-                pre_report = enforce_constraints({"inputs": dict(original_inputs), **dict(original_inputs)}, _pre_profile(profile))
-                pre_report["phase"] = "pre_execution_original_inputs"
-            except ConstraintViolation as exc:
-                raise compute_runner.ComputeError(f"CONSTRAINT_PRECHECK_FAILED: {exc}") from exc
-
-        handler = compute_runner.OPERATIONS.get(operation)
-        if not callable(handler):
-            raise compute_runner.ComputeError(f"registered operation handler not found: {operation}")
-        calibration_profile = ticket.get("calibration_profile") if isinstance(ticket.get("calibration_profile"), Mapping) else None
-        try:
-            calibrated_inputs, calibration = execute_calibration(handler, original_inputs, calibration_profile)
-        except Exception as exc:
-            raise compute_runner.ComputeError(f"CALIBRATION_EXECUTION_FAILED: {exc}") from exc
-
-        calibrated_pre_report = _default_constraint_report("pre_execution_calibrated_inputs")
-        if profile is not None:
-            try:
-                calibrated_pre_report = enforce_constraints({"inputs": dict(calibrated_inputs), **dict(calibrated_inputs)}, _pre_profile(profile))
-                calibrated_pre_report["phase"] = "pre_execution_calibrated_inputs"
-            except ConstraintViolation as exc:
-                raise compute_runner.ComputeError(f"CALIBRATED_CONSTRAINT_PRECHECK_FAILED: {exc}") from exc
-
-        experiment_profile = ticket.get("experiment_profile") if isinstance(ticket.get("experiment_profile"), Mapping) else None
-        try:
-            experiment_execution = execute_experiment(handler, calibrated_inputs, experiment_profile)
-        except Exception as exc:
-            raise compute_runner.ComputeError(f"EXPERIMENT_EXECUTION_FAILED: {exc}") from exc
-        if experiment_execution.get("status") == "FAIL" and decision_class == "high_stakes":
-            raise compute_runner.ComputeError("EXPERIMENT_PRECISION_FAILED")
-
-        executed_ticket = copy.deepcopy(ticket)
-        executed_ticket["inputs"] = calibrated_inputs
-        result = original(executed_ticket, output_dir)
-        results = result.get("results") if isinstance(result.get("results"), Mapping) else {}
-
-        post_report = _default_constraint_report("post_solver_independent_recheck")
-        if profile is not None:
-            post_report = independent_post_check({"inputs": dict(calibrated_inputs), "results": dict(results), **dict(calibrated_inputs), **dict(results)}, profile)
-            if post_report["status"] != "PASS":
-                identifiers = ", ".join(str(item.get("id") or "<unnamed>") for item in post_report["violations"])
-                raise compute_runner.ComputeError("CONSTRAINT_POSTCHECK_FAILED: " + identifiers)
-
-        validation_profile = ticket.get("validation_profile") if isinstance(ticket.get("validation_profile"), Mapping) else None
-        try:
-            validation = execute_validation(results, validation_profile)
-        except Exception as exc:
-            raise compute_runner.ComputeError(f"VALIDATION_EXECUTION_FAILED: {exc}") from exc
-
-        quality_profile = ticket.get("quality_profile") if isinstance(ticket.get("quality_profile"), Mapping) else {}
-        maturity = derive_evidence_maturity(model, calibration, validation, experiment_execution, quality_profile)
-        if decision_class == "high_stakes" and maturity["evidence_maturity"] != "decision-grade":
-            raise compute_runner.ComputeError("EVIDENCE_MATURITY_INSUFFICIENT_FOR_HIGH_STAKES")
-
-        result["model_governance"] = {**governance, "lifecycle": lifecycle}
-        result["library_selection"] = library_selection
-        result["assumption_plan"] = assumption_plan
-        result["assumption_assurance"] = assumption_assurance
-        result["experiment_assurance"] = experiment_assurance
-        result["experiment_execution"] = experiment_execution
-        result["credibility_case"] = preliminary_credibility
-        result["constraint_assurance"] = {"pre_execution_original_inputs": pre_report, "pre_execution_calibrated_inputs": calibrated_pre_report, "post_execution": post_report}
-        result["calibration_assurance"] = calibration
-        result["validation_assurance"] = validation
-        result["maturity_assessment"] = maturity
-
-        output_dir.mkdir(parents=True, exist_ok=True)
-        files = {
-            "compute-model-governance.json": result["model_governance"],
-            "compute-library-selection.json": library_selection,
-            "compute-assumption-plan.json": assumption_plan,
-            "compute-assumption-assurance.json": assumption_assurance,
-            "compute-experiment-assurance.json": experiment_assurance,
-            "compute-experiment-execution.json": experiment_execution,
-            "compute-credibility-case.json": preliminary_credibility,
-            "compute-constraint-precheck.json": pre_report,
-            "compute-constraint-calibrated-precheck.json": calibrated_pre_report,
-            "compute-constraint-postcheck.json": post_report,
-            "compute-calibration-assurance.json": calibration,
-            "compute-validation-result.json": validation,
-            "compute-maturity-assessment.json": maturity,
-            "compute-result.json": result,
-        }
-        for filename, value in files.items():
-            compute_runner._write_json(output_dir / filename, value)
-
-        audit_path = output_dir / "compute-audit.json"
-        if audit_path.is_file():
-            audit = json.loads(audit_path.read_text(encoding="utf-8"))
-            if isinstance(audit, dict):
-                audit.update({
-                    "model_id": governance["model_id"],
-                    "model_engineering_maturity": maturity["engineering_maturity"],
-                    "model_evidence_maturity": maturity["evidence_maturity"],
-                    "lifecycle_status": lifecycle["status"],
-                    "library_selection_status": library_selection["status"],
-                    "library_selection_sha256": library_selection["selection_sha256"],
-                    "assumption_plan_status": assumption_plan["status"],
-                    "assumption_assurance_status": assumption_assurance["status"],
-                    "assumption_snapshot_sha256": assumption_assurance["resolved_snapshot_sha256"],
-                    "experiment_assurance_status": experiment_assurance["status"],
-                    "experiment_execution_status": experiment_execution["status"],
-                    "executed_replications": experiment_execution.get("executed_replications", 0),
-                    "calibration_execution_status": calibration["execution_status"],
-                    "validation_status": validation["status"],
-                    "credibility_case_status": preliminary_credibility["status"],
-                    "credibility_gap_count": preliminary_credibility["gap_count"],
-                    "constraint_original_precheck_status": pre_report["status"],
-                    "constraint_calibrated_precheck_status": calibrated_pre_report["status"],
-                    "constraint_postcheck_status": post_report["status"],
-                })
-                compute_runner._write_json(audit_path, audit)
-        compute_runner._write_manifest(output_dir)
-        return result
+    def governed_run_ticket(
+        ticket: dict[str, Any], output_dir: Path
+    ) -> dict[str, Any]:
+        return _GovernedExecution(compute_runner, original, ticket, output_dir).run()
 
     compute_runner.run_ticket = governed_run_ticket
     compute_runner._governance_runtime_installed = True

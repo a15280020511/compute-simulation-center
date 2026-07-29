@@ -50,6 +50,75 @@ def _requirement_files(rows: Any, group_id: str) -> list[str]:
     return result
 
 
+def _validated_modes(group: Mapping[str, Any], group_id: str) -> dict[str, dict[str, Any]]:
+    modes = group.get("modes") or {}
+    if not isinstance(modes, Mapping):
+        raise RuntimeError(f"modes must be an object for group {group_id}")
+    result: dict[str, dict[str, Any]] = {}
+    for mode, raw_metadata in modes.items():
+        if not MODE_RE.fullmatch(str(mode)) or not isinstance(raw_metadata, Mapping):
+            raise RuntimeError(f"invalid mode metadata in group {group_id}: {mode}")
+        metadata = dict(raw_metadata)
+        if str(metadata.get("maturity") or "") not in ALLOWED_MATURITY:
+            raise RuntimeError(f"invalid mode maturity in group {group_id}: {mode}")
+        if str(metadata.get("network_policy") or "") not in ALLOWED_NETWORK_POLICIES:
+            raise RuntimeError(f"invalid mode network policy in group {group_id}: {mode}")
+        if not isinstance(metadata.get("deterministic"), bool):
+            raise RuntimeError(f"mode deterministic flag is required in group {group_id}: {mode}")
+        limits = metadata.get("limits")
+        if not isinstance(limits, Mapping) or not limits:
+            raise RuntimeError(f"mode limits are required in group {group_id}: {mode}")
+        if any(not isinstance(value, int) or value <= 0 for value in limits.values()):
+            raise RuntimeError(f"mode limits must be positive integers in group {group_id}: {mode}")
+        result[str(mode)] = metadata
+    return result
+
+
+def _validated_group(
+    raw: Mapping[str, Any],
+    *,
+    seen_ids: set[str],
+    seen_operations: set[str],
+) -> dict[str, Any]:
+    group = dict(raw)
+    group_id = str(group.get("id") or "")
+    module_name = str(group.get("module") or "")
+    operations = [str(item) for item in group.get("operations") or []]
+    if not group_id or group_id in seen_ids:
+        raise RuntimeError(f"invalid or duplicate tool group id: {group_id}")
+    if not MODULE_RE.fullmatch(module_name):
+        raise RuntimeError(f"invalid registered module name: {module_name}")
+    if not operations or len(set(operations)) != len(operations):
+        raise RuntimeError(f"invalid operation list for group {group_id}")
+    duplicate = sorted(set(operations) & seen_operations)
+    if duplicate:
+        raise RuntimeError(f"operations registered by multiple groups: {duplicate}")
+
+    modes = _validated_modes(group, group_id)
+    mode_requirements = group.get("mode_requirements") or {}
+    if not isinstance(mode_requirements, Mapping):
+        raise RuntimeError(f"mode_requirements must be an object for group {group_id}")
+    validated_requirements = {
+        str(mode): _requirement_files(rows, group_id)
+        for mode, rows in mode_requirements.items()
+    }
+    undeclared = sorted(set(validated_requirements) - set(modes))
+    if undeclared:
+        raise RuntimeError(
+            f"mode_requirements references undeclared mode {undeclared[0]} in group {group_id}"
+        )
+    rollback = group.get("rollback")
+    if not isinstance(rollback, Mapping) or not rollback.get("stable_module"):
+        raise RuntimeError(f"rollback metadata is required for group {group_id}")
+
+    group["default_requirements"] = _requirement_files(
+        group.get("default_requirements") or [], group_id
+    )
+    group["mode_requirements"] = validated_requirements
+    group["modes"] = modes
+    return group
+
+
 def validated_groups() -> list[dict[str, Any]]:
     groups: list[dict[str, Any]] = []
     seen_ids: set[str] = set()
@@ -57,54 +126,13 @@ def validated_groups() -> list[dict[str, Any]]:
     for raw in load_registry()["groups"]:
         if not isinstance(raw, Mapping):
             raise RuntimeError("tool registry group must be an object")
-        group = dict(raw)
-        group_id = str(group.get("id") or "")
-        module_name = str(group.get("module") or "")
-        operations = [str(item) for item in group.get("operations") or []]
-        if not group_id or group_id in seen_ids:
-            raise RuntimeError(f"invalid or duplicate tool group id: {group_id}")
-        if not MODULE_RE.fullmatch(module_name):
-            raise RuntimeError(f"invalid registered module name: {module_name}")
-        if not operations or len(set(operations)) != len(operations):
-            raise RuntimeError(f"invalid operation list for group {group_id}")
-        duplicate = sorted(set(operations) & seen_operations)
-        if duplicate:
-            raise RuntimeError(f"operations registered by multiple groups: {duplicate}")
-        default_requirements = _requirement_files(group.get("default_requirements") or [], group_id)
-        mode_requirements = group.get("mode_requirements") or {}
-        if not isinstance(mode_requirements, Mapping):
-            raise RuntimeError(f"mode_requirements must be an object for group {group_id}")
-        validated_mode_requirements = {
-            str(mode): _requirement_files(rows, group_id)
-            for mode, rows in mode_requirements.items()
-        }
-        modes = group.get("modes") or {}
-        if not isinstance(modes, Mapping):
-            raise RuntimeError(f"modes must be an object for group {group_id}")
-        for mode, metadata in modes.items():
-            if not MODE_RE.fullmatch(str(mode)) or not isinstance(metadata, Mapping):
-                raise RuntimeError(f"invalid mode metadata in group {group_id}: {mode}")
-            if str(metadata.get("maturity") or "") not in ALLOWED_MATURITY:
-                raise RuntimeError(f"invalid mode maturity in group {group_id}: {mode}")
-            if str(metadata.get("network_policy") or "") not in ALLOWED_NETWORK_POLICIES:
-                raise RuntimeError(f"invalid mode network policy in group {group_id}: {mode}")
-            if not isinstance(metadata.get("deterministic"), bool):
-                raise RuntimeError(f"mode deterministic flag is required in group {group_id}: {mode}")
-            limits = metadata.get("limits")
-            if not isinstance(limits, Mapping) or not limits:
-                raise RuntimeError(f"mode limits are required in group {group_id}: {mode}")
-            if any(not isinstance(value, int) or value <= 0 for value in limits.values()):
-                raise RuntimeError(f"mode limits must be positive integers in group {group_id}: {mode}")
-        for mode in validated_mode_requirements:
-            if mode not in modes:
-                raise RuntimeError(f"mode_requirements references undeclared mode {mode} in group {group_id}")
-        rollback = group.get("rollback")
-        if not isinstance(rollback, Mapping) or not rollback.get("stable_module"):
-            raise RuntimeError(f"rollback metadata is required for group {group_id}")
-        group["default_requirements"] = default_requirements
-        group["mode_requirements"] = validated_mode_requirements
-        seen_ids.add(group_id)
-        seen_operations.update(operations)
+        group = _validated_group(
+            raw,
+            seen_ids=seen_ids,
+            seen_operations=seen_operations,
+        )
+        seen_ids.add(str(group["id"]))
+        seen_operations.update(str(item) for item in group["operations"])
         groups.append(group)
     return groups
 

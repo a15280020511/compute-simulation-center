@@ -49,55 +49,81 @@ def validate_document(kind: str, value: Any) -> None:
         raise GovernanceError(f"{kind} {location}: {first.message}")
 
 
-def load_model_registry() -> dict[str, Any]:
-    value = _load_json(MODEL_REGISTRY_PATH)
-    if not isinstance(value, dict) or value.get("schema_version") != "compute-model-registry-v2":
-        raise GovernanceError("invalid model registry schema_version")
+MODEL_REQUIRED_FIELDS = {
+    "model_id", "operation", "mode", "version", "maturity",
+    "engineering_maturity", "evidence_maturity", "risk_tier",
+    "intended_use", "prohibited_use", "theoretical_basis",
+    "required_variables", "parameter_definitions", "calibration_supported",
+    "allowed_backends", "calibration_datasets", "validation_datasets",
+    "benchmark_ids", "known_failure_conditions", "assurance_owner",
+    "last_calibrated_at", "revalidation_trigger", "sunset_date",
+}
+
+
+def _merged_model_rows(value: Mapping[str, Any]) -> list[dict[str, Any]]:
     rows = value.get("models")
     defaults = value.get("defaults")
     if not isinstance(rows, list) or not rows or not isinstance(defaults, Mapping):
         raise GovernanceError("model registry must contain defaults and models")
-    merged_rows = []
+    merged_rows: list[dict[str, Any]] = []
     for raw in rows:
         if not isinstance(raw, Mapping):
             raise GovernanceError("model registry row must be an object")
         merged = dict(defaults)
         merged.update(raw)
         merged_rows.append(merged)
-    value["models"] = merged_rows
+    return merged_rows
+
+
+def _validate_model_row(row: Mapping[str, Any], index: int, seen: set[str]) -> None:
+    missing = sorted(MODEL_REQUIRED_FIELDS - set(row))
+    if missing:
+        raise GovernanceError(f"model registry row {index} missing: {', '.join(missing)}")
+    model_id = str(row["model_id"])
+    if not model_id or model_id in seen:
+        raise GovernanceError(f"duplicate or empty model_id: {model_id}")
+    seen.add(model_id)
+    for field in ("maturity", "engineering_maturity", "evidence_maturity"):
+        if str(row[field]) not in ALLOWED_MATURITY:
+            raise GovernanceError(f"invalid {field} for {model_id}: {row[field]}")
+    if row["maturity"] != row["engineering_maturity"]:
+        raise GovernanceError(
+            f"legacy maturity must equal engineering_maturity for {model_id}"
+        )
+    calibration_supported = row["calibration_supported"]
+    allowed_backends = row["allowed_backends"]
+    if not isinstance(calibration_supported, bool) or not isinstance(allowed_backends, list):
+        raise GovernanceError(f"invalid calibration metadata for {model_id}")
+    if not calibration_supported and allowed_backends:
+        raise GovernanceError(f"non-calibratable model exposes backends: {model_id}")
+    if row["evidence_maturity"] in {"production", "decision-grade"} and (
+        not row["benchmark_ids"] or not row["validation_datasets"]
+    ):
+        raise GovernanceError(
+            f"evidence maturity lacks benchmarks or validation data: {model_id}"
+        )
+    if (
+        row["evidence_maturity"] == "decision-grade"
+        and calibration_supported
+        and not row["last_calibrated_at"]
+    ):
+        raise GovernanceError(
+            f"decision-grade calibratable model has no calibration date: {model_id}"
+        )
+
+
+def load_model_registry() -> dict[str, Any]:
+    value = _load_json(MODEL_REGISTRY_PATH)
+    if (
+        not isinstance(value, dict)
+        or value.get("schema_version") != "compute-model-registry-v2"
+    ):
+        raise GovernanceError("invalid model registry schema_version")
+    rows = _merged_model_rows(value)
     seen: set[str] = set()
-    required = {
-        "model_id", "operation", "mode", "version", "maturity", "engineering_maturity",
-        "evidence_maturity", "risk_tier", "intended_use", "prohibited_use",
-        "theoretical_basis", "required_variables", "parameter_definitions",
-        "calibration_supported", "allowed_backends", "calibration_datasets",
-        "validation_datasets", "benchmark_ids", "known_failure_conditions",
-        "assurance_owner", "last_calibrated_at", "revalidation_trigger", "sunset_date",
-    }
-    for index, row in enumerate(merged_rows):
-        missing = sorted(required - set(row))
-        if missing:
-            raise GovernanceError(f"model registry row {index} missing: {', '.join(missing)}")
-        model_id = str(row["model_id"])
-        if not model_id or model_id in seen:
-            raise GovernanceError(f"duplicate or empty model_id: {model_id}")
-        seen.add(model_id)
-        for field in ("maturity", "engineering_maturity", "evidence_maturity"):
-            if str(row[field]) not in ALLOWED_MATURITY:
-                raise GovernanceError(f"invalid {field} for {model_id}: {row[field]}")
-        if row["maturity"] != row["engineering_maturity"]:
-            raise GovernanceError(f"legacy maturity must equal engineering_maturity for {model_id}")
-        calibration_supported = row["calibration_supported"]
-        allowed_backends = row["allowed_backends"]
-        if not isinstance(calibration_supported, bool) or not isinstance(allowed_backends, list):
-            raise GovernanceError(f"invalid calibration metadata for {model_id}")
-        if not calibration_supported and allowed_backends:
-            raise GovernanceError(f"non-calibratable model exposes backends: {model_id}")
-        if row["evidence_maturity"] in {"production", "decision-grade"}:
-            if not row["benchmark_ids"] or not row["validation_datasets"]:
-                raise GovernanceError(f"evidence maturity lacks benchmarks or validation data: {model_id}")
-        if row["evidence_maturity"] == "decision-grade" and not row["last_calibrated_at"] and calibration_supported:
-            raise GovernanceError(f"decision-grade calibratable model has no calibration date: {model_id}")
+    for index, row in enumerate(rows):
+        _validate_model_row(row, index, seen)
+    value["models"] = rows
     return value
 
 

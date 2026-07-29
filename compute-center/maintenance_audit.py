@@ -102,10 +102,8 @@ def _cache_dependency_paths(workflow: str) -> set[str]:
     return paths
 
 
-def validate_configuration(root: Path) -> dict[str, Any]:
-    compute = root / "compute-center"
-    requirement_paths = sorted(compute.glob("requirements*.txt"))
-    required_paths = [
+def _required_configuration_paths(root: Path, compute: Path) -> list[Path]:
+    return [
         compute / "requirements.txt",
         compute / "requirements-mesa.txt",
         compute / "requirements-finance.txt",
@@ -115,61 +113,144 @@ def validate_configuration(root: Path) -> dict[str, Any]:
         root / ".github" / "workflows" / "compute-validate.yml",
         root / ".github" / "workflows" / "compute-ticket.yml",
     ]
-    missing = [str(path.relative_to(root)) for path in required_paths if not path.is_file()]
-    if missing:
-        return {"status": "FAIL", "missing_files": missing, "checks": []}
 
-    requirement_sets = {path.name: _requirement_rows(path) for path in requirement_paths}
-    core_names = {row.split("==", 1)[0].lower() for row in requirement_sets["requirements.txt"] if "==" in row}
-    registry = json.loads(_read(compute / "tool-registry.json"))
-    groups = registry.get("groups") if isinstance(registry, Mapping) else None
-    group_ids = [str(row.get("id") or "") for row in groups or [] if isinstance(row, Mapping)]
-    registry_valid = bool(
-        registry.get("schema_version") == "compute-tool-registry-v1"
-        and isinstance(groups, list)
+
+def _registry_valid(registry: Mapping[str, Any]) -> tuple[bool, list[Any]]:
+    groups = registry.get("groups")
+    if not isinstance(groups, list):
+        return False, []
+    typed_groups = [row for row in groups if isinstance(row, Mapping)]
+    group_ids = [str(row.get("id") or "") for row in typed_groups]
+    valid = (
+        len(typed_groups) == len(groups)
         and len(groups) >= 4
         and len(group_ids) == len(set(group_ids))
         and all(group_ids)
+        and registry.get("schema_version") == "compute-tool-registry-v1"
         and registry.get("arbitrary_modules_allowed") is False
         and registry.get("arbitrary_requirements_allowed") is False
         and registry.get("default_network_policy") == "deny"
         and all(
-            isinstance(row, Mapping)
-            and row.get("network_policy") == "deny"
+            row.get("network_policy") == "deny"
             and isinstance(row.get("rollback"), Mapping)
             and bool(row["rollback"].get("stable_module"))
-            for row in groups
+            for row in typed_groups
         )
     )
+    return bool(valid), groups
 
-    dependabot = _read(root / ".github" / "dependabot.yml")
-    auto_merge = _read(root / ".github" / "workflows" / "dependabot-auto-merge.yml")
-    validate = _read(root / ".github" / "workflows" / "compute-validate.yml")
-    ticket = _read(root / ".github" / "workflows" / "compute-ticket.yml")
+
+def _configuration_checks(
+    *,
+    requirement_sets: Mapping[str, list[str]],
+    core_names: set[str],
+    registry_valid: bool,
+    requirement_paths: list[Path],
+    dependabot: str,
+    auto_merge: str,
+    validate: str,
+    ticket: str,
+) -> list[dict[str, Any]]:
     cache_paths = _cache_dependency_paths(ticket)
     expected_cache_paths = {f"compute-center/{path.name}" for path in requirement_paths}
-
-    checks = [
-        {"name": "all-compute-requirements-exactly-pinned", "pass": bool(requirement_sets) and all(_exactly_pinned(rows) for rows in requirement_sets.values())},
-        {"name": "required-compute-packages", "pass": {"jsonschema", "numpy", "scipy", "simpy"}.issubset(core_names)},
+    return [
+        {
+            "name": "all-compute-requirements-exactly-pinned",
+            "pass": bool(requirement_sets)
+            and all(_exactly_pinned(rows) for rows in requirement_sets.values()),
+        },
+        {
+            "name": "required-compute-packages",
+            "pass": {"jsonschema", "numpy", "scipy", "simpy"}.issubset(core_names),
+        },
         {"name": "tool-registry-valid", "pass": registry_valid},
-        {"name": "all-requirements-in-cache-key", "pass": expected_cache_paths <= cache_paths, "observed": sorted(cache_paths), "expected": sorted(expected_cache_paths)},
-        {"name": "registry-driven-installation", "pass": "tool_registry.py requirements" in ticket and 'for requirement in "${requirement_files[@]}"' in ticket},
-        {"name": "dependabot-isolated-directory", "pass": 'directory: "/compute-center"' in dependabot},
-        {"name": "dependabot-minor-patch-group", "pass": "compute-center-minor-patch" in dependabot and "update-types: [minor, patch]" in dependabot},
-        {"name": "dependabot-auto-merge-gated-by-compute-ci", "pass": "Validate Compute Center" in auto_merge and "conclusion == 'success'" in auto_merge},
-        {"name": "major-updates-not-auto-merged", "pass": "Major or unclassified dependency update left for manual review" in auto_merge},
+        {
+            "name": "all-requirements-in-cache-key",
+            "pass": expected_cache_paths <= cache_paths,
+            "observed": sorted(cache_paths),
+            "expected": sorted(expected_cache_paths),
+        },
+        {
+            "name": "registry-driven-installation",
+            "pass": "tool_registry.py requirements" in ticket
+            and 'for requirement in "${requirement_files[@]}"' in ticket,
+        },
+        {
+            "name": "dependabot-isolated-directory",
+            "pass": 'directory: "/compute-center"' in dependabot,
+        },
+        {
+            "name": "dependabot-minor-patch-group",
+            "pass": "compute-center-minor-patch" in dependabot
+            and "update-types: [minor, patch]" in dependabot,
+        },
+        {
+            "name": "dependabot-auto-merge-gated-by-compute-ci",
+            "pass": "Validate Compute Center" in auto_merge
+            and "conclusion == 'success'" in auto_merge,
+        },
+        {
+            "name": "major-updates-not-auto-merged",
+            "pass": "Major or unclassified dependency update left for manual review"
+            in auto_merge,
+        },
         {"name": "weekly-compute-health", "pass": 'cron: "7 5 * * 0"' in validate},
-        {"name": "scheduled-health-incident", "pass": "Compute center health failed" in validate and "health recovered" in validate},
-        {"name": "compute-entry-isolated", "pass": "startsWith(github.event.issue.title, '[compute]')" in ticket},
+        {
+            "name": "scheduled-health-incident",
+            "pass": "Compute center health failed" in validate
+            and "health recovered" in validate,
+        },
+        {
+            "name": "compute-entry-isolated",
+            "pass": "startsWith(github.event.issue.title, '[compute]')" in ticket,
+        },
         {"name": "zero-model-secret", "pass": "OPENROUTER_API_KEY" not in ticket},
     ]
+
+
+def validate_configuration(root: Path) -> dict[str, Any]:
+    compute = root / "compute-center"
+    requirement_paths = sorted(compute.glob("requirements*.txt"))
+    missing = [
+        str(path.relative_to(root))
+        for path in _required_configuration_paths(root, compute)
+        if not path.is_file()
+    ]
+    if missing:
+        return {"status": "FAIL", "missing_files": missing, "checks": []}
+
+    requirement_sets = {
+        path.name: _requirement_rows(path) for path in requirement_paths
+    }
+    core_names = {
+        row.split("==", 1)[0].lower()
+        for row in requirement_sets["requirements.txt"]
+        if "==" in row
+    }
+    registry = json.loads(_read(compute / "tool-registry.json"))
+    if not isinstance(registry, Mapping):
+        registry = {}
+    registry_status, groups = _registry_valid(registry)
+    checks = _configuration_checks(
+        requirement_sets=requirement_sets,
+        core_names=core_names,
+        registry_valid=registry_status,
+        requirement_paths=requirement_paths,
+        dependabot=_read(root / ".github" / "dependabot.yml"),
+        auto_merge=_read(root / ".github" / "workflows" / "dependabot-auto-merge.yml"),
+        validate=_read(root / ".github" / "workflows" / "compute-validate.yml"),
+        ticket=_read(root / ".github" / "workflows" / "compute-ticket.yml"),
+    )
     return {
         "status": "PASS" if all(item["pass"] for item in checks) else "FAIL",
         "requirement_files": requirement_sets,
-        "tool_registry_group_count": len(groups or []),
+        "tool_registry_group_count": len(groups),
         "checks": checks,
-        "update_classifier_examples": {"patch": classify_update("1.2.3", "1.2.4"), "minor": classify_update("1.2.3", "1.3.0"), "major": classify_update("1.2.3", "2.0.0")},
+        "update_classifier_examples": {
+            "patch": classify_update("1.2.3", "1.2.4"),
+            "minor": classify_update("1.2.3", "1.3.0"),
+            "major": classify_update("1.2.3", "2.0.0"),
+        },
     }
 
 
