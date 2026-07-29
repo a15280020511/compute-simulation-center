@@ -1,0 +1,3 @@
+-r requirements.txt
+mesa==3.5.1
+networkx==3.6.1

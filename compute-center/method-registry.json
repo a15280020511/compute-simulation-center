@@ -1,0 +1,33 @@
+{
+  "schema_version": "compute-method-registry-v1",
+  "policy": {
+    "arbitrary_method_import_allowed": false,
+    "ticket_selected_packages_allowed": false,
+    "runtime_network_allowed": false,
+    "activation_requires": [
+      "fixed operation adapter",
+      "exact dependency pin",
+      "unit tests",
+      "numerical truth test",
+      "rollback metadata",
+      "controlled-preview maturity"
+    ]
+  },
+  "installed_method_packs": [
+    {"id":"scipy-calibration","status":"installed","operations":["monte_carlo","constrained_optimization","system_dynamics_simulation"],"capabilities":["least_squares","slsqp","differential_evolution","likelihood"],"network_policy":"deny"},
+    {"id":"statsmodels-missing-data","status":"installed","operations":["missing_data_analysis"],"capabilities":["MICE","complete-case diagnostics","imputation sensitivity"],"network_policy":"deny"},
+    {"id":"mesa-social-behavior","status":"installed","operations":["agent_based_simulation"],"capabilities":["heterogeneous agents","group behavior","network interaction"],"network_policy":"deny"},
+    {"id":"ndlib-diffusion","status":"installed","version":"5.1.1","requirements":"requirements-diffusion.txt","operations":["information_diffusion_analysis"],"network_policy":"deny"},
+    {"id":"dowhy-causal","status":"installed","version":"0.14","requirements":"requirements-causal.txt","operations":["causal_policy_evaluation"],"network_policy":"deny"},
+    {"id":"pgmpy-bayesian-network","status":"installed","version":"1.1.2","requirements":"requirements-bayesian-network.txt","operations":["bayesian_network_inference"],"network_policy":"deny"}
+  ],
+  "conditional_backends": [
+    {"id":"optuna","status":"not-installed","activation_trigger":"SciPy global search is insufficient for mixed categorical, conditional or expensive search spaces","required_controls":["fixed sampler","bounded trials","fixed seed","no user objective code"]},
+    {"id":"pysd","status":"not-installed","activation_trigger":"A validated Vensim or XMILE model must be imported","required_controls":["per-model compatibility test","equation parity test","fallback to native stock-flow engine"]},
+    {"id":"pymc-arviz","status":"not-installed","activation_trigger":"A formal hierarchical, latent-variable, time-varying or measurement-error Bayesian model is required","required_controls":["R-hat","effective sample size","divergence checks","posterior predictive checks"]}
+  ],
+  "external_adapters": [
+    {"id":"pestpp_external_adapter","status":"not-installed","activation_trigger":"High-dimensional ill-conditioned external simulator calibration","runtime_policy":"file-in-file-out only; no shell from ticket"},
+    {"id":"dakota_external_adapter","status":"not-installed","activation_trigger":"Multi-physics, multi-fidelity or high-cost parallel uncertainty quantification","runtime_policy":"separate reviewed engineering environment"}
+  ]
+}

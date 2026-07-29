@@ -1,0 +1,11 @@
+{
+  "schema_version":"compute-parameter-recovery-benchmark-v1",
+  "cases":[
+    {"id":"recover-linear-slope-intercept-001","operation":"econometric_analysis","status":"implemented","oracle":"slope=2.5, intercept=1.2","tolerance":1e-6},
+    {"id":"recover-logistic-growth-001","operation":"system_dynamics_simulation","status":"controlled-preview","oracle":"known growth and carrying capacity","tolerance":0.05},
+    {"id":"recover-diffusion-rate-001","operation":"information_diffusion_analysis","status":"controlled-preview","oracle":"known transmission range from repeated synthetic networks","tolerance":0.1},
+    {"id":"recover-policy-effect-001","operation":"causal_policy_evaluation","status":"implemented","oracle":"known ATE=2.0 with observed confounder","tolerance":0.3},
+    {"id":"recover-bayesian-cpd-001","operation":"bayesian_network_inference","status":"implemented","oracle":"known binary A->B conditional probabilities","tolerance":0.1},
+    {"id":"recover-missing-values-001","operation":"missing_data_analysis","status":"controlled-preview","oracle":"masked-at-random cells from a frozen complete matrix","tolerance":0.2}
+  ]
+}

@@ -1,0 +1,45 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/a15280020511/test/compute-center/validation-profile.schema.json",
+  "title": "Compute Validation Profile",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["strategy", "baseline_required", "structure_comparison_required"],
+  "properties": {
+    "strategy": {"enum": ["holdout", "rolling_origin", "blocked_time_series", "group_holdout", "parameter_recovery", "shadow"]},
+    "train_fraction": {"type": "number", "exclusiveMinimum": 0, "exclusiveMaximum": 1},
+    "folds": {"type": "integer", "minimum": 2, "maximum": 100},
+    "baseline_required": {"type": "boolean"},
+    "baseline_model_id": {"type": "string", "maxLength": 200},
+    "structure_comparison_required": {"type": "boolean"},
+    "alternative_model_ids": {"type": "array", "maxItems": 20, "items": {"type": "string", "maxLength": 200}},
+    "metrics": {"type": "array", "minItems": 1, "uniqueItems": true, "items": {"enum": ["rmse", "mae", "mape", "bias", "brier", "ece", "coverage", "log_loss", "decision_loss"]}},
+    "minimum_improvement_over_baseline": {"type": "number", "minimum": 0, "maximum": 1},
+    "parameter_recovery_tolerance": {"type": "number", "minimum": 0},
+    "shadow_observations_required": {"type": "integer", "minimum": 1},
+    "actual_values": {"type": "array", "minItems": 1, "maxItems": 100000, "items": {"type": "number"}},
+    "result_paths": {"type": "array", "minItems": 1, "maxItems": 100, "uniqueItems": true, "items": {"type": "string", "pattern": "^[A-Za-z0-9_.]+$", "maxLength": 300}},
+    "baseline_predictions": {"type": "array", "minItems": 1, "maxItems": 100000, "items": {"type": "number"}},
+    "alternative_predictions": {"type": "object", "maxProperties": 20, "additionalProperties": {"type": "array", "minItems": 1, "maxItems": 100000, "items": {"type": "number"}}},
+    "model_complexity": {"type": "object", "maxProperties": 50, "additionalProperties": {"type": "integer", "minimum": 1}},
+    "time_index": {"type": "array", "minItems": 3, "maxItems": 100000, "items": {"type": "number"}},
+    "groups": {"type": "array", "minItems": 3, "maxItems": 100000, "items": {"type": "string", "maxLength": 200}},
+    "metric_thresholds": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "rmse_maximum": {"type": "number", "minimum": 0},
+        "mae_maximum": {"type": "number", "minimum": 0}
+      }
+    },
+    "ensemble_method": {"enum": ["equal_weight", "validation_weighted", "inverse_error_capped", "robust_consensus"]},
+    "maximum_ensemble_weight": {"type": "number", "exclusiveMinimum": 0, "maximum": 1},
+    "source_snapshot_sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"}
+  },
+  "allOf": [
+    {
+      "if": {"properties": {"baseline_required": {"const": true}}, "required": ["baseline_required"]},
+      "then": {"required": ["baseline_model_id", "baseline_predictions"]}
+    }
+  ]
+}

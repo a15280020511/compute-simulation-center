@@ -1,0 +1,13 @@
+{
+  "schema_version":"compute-acceptance-profile-v1",
+  "id":"formal",
+  "decision_use_allowed":true,
+  "strict_preflight_required":true,
+  "maximum_assumption_ratio":0.25,
+  "benchmark_required":true,
+  "independent_cross_check_required":false,
+  "realized_feedback_required_for_probabilistic_claims":true,
+  "simple_baseline_required":true,
+  "structure_comparison_required":true,
+  "release_ceiling":"DECISION_RELEASED"
+}

@@ -1,0 +1,27 @@
+{
+  "$schema":"https://json-schema.org/draft/2020-12/schema",
+  "$id":"https://github.com/a15280020511/test/compute-center/model-performance-ledger.schema.json",
+  "title":"Append-only Compute Model Performance Ledger Record",
+  "type":"object",
+  "additionalProperties":false,
+  "required":["record_id","record_type","model_id","model_version","operation","created_at","source_snapshot_sha256"],
+  "properties":{
+    "record_id":{"type":"string","pattern":"^[A-Za-z0-9][A-Za-z0-9._:-]{7,127}$"},
+    "record_type":{"enum":["prediction","realized_outcome","calibration","drift","revalidation","suspension","retirement","shadow_result"]},
+    "model_id":{"type":"string","minLength":1,"maxLength":200},
+    "model_version":{"type":"string","minLength":1,"maxLength":100},
+    "operation":{"type":"string","minLength":1,"maxLength":100},
+    "mode":{"type":["string","null"],"maxLength":100},
+    "task_id":{"type":["string","null"],"maxLength":128},
+    "created_at":{"type":"string","minLength":10,"maxLength":100},
+    "prediction_time":{"type":["string","null"],"maxLength":100},
+    "outcome_time":{"type":["string","null"],"maxLength":100},
+    "source_snapshot_sha256":{"type":"string","pattern":"^[0-9a-f]{64}$"},
+    "prediction":{"type":["number","integer","string","object","array","null"]},
+    "outcome":{"type":["number","integer","string","object","array","null"]},
+    "metrics":{"type":"object","maxProperties":50},
+    "decision_status":{"enum":["DECISION_RELEASED","DECISION_CONDITIONAL","DECISION_BLOCKED","NOT_APPLICABLE"]},
+    "append_only_previous_record_sha256":{"type":["string","null"],"pattern":"^[0-9a-f]{64}$"},
+    "record_sha256":{"type":"string","pattern":"^[0-9a-f]{64}$"}
+  }
+}

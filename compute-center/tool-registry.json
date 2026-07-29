@@ -1,0 +1,151 @@
+{
+  "schema_version": "compute-tool-registry-v1",
+  "manager_version": 2,
+  "selection_owner": "gpts-usage-center",
+  "maintenance_owner": "ordinary-web-gpt-with-github-plugin",
+  "arbitrary_modules_allowed": false,
+  "arbitrary_requirements_allowed": false,
+  "default_network_policy": "deny",
+  "groups": [
+    {
+      "id": "advanced", "module": "advanced_operations",
+      "operations": ["discrete_event_simulation", "repeated_game", "agent_evolution", "time_series_forecast", "causal_screening", "nonlinear_dynamics", "pattern_discovery", "assumption_validation", "markov_simulation"],
+      "default_requirements": [], "mode_requirements": {}, "network_policy": "deny", "deterministic": true, "maturity": "production",
+      "resource_limits": {"max_seconds": 120, "max_memory_mb": 2048},
+      "rollback": {"stable_module": "advanced_operations", "strategy": "git-revert"}, "modes": {}
+    },
+    {
+      "id": "professional", "module": "professional_operations",
+      "operations": ["gis_spatial_analysis", "bayesian_inference", "econometric_analysis"],
+      "default_requirements": [], "mode_requirements": {}, "network_policy": "deny", "deterministic": true, "maturity": "production",
+      "resource_limits": {"max_seconds": 120, "max_memory_mb": 2048},
+      "rollback": {"stable_module": "professional_operations", "strategy": "git-revert"}, "modes": {}
+    },
+    {
+      "id": "decision-intelligence", "module": "decision_intelligence_gateway", "operations": ["finance_decision_analysis"],
+      "input_validation": "mode_allowlist", "default_requirements": ["requirements-finance.txt"], "mode_requirements": {},
+      "network_policy": "deny", "deterministic": true, "maturity": "production", "resource_limits": {"max_seconds": 120, "max_memory_mb": 4096},
+      "rollback": {"stable_module": "finance_operations", "strategy": "switch-registry-module-and-git-revert"},
+      "modes": {
+        "performance_metrics": {"maturity": "production", "network_policy": "deny", "deterministic": true, "limits": {"max_observations": 10000}},
+        "portfolio_optimization": {"maturity": "production", "network_policy": "deny", "deterministic": true, "limits": {"max_assets": 50, "max_observations": 10000}},
+        "investment_projection": {"maturity": "production", "network_policy": "deny", "deterministic": true, "limits": {"max_years": 100}},
+        "business_unit_economics": {"maturity": "production", "network_policy": "deny", "deterministic": true, "limits": {"max_fields": 50}},
+        "capital_budgeting": {"maturity": "production", "network_policy": "deny", "deterministic": true, "limits": {"max_cash_flows": 1200}},
+        "strategy_backtest": {"maturity": "production", "network_policy": "deny", "deterministic": true, "limits": {"max_observations": 10000}},
+        "factor_regression": {"maturity": "production", "network_policy": "deny", "deterministic": true, "limits": {"max_observations": 20000, "max_factors": 20}},
+        "walk_forward_backtest": {"maturity": "production", "network_policy": "deny", "deterministic": true, "limits": {"max_observations": 20000, "max_windows": 1000}},
+        "risk_parity_allocation": {"maturity": "production", "network_policy": "deny", "deterministic": true, "limits": {"max_assets": 50, "max_observations": 20000}},
+        "portfolio_stress_test": {"maturity": "production", "network_policy": "deny", "deterministic": true, "limits": {"max_assets": 50, "max_scenarios": 200}},
+        "sarimax_forecast": {"maturity": "controlled-preview", "network_policy": "deny", "deterministic": true, "limits": {"max_observations": 20000, "max_horizon": 3650}},
+        "exponential_smoothing_forecast": {"maturity": "production", "network_policy": "deny", "deterministic": true, "limits": {"max_observations": 20000, "max_horizon": 3650}},
+        "vector_autoregression_forecast": {"maturity": "controlled-preview", "network_policy": "deny", "deterministic": true, "limits": {"max_series": 20, "max_observations": 20000}},
+        "sobol_sensitivity": {"maturity": "production", "network_policy": "deny", "deterministic": true, "limits": {"max_parameters": 30, "max_base_samples": 8192}},
+        "mixed_integer_optimization": {"maturity": "production", "network_policy": "deny", "deterministic": false, "limits": {"max_variables": 200, "max_constraints": 1000, "max_seconds": 120}},
+        "assignment_optimization": {"maturity": "production", "network_policy": "deny", "deterministic": true, "limits": {"max_workers": 100, "max_tasks": 100}},
+        "vehicle_routing": {"maturity": "controlled-preview", "network_policy": "deny", "deterministic": false, "limits": {"max_nodes": 200, "max_vehicles": 20, "max_seconds": 120}},
+        "weighted_mcda": {"maturity": "production", "network_policy": "deny", "deterministic": true, "limits": {"max_alternatives": 50, "max_criteria": 50}},
+        "minimax_regret": {"maturity": "production", "network_policy": "deny", "deterministic": true, "limits": {"max_actions": 50, "max_scenarios": 100}},
+        "value_of_information": {"maturity": "production", "network_policy": "deny", "deterministic": true, "limits": {"max_actions": 50, "max_scenarios": 100}},
+        "competing_hypotheses": {"maturity": "production", "network_policy": "deny", "deterministic": true, "limits": {"max_hypotheses": 30, "max_evidence": 200}},
+        "indicators_and_warnings": {"maturity": "production", "network_policy": "deny", "deterministic": true, "limits": {"max_indicators": 200}}
+      }
+    },
+    {
+      "id": "mesa", "module": "mesa_gateway", "operations": ["agent_based_simulation"], "input_validation": "mode_allowlist",
+      "default_requirements": ["requirements-mesa.txt"], "mode_requirements": {}, "network_policy": "deny", "deterministic": true, "maturity": "production",
+      "resource_limits": {"max_seconds": 120, "max_memory_mb": 4096}, "rollback": {"stable_module": "mesa_operations", "strategy": "switch-registry-module-and-git-revert"},
+      "modes": {
+        "heterogeneous_worker_choice": {"maturity": "production", "network_policy": "deny", "deterministic": true, "limits": {"max_agents": 5000, "max_steps": 1000}},
+        "network_contagion": {"maturity": "production", "network_policy": "deny", "deterministic": true, "limits": {"max_agents": 5000, "max_steps": 1000}},
+        "resource_competition": {"maturity": "production", "network_policy": "deny", "deterministic": true, "limits": {"max_agents": 5000, "max_steps": 1000}},
+        "prospect_theory_choice": {"maturity": "controlled-preview", "network_policy": "deny", "deterministic": true, "limits": {"max_agents": 5000, "max_steps": 1000}},
+        "bounded_rational_adoption": {"maturity": "controlled-preview", "network_policy": "deny", "deterministic": true, "limits": {"max_agents": 5000, "max_steps": 1000}},
+        "trust_update": {"maturity": "controlled-preview", "network_policy": "deny", "deterministic": true, "limits": {"max_agents": 5000, "max_steps": 1000}},
+        "social_norm_compliance": {"maturity": "controlled-preview", "network_policy": "deny", "deterministic": true, "limits": {"max_agents": 5000, "max_steps": 1000}},
+        "risk_perception": {"maturity": "controlled-preview", "network_policy": "deny", "deterministic": true, "limits": {"max_agents": 5000, "max_steps": 1000}},
+        "fatigue_and_adaptation": {"maturity": "controlled-preview", "network_policy": "deny", "deterministic": true, "limits": {"max_agents": 5000, "max_steps": 1000}},
+        "institutional_confidence": {"maturity": "controlled-preview", "network_policy": "deny", "deterministic": true, "limits": {"max_agents": 5000, "max_steps": 1000}},
+        "group_identity_choice": {"maturity": "controlled-preview", "network_policy": "deny", "deterministic": true, "limits": {"max_agents": 5000, "max_steps": 1000}}
+      }
+    },
+    {
+      "id": "missing-data", "module": "missing_data_operations", "operations": ["missing_data_analysis"], "input_validation": "mode_allowlist",
+      "default_requirements": ["requirements-missing-data.txt"], "mode_requirements": {}, "network_policy": "deny", "deterministic": true, "maturity": "controlled-preview",
+      "resource_limits": {"max_seconds": 120, "max_memory_mb": 4096}, "rollback": {"stable_module": "missing_data_operations", "strategy": "git-revert"},
+      "modes": {
+        "missingness_profile": {"maturity": "production", "network_policy": "deny", "deterministic": true, "limits": {"max_rows": 5000, "max_columns": 50}},
+        "complete_case_bias_check": {"maturity": "production", "network_policy": "deny", "deterministic": true, "limits": {"max_rows": 5000, "max_columns": 50}},
+        "mice_multiple_imputation": {"maturity": "controlled-preview", "network_policy": "deny", "deterministic": true, "limits": {"max_rows": 5000, "max_columns": 50, "max_imputations": 20}},
+        "imputation_sensitivity": {"maturity": "controlled-preview", "network_policy": "deny", "deterministic": true, "limits": {"max_rows": 5000, "max_columns": 50, "max_imputations": 20}},
+        "collection_priority": {"maturity": "production", "network_policy": "deny", "deterministic": true, "limits": {"max_variables": 100}}
+      }
+    },
+    {
+      "id": "system-dynamics", "module": "system_dynamics_gateway", "operations": ["system_dynamics_simulation"], "input_validation": "mode_allowlist",
+      "default_requirements": [], "mode_requirements": {}, "network_policy": "deny", "deterministic": true, "maturity": "controlled-preview",
+      "resource_limits": {"max_seconds": 120, "max_memory_mb": 2048}, "rollback": {"stable_module": "system_dynamics_gateway", "strategy": "git-revert"},
+      "modes": {
+        "stock_flow": {"maturity": "controlled-preview", "network_policy": "deny", "deterministic": true, "limits": {"max_steps": 10000, "max_stocks": 50}},
+        "feedback_delay": {"maturity": "controlled-preview", "network_policy": "deny", "deterministic": true, "limits": {"max_steps": 10000}},
+        "policy_switch": {"maturity": "controlled-preview", "network_policy": "deny", "deterministic": true, "limits": {"max_steps": 10000}},
+        "coupled_capacity": {"maturity": "controlled-preview", "network_policy": "deny", "deterministic": true, "limits": {"max_steps": 10000}},
+        "resource_depletion": {"maturity": "controlled-preview", "network_policy": "deny", "deterministic": true, "limits": {"max_steps": 10000}},
+        "adoption_saturation": {"maturity": "controlled-preview", "network_policy": "deny", "deterministic": true, "limits": {"max_steps": 10000}}
+      }
+    },
+    {
+      "id": "crisis-warning", "module": "crisis_warning_gateway", "operations": ["crisis_early_warning"], "input_validation": "mode_allowlist",
+      "default_requirements": [], "mode_requirements": {}, "network_policy": "deny", "deterministic": true, "maturity": "controlled-preview",
+      "resource_limits": {"max_seconds": 120, "max_memory_mb": 2048}, "rollback": {"stable_module": "crisis_warning_gateway", "strategy": "git-revert"},
+      "modes": {
+        "composite_risk_index": {"maturity": "controlled-preview", "network_policy": "deny", "deterministic": true, "limits": {"max_indicators": 200}},
+        "change_point_warning": {"maturity": "controlled-preview", "network_policy": "deny", "deterministic": true, "limits": {"max_observations": 100000}},
+        "alert_threshold_optimization": {"maturity": "controlled-preview", "network_policy": "deny", "deterministic": true, "limits": {"max_observations": 100000}},
+        "scenario_escalation": {"maturity": "controlled-preview", "network_policy": "deny", "deterministic": true, "limits": {"max_states": 50, "max_steps": 1000}},
+        "response_resource_allocation": {"maturity": "controlled-preview", "network_policy": "deny", "deterministic": true, "limits": {"max_demands": 200}},
+        "warning_performance_evaluation": {"maturity": "controlled-preview", "network_policy": "deny", "deterministic": true, "limits": {"max_observations": 100000}}
+      }
+    },
+    {
+      "id": "information-diffusion", "module": "information_diffusion_operations", "operations": ["information_diffusion_analysis"], "input_validation": "mode_allowlist",
+      "default_requirements": ["requirements-diffusion.txt"], "mode_requirements": {}, "network_policy": "deny", "deterministic": true, "maturity": "controlled-preview",
+      "resource_limits": {"max_seconds": 120, "max_memory_mb": 4096}, "rollback": {"stable_module": "information_diffusion_operations", "strategy": "git-revert"},
+      "modes": {
+        "sir_information_spread": {"maturity": "controlled-preview", "network_policy": "deny", "deterministic": true, "limits": {"max_nodes": 5000, "max_edges": 50000, "max_steps": 1000, "max_seeds": 50}},
+        "threshold_adoption": {"maturity": "controlled-preview", "network_policy": "deny", "deterministic": true, "limits": {"max_nodes": 5000, "max_edges": 50000, "max_steps": 1000, "max_seeds": 50}},
+        "independent_cascade": {"maturity": "controlled-preview", "network_policy": "deny", "deterministic": true, "limits": {"max_nodes": 5000, "max_edges": 50000, "max_steps": 1000, "max_seeds": 50}},
+        "voter_opinion": {"maturity": "controlled-preview", "network_policy": "deny", "deterministic": true, "limits": {"max_nodes": 5000, "max_edges": 50000, "max_steps": 1000, "max_seeds": 50}},
+        "majority_rule": {"maturity": "controlled-preview", "network_policy": "deny", "deterministic": true, "limits": {"max_nodes": 5000, "max_edges": 50000, "max_steps": 1000, "max_seeds": 50}},
+        "bounded_confidence": {"maturity": "controlled-preview", "network_policy": "deny", "deterministic": true, "limits": {"max_nodes": 5000, "max_edges": 50000, "max_steps": 1000, "max_seeds": 50}},
+        "cognitive_risk_opinion": {"maturity": "controlled-preview", "network_policy": "deny", "deterministic": true, "limits": {"max_nodes": 5000, "max_edges": 50000, "max_steps": 1000, "max_seeds": 50}}
+      }
+    },
+    {
+      "id": "causal-policy", "module": "causal_policy_operations", "operations": ["causal_policy_evaluation"], "input_validation": "mode_allowlist",
+      "default_requirements": ["requirements-causal.txt"], "mode_requirements": {}, "network_policy": "deny", "deterministic": true, "maturity": "controlled-preview",
+      "resource_limits": {"max_seconds": 180, "max_memory_mb": 4096}, "rollback": {"stable_module": "causal_policy_operations", "strategy": "git-revert"},
+      "modes": {
+        "backdoor_adjustment": {"maturity": "controlled-preview", "network_policy": "deny", "deterministic": true, "limits": {"max_rows": 100000, "max_confounders": 30}},
+        "propensity_weighting": {"maturity": "controlled-preview", "network_policy": "deny", "deterministic": true, "limits": {"max_rows": 100000, "max_confounders": 30}},
+        "difference_in_differences_refuted": {"maturity": "controlled-preview", "network_policy": "deny", "deterministic": true, "limits": {"max_rows": 100000}},
+        "instrumental_variable_refuted": {"maturity": "controlled-preview", "network_policy": "deny", "deterministic": true, "limits": {"max_rows": 100000, "max_controls": 30}},
+        "placebo_policy_test": {"maturity": "controlled-preview", "network_policy": "deny", "deterministic": true, "limits": {"max_rows": 100000, "max_refutations": 2000}},
+        "unobserved_confounding_sensitivity": {"maturity": "controlled-preview", "network_policy": "deny", "deterministic": true, "limits": {"max_scenarios": 100}}
+      }
+    },
+    {
+      "id": "bayesian-network", "module": "bayesian_network_operations", "operations": ["bayesian_network_inference"], "input_validation": "mode_allowlist",
+      "default_requirements": ["requirements-bayesian-network.txt"], "mode_requirements": {}, "network_policy": "deny", "deterministic": true, "maturity": "controlled-preview",
+      "resource_limits": {"max_seconds": 180, "max_memory_mb": 4096}, "rollback": {"stable_module": "bayesian_network_operations", "strategy": "git-revert"},
+      "modes": {
+        "fixed_network_inference": {"maturity": "controlled-preview", "network_policy": "deny", "deterministic": true, "limits": {"max_nodes": 50, "max_edges": 200, "max_states": 20}},
+        "expert_prior_update": {"maturity": "controlled-preview", "network_policy": "deny", "deterministic": true, "limits": {"max_states": 20}},
+        "bayesian_parameter_estimation": {"maturity": "controlled-preview", "network_policy": "deny", "deterministic": true, "limits": {"max_nodes": 50, "max_rows": 50000}},
+        "em_parameter_estimation": {"maturity": "controlled-preview", "network_policy": "deny", "deterministic": true, "limits": {"max_nodes": 50, "max_rows": 50000, "max_iterations": 200}},
+        "evidence_sensitivity": {"maturity": "controlled-preview", "network_policy": "deny", "deterministic": true, "limits": {"max_nodes": 50, "max_scenarios": 50}},
+        "virtual_evidence_update": {"maturity": "controlled-preview", "network_policy": "deny", "deterministic": true, "limits": {"max_nodes": 50, "max_virtual_evidence": 20}}
+      }
+    }
+  ]
+}

@@ -1,0 +1,147 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/a15280020511/test/compute-center/compute-ticket.schema.json",
+  "title": "Independent Compute Center Ticket",
+  "description": "A deterministic compute request prepared by GPTs. The compute center does not call models or fetch external data.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["task_id", "operation", "inputs"],
+  "properties": {
+    "task_id": {"type": "string", "minLength": 8, "maxLength": 128, "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{7,127}$"},
+    "objective": {"type": "string", "maxLength": 5000},
+    "operation": {
+      "type": "string",
+      "enum": [
+        "monte_carlo", "sensitivity_analysis", "scenario_compare", "constrained_optimization", "break_even_analysis", "descriptive_statistics",
+        "discrete_event_simulation", "repeated_game", "agent_evolution", "time_series_forecast", "causal_screening", "nonlinear_dynamics", "pattern_discovery", "assumption_validation", "markov_simulation",
+        "gis_spatial_analysis", "bayesian_inference", "econometric_analysis", "agent_based_simulation", "finance_decision_analysis",
+        "missing_data_analysis", "system_dynamics_simulation", "crisis_early_warning",
+        "information_diffusion_analysis", "causal_policy_evaluation", "bayesian_network_inference"
+      ]
+    },
+    "inputs": {"type": "object", "maxProperties": 100},
+    "pipeline": {
+      "type": "object", "additionalProperties": false, "required": ["pipeline_id", "stage_id"],
+      "properties": {
+        "pipeline_id": {"type": "string", "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{7,127}$"},
+        "stage_id": {"type": "string", "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{2,63}$"},
+        "sequence_reason": {"type": "string", "maxLength": 2000},
+        "upstream_refs": {
+          "type": "array", "maxItems": 20,
+          "items": {
+            "type": "object", "additionalProperties": false, "required": ["center", "task_id", "file", "sha256"],
+            "properties": {
+              "center": {"enum": ["api", "compute", "expert", "user", "public_source", "benchmark"]},
+              "task_id": {"type": "string", "maxLength": 128},
+              "issue_number": {"type": "integer", "minimum": 1},
+              "run_id": {"type": "integer", "minimum": 1},
+              "artifact_id": {"type": "integer", "minimum": 1},
+              "file": {"type": "string", "maxLength": 500},
+              "sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+              "observed_at": {"type": "string", "maxLength": 100}
+            }
+          }
+        }
+      }
+    },
+    "preflight_policy": {
+      "type": "object", "additionalProperties": false,
+      "properties": {
+        "enforcement": {"enum": ["advisory", "strict"]},
+        "allow_assumptions": {"type": "boolean"},
+        "allow_proxy": {"type": "boolean"},
+        "require_user_approval_for_low_confidence": {"type": "boolean"},
+        "max_assumption_ratio": {"type": "number", "minimum": 0, "maximum": 1},
+        "small_sample_threshold": {"type": "integer", "minimum": 2, "maximum": 100000},
+        "outlier_rate_threshold": {"type": "number", "minimum": 0, "maximum": 1}
+      }
+    },
+    "quality_profile": {
+      "type": "object", "additionalProperties": false,
+      "properties": {
+        "decision_class": {"enum": ["exploratory", "formal", "high_stakes"]},
+        "probabilistic_claim": {"type": "boolean"},
+        "benchmark_ids": {"type": "array", "maxItems": 50, "items": {"type": "string", "minLength": 1, "maxLength": 200}},
+        "strategy_id": {"type": "string", "minLength": 1, "maxLength": 200},
+        "method_ids": {"type": "array", "maxItems": 50, "uniqueItems": true, "items": {"type": "string", "minLength": 1, "maxLength": 200}},
+        "sample_ids": {"type": "array", "maxItems": 50, "uniqueItems": true, "items": {"type": "string", "minLength": 1, "maxLength": 200}},
+        "rule_ids": {"type": "array", "maxItems": 100, "uniqueItems": true, "items": {"type": "string", "minLength": 1, "maxLength": 200}},
+        "independent_cross_check_passed": {"type": "boolean"},
+        "cross_check_method": {"type": "string", "maxLength": 1000},
+        "user_approved_for_high_stakes": {"type": "boolean"},
+        "technical_review_evidence_sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+        "operational_feedback_evidence_sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+        "publication_policy": {"enum": ["artifact_only", "status_only", "public_result"]}
+      }
+    },
+    "calibration_feedback": {
+      "type": "object", "additionalProperties": false,
+      "properties": {
+        "predicted_probabilities": {"type": "array", "maxItems": 100000, "items": {"type": "number", "minimum": 0, "maximum": 1}},
+        "observed_outcomes": {"type": "array", "maxItems": 100000, "items": {"type": "integer", "enum": [0, 1]}},
+        "prediction_intervals": {"type": "array", "maxItems": 100000, "items": {"type": "object", "additionalProperties": false, "required": ["lower", "upper", "actual"], "properties": {"lower": {"type": "number"}, "upper": {"type": "number"}, "actual": {"type": "number"}}}},
+        "reference_values": {"type": "array", "maxItems": 100000, "items": {"type": "number"}},
+        "recent_values": {"type": "array", "maxItems": 100000, "items": {"type": "number"}},
+        "feedback_window": {"type": "string", "maxLength": 200},
+        "source_snapshot_sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"}
+      }
+    },
+    "assumption_refs": {"type": "array", "maxItems": 200, "items": {"type": "object", "additionalProperties": false, "required": ["assumption_id"], "properties": {"assumption_id": {"type": "string", "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{2,127}$"}, "version": {"type": "string", "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+$"}}}},
+    "assumption_register": {"type": "array", "maxItems": 200, "items": {"type": "object", "maxProperties": 60}},
+    "mechanism_register": {"type": "array", "maxItems": 200, "items": {"type": "object", "maxProperties": 20}},
+    "experiment_profile": {"type": "object", "maxProperties": 30},
+    "credibility_profile": {"type": "object", "maxProperties": 20},
+    "calibration_profile": {"type": "object", "maxProperties": 30},
+    "constraint_profile": {"type": "object", "maxProperties": 10},
+    "validation_profile": {"type": "object", "maxProperties": 40},
+    "data_context": {
+      "type": "object", "additionalProperties": false,
+      "properties": {
+        "variables": {
+          "type": "array", "maxItems": 100,
+          "items": {
+            "type": "object", "additionalProperties": false, "required": ["name", "required", "source_type", "confidence"],
+            "properties": {
+              "name": {"type": "string", "minLength": 1, "maxLength": 200},
+              "required": {"type": "boolean"},
+              "source_type": {"enum": ["api_observation", "user_provided", "public_source", "historical", "benchmark", "proxy", "gpts_assumption", "expert_hypothesis"]},
+              "unit": {"type": "string", "maxLength": 100},
+              "observed_at": {"type": "string", "maxLength": 100},
+              "confidence": {"enum": ["low", "medium", "high"]},
+              "sample_size": {"type": "integer", "minimum": 0},
+              "missing": {"type": "boolean"},
+              "missing_count": {"type": "integer", "minimum": 0},
+              "expected_range": {"type": "object", "additionalProperties": false, "properties": {"minimum": {"type": "number"}, "maximum": {"type": "number"}}},
+              "replacement_strategy": {"enum": ["none", "api_fetch", "user_input", "historical_average", "benchmark", "proxy", "assumption"]},
+              "characteristics": {"type": "object", "additionalProperties": false, "properties": {"skewed": {"type": "boolean"}, "outlier_rate": {"type": "number", "minimum": 0, "maximum": 1}, "weights_available": {"type": "boolean"}, "group_dimensions": {"type": "array", "maxItems": 20, "items": {"type": "string", "maxLength": 100}}, "time_series": {"type": "boolean"}}}
+            }
+          }
+        }
+      }
+    },
+    "assumptions": {
+      "type": "array", "maxItems": 100,
+      "items": {
+        "type": "object", "additionalProperties": false, "required": ["name", "basis", "confidence"],
+        "properties": {
+          "name": {"type": "string", "minLength": 1, "maxLength": 200},
+          "value": {"type": ["string", "number", "integer", "boolean", "null"]},
+          "minimum": {"type": "number"}, "mode": {"type": "number"}, "maximum": {"type": "number"},
+          "unit": {"type": "string", "maxLength": 100},
+          "basis": {"type": "string", "minLength": 1, "maxLength": 2000},
+          "confidence": {"enum": ["low", "medium", "high"]},
+          "source": {"type": "string", "maxLength": 2000},
+          "source_type": {"enum": ["gpts_assumption", "user_assumption", "expert_hypothesis", "benchmark", "proxy", "historical"]},
+          "sensitivity_range": {"type": "object", "additionalProperties": false, "required": ["minimum", "maximum"], "properties": {"minimum": {"type": "number"}, "maximum": {"type": "number"}}},
+          "distribution": {"enum": ["constant", "uniform", "triangular", "normal", "scenario_set"]},
+          "invalid_when": {"type": "string", "maxLength": 2000},
+          "approved_by": {"enum": ["user", "gpts_policy", "not_approved"]},
+          "created_at": {"type": "string", "maxLength": 100}
+        }
+      }
+    },
+    "evidence": {"type": "array", "maxItems": 100, "items": {"type": "object", "additionalProperties": false, "required": ["source"], "properties": {"source": {"type": "string", "minLength": 1, "maxLength": 1000}, "url": {"type": "string", "maxLength": 5000}, "note": {"type": "string", "maxLength": 5000}, "observed_at": {"type": "string", "maxLength": 100}, "sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"}}}},
+    "requested_outputs": {"type": "array", "maxItems": 50, "items": {"type": "string", "minLength": 1, "maxLength": 200}},
+    "limitations": {"type": "array", "maxItems": 50, "items": {"type": "string", "minLength": 1, "maxLength": 1000}}
+  }
+}

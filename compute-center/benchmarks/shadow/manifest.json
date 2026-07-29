@@ -1,0 +1,13 @@
+{
+  "schema_version":"compute-shadow-benchmark-v1",
+  "policy":{
+    "affects_live_decision":false,
+    "append_only":true,
+    "ledger_schema":"../../model-performance-ledger.schema.json",
+    "minimum_records_before_review":30,
+    "minimum_records_high_stakes":100,
+    "required_metrics":["calibration","sample-out error","coverage","decision loss","drift"]
+  },
+  "registered_shadow_programs":[],
+  "note":"Programs are added only when a real decision owner, frozen data snapshot and future outcome source are identified; synthetic records cannot satisfy this gate."
+}

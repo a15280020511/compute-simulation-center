@@ -1,0 +1,19 @@
+{
+  "schema_version":"compute-assumption-library-v1",
+  "policy":{
+    "domain_assumptions_may_be_prepopulated":false,
+    "runtime_network_allowed":false,
+    "ticket_override_allowed":false,
+    "immutable_snapshot_required":true,
+    "approval_owner":"gpts-usage-center"
+  },
+  "taxonomy":{
+    "types":["structural","behavioral","parameter","boundary","data","measurement","numerical","causal","scenario","policy"],
+    "uncertainty_types":["epistemic","aleatory","mixed","deterministic"],
+    "criticality_levels":["low","medium","high","critical"],
+    "evidence_strength_levels":["none","weak","moderate","strong"]
+  },
+  "lifecycle":["proposed","reviewed","approved","calibrated","validated","invalidated","retired"],
+  "assumptions":[],
+  "note":"The library is intentionally empty until a domain assumption has a named owner, evidence, validity domain, review date, falsification condition and approval. Synthetic assumptions cannot be promoted into the institutional library."
+}

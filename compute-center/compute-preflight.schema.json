@@ -1,0 +1,77 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/a15280020511/test/compute-center/compute-preflight.schema.json",
+  "title": "Compute Data Readiness Preflight Result",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "status",
+    "execution_allowed",
+    "requires_user_approval",
+    "task_id",
+    "operation",
+    "policy",
+    "data_summary",
+    "issues",
+    "representative_value_recommendations",
+    "recommended_operations",
+    "source_priority",
+    "security"
+  ],
+  "properties": {
+    "schema_version": {"const": "compute-preflight-v1"},
+    "status": {
+      "enum": [
+        "DATA_READY",
+        "DATA_READY_WITH_ASSUMPTIONS",
+        "DATA_DEGRADED",
+        "USER_APPROVAL_REQUIRED",
+        "DATA_INSUFFICIENT"
+      ]
+    },
+    "execution_allowed": {"type": "boolean"},
+    "requires_user_approval": {"type": "boolean"},
+    "task_id": {"type": "string"},
+    "operation": {"type": "string"},
+    "ticket_sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+    "policy": {"type": "object"},
+    "data_summary": {"type": "object"},
+    "issues": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["severity", "code", "message", "blocking"],
+        "properties": {
+          "severity": {"enum": ["info", "warning", "high"]},
+          "code": {"type": "string"},
+          "message": {"type": "string"},
+          "blocking": {"type": "boolean"},
+          "variable": {"type": ["string", "null"]},
+          "remediation": {"type": "string"}
+        }
+      }
+    },
+    "representative_value_recommendations": {"type": "array"},
+    "recommended_operations": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": {"type": "string"}
+    },
+    "source_priority": {
+      "type": "array",
+      "items": {"type": "string"}
+    },
+    "security": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["external_data_fetch_used", "model_calls", "arbitrary_code_used"],
+      "properties": {
+        "external_data_fetch_used": {"const": false},
+        "model_calls": {"const": 0},
+        "arbitrary_code_used": {"const": false}
+      }
+    }
+  }
+}

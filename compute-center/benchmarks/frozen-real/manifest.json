@@ -1,0 +1,45 @@
+{
+  "schema_version": "compute-frozen-real-benchmark-v1",
+  "statsmodels_version": "0.14.6",
+  "freeze_rule": "数据由固定版本statsmodels包提供；规范化记录SHA256不匹配即阻断验收。",
+  "datasets": [
+    {
+      "id": "longley-us-macro-1947-1962",
+      "loader": "statsmodels.datasets.longley",
+      "sha256": "82d8f54895f92fa3158fdbbba60b3f5a06566da53b16ebf41b662d205029d2f6",
+      "use": "病态多重共线性下的回归、诊断和稳定性基准"
+    },
+    {
+      "id": "nile-flow-1871-1970",
+      "loader": "statsmodels.datasets.nile",
+      "sha256": "fa868ef475525022a410bc8d761290ddae7c7a86464fcd59d2df5230c49c74cc",
+      "use": "真实水文时间序列的留出预测和区间基准"
+    },
+    {
+      "id": "sunspots-1700-2008",
+      "loader": "statsmodels.datasets.sunspots",
+      "sha256": "40ce280093dd22c83fc7b72db89666d59ddf32fb02c1a074c5c596c250725481",
+      "use": "长期周期与自相关模式基准"
+    },
+    {
+      "id": "us-macro-quarterly-1959-2009",
+      "loader": "statsmodels.datasets.macrodata",
+      "sha256": "41f7273da7a16081024c66289c94f6ecaf5ced264c66517bdc6888182a40a201",
+      "use": "跨时期分布漂移阻断基准"
+    },
+    {
+      "id": "spector-education-binary-outcomes",
+      "loader": "statsmodels.datasets.spector",
+      "sha256": "aa59227c10d7a9d5b500f6abe71b8a03964577f664955ce610f6aecfe059a0dd",
+      "use": "真实二元结果概率校准反馈基准"
+    }
+  ],
+  "acceptance": {
+    "all_dataset_hashes_must_match": true,
+    "longley_r_squared_minimum": 0.99,
+    "nile_holdout_mae_maximum": 250,
+    "sunspots_lag11_correlation_minimum": 0.6,
+    "spector_brier_score_maximum": 0.2,
+    "macrodata_drift_must_block": true
+  }
+}

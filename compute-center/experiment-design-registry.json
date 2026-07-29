@@ -1,0 +1,14 @@
+{
+  "schema_version":"compute-experiment-design-registry-v1",
+  "policy":{"ticket_defined_code_allowed":false,"seed_required_for_stochastic_formal_use":true,"stopping_rule_must_be_declared":true},
+  "designs":[
+    {"id":"deterministic-single-run","applies_to":["descriptive_statistics","break_even_analysis","scenario_compare"],"controls":["input_hash","exact_version","numerical_tolerance"]},
+    {"id":"stochastic-replication","applies_to":["monte_carlo","discrete_event_simulation","agent_evolution","markov_simulation"],"controls":["base_seed","replications","aggregation","convergence_or_precision_target"]},
+    {"id":"agent-network-diffusion","applies_to":["agent_based_simulation","information_diffusion_analysis"],"controls":["multiple_seeds","network_sensitivity","initial_condition_sensitivity","distributional_output"]},
+    {"id":"optimization-multistart","applies_to":["constrained_optimization","finance_decision_analysis","crisis_early_warning"],"controls":["feasibility_check","independent_postcheck","multistart_or_optimality_certificate","solver_tolerance"]},
+    {"id":"time-series-holdout","applies_to":["time_series_forecast","finance_decision_analysis"],"controls":["time_ordered_split","baseline","rolling_or_holdout_validation","forecast_horizon"]},
+    {"id":"causal-identification-refutation","applies_to":["causal_policy_evaluation","econometric_analysis"],"controls":["estimand","identification_assumptions","overlap_or_strength","refutation"]},
+    {"id":"bayesian-evidence-sensitivity","applies_to":["bayesian_inference","bayesian_network_inference"],"controls":["prior_source","alternative_prior","evidence_sensitivity","posterior_diagnostics"]},
+    {"id":"system-dynamics-step-sensitivity","applies_to":["system_dynamics_simulation","nonlinear_dynamics"],"controls":["time_step_sensitivity","initial_condition_sensitivity","conservation_or_bounds","alternative_structure"]}
+  ]
+}

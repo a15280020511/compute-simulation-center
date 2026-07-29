@@ -1,0 +1,31 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/a15280020511/test/compute-center/experiment-profile.schema.json",
+  "title": "Compute Experiment Design Profile",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["design_id"],
+  "properties": {
+    "design_id": {"type": "string", "minLength": 1, "maxLength": 100},
+    "base_seed": {"type": "integer", "minimum": 0, "maximum": 4294967295},
+    "seed_path": {"type": "string", "pattern": "^[A-Za-z0-9_.]+$", "maxLength": 300},
+    "replications": {"type": "integer", "minimum": 1, "maximum": 10000},
+    "result_paths": {"type": "array", "minItems": 1, "maxItems": 100, "uniqueItems": true, "items": {"type": "string", "pattern": "^[A-Za-z0-9_.]+$", "maxLength": 300}},
+    "aggregation": {"enum": ["single", "mean", "median", "quantiles", "full_distribution"]},
+    "precision_target": {"type": "number", "exclusiveMinimum": 0},
+    "stopping_rule": {"type": "string", "minLength": 1, "maxLength": 1000},
+    "warmup_steps": {"type": "integer", "minimum": 0, "maximum": 1000000},
+    "holdout_size": {"type": "integer", "minimum": 1, "maximum": 100000},
+    "multistarts": {"type": "integer", "minimum": 1, "maximum": 10000},
+    "solver_tolerance": {"type": "number", "exclusiveMinimum": 0},
+    "time_step_sensitivity_factors": {"type": "array", "maxItems": 20, "items": {"type": "number", "exclusiveMinimum": 0}},
+    "alternative_structure_ids": {"type": "array", "maxItems": 20, "uniqueItems": true, "items": {"type": "string", "minLength": 1, "maxLength": 200}},
+    "notes": {"type": "string", "maxLength": 4000}
+  },
+  "allOf": [
+    {
+      "if": {"properties": {"replications": {"minimum": 2}}, "required": ["replications"]},
+      "then": {"required": ["base_seed", "result_paths", "stopping_rule"]}
+    }
+  ]
+}

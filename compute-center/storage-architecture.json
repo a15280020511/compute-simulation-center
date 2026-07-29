@@ -1,0 +1,30 @@
+{
+  "schema_version": "compute-storage-architecture-v1",
+  "design": "offline-snapshot-and-artifact",
+  "live_external_database_access": false,
+  "database_credentials_allowed": false,
+  "arbitrary_sql_allowed": false,
+  "stores": [
+    {"id":"repository-registries","type":"versioned-json","purpose":"models, methods, rules, schemas, acceptance profiles and benchmark manifests","authoritative":true,"runtime_access":"read-only"},
+    {"id":"frozen-input-snapshots","type":"json-csv-parquet","purpose":"immutable structured datasets received through GPTs with SHA-256 provenance","authoritative":true,"runtime_access":"read-only","retention":"task or benchmark policy"},
+    {"id":"artifact-evidence","type":"github-actions-artifact","purpose":"inputs, outputs, diagnostics, manifests, hashes, versions and audit evidence","authoritative":true,"runtime_access":"append-only per run"},
+    {"id":"performance-feedback-ledger","type":"jsonl-default","purpose":"append-only predictions, realized outcomes, calibration, drift and lifecycle events","authoritative":true,"schema":"model-performance-ledger.schema.json","runtime_access":"append by controlled workflow; compute reads snapshots only"},
+    {"id":"metadata-index","type":"sqlite-optional","purpose":"local index over ledger and benchmark metadata when records exceed 10000","authoritative":false,"activation_trigger":"ledger_rows > 10000 or query latency > 2 seconds","runtime_access":"read-only during compute","network_access":false}
+  ],
+  "data_flow": [
+    "API center or user obtains data",
+    "GPTs validates structure and provenance",
+    "GPTs creates immutable snapshot and SHA-256",
+    "offline compute center reads the snapshot",
+    "results and evidence are written to Artifact",
+    "realized outcomes are appended later through a separate feedback ticket"
+  ],
+  "prohibited": [
+    "direct connection from compute center to operational databases",
+    "live data warehouse credentials",
+    "ticket-supplied SQL",
+    "vector database used as numerical truth source",
+    "overwriting observed values with imputed or synthetic values",
+    "mutable production result records"
+  ]
+}

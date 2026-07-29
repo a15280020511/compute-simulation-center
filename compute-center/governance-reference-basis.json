@@ -1,0 +1,12 @@
+{
+  "schema_version":"compute-governance-reference-basis-v1",
+  "references":[
+    {"id":"NASA-STD-7009B","publisher":"NASA","title":"Standard for Models and Simulations","implemented_controls":["model lifecycle","intended-use credibility","verification","validation","uncertainty characterization","results robustness","records"]},
+    {"id":"NASA-HDBK-7009B","publisher":"NASA","title":"Handbook for Models and Simulations: An Implementation Guide for NASA-STD-7009B","implemented_controls":["assumption definition","epistemic and aleatory uncertainty","credibility factors","minimum acceptance criteria","evidence rationale"]},
+    {"id":"ASME-VV40","publisher":"ASME","title":"Assessing Credibility of Computational Modeling through Verification and Validation","implemented_controls":["context of use","model influence","decision consequence","risk-adjusted credibility goals"]},
+    {"id":"SANDIA-PCMM","publisher":"Sandia National Laboratories","title":"Predictive Capability Maturity Model","implemented_controls":["representation and fidelity","code verification","solution verification","validation","uncertainty quantification","sensitivity and robustness"]},
+    {"id":"UK-AQUA-BOOK-2025","publisher":"UK Government","title":"The Aqua Book: Guidance on producing quality analysis for government","implemented_controls":["proportionate analytical assurance","lifecycle quality assurance","verification and validation","uncertainty communication","independent review"]},
+    {"id":"UK-DESNZ-ASSUMPTIONS-LOG","publisher":"UK Department for Energy Security and Net Zero","title":"Assumptions log methodology","implemented_controls":["source and methodology","update date","sign-off","risk-ranked assumptions","change history"]}
+  ],
+  "tailoring_statement":"The repository implements compatible governance concepts for a bounded offline decision-support compute center. It does not claim certification or formal compliance with any external standard."
+}

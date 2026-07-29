@@ -1,0 +1,11 @@
+{
+  "schema_version":"compute-acceptance-profile-v1",
+  "id":"exploratory",
+  "decision_use_allowed":false,
+  "strict_preflight_required":false,
+  "maximum_assumption_ratio":0.5,
+  "benchmark_required":false,
+  "independent_cross_check_required":false,
+  "realized_feedback_required":false,
+  "release_ceiling":"DECISION_CONDITIONAL"
+}

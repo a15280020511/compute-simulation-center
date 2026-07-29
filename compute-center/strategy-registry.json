@@ -1,0 +1,60 @@
+{
+  "schema_version": "compute-strategy-registry-v1",
+  "policy": {
+    "strategies_are_decision_templates_not_truth": true,
+    "automatic_recommendation_without_validation_allowed": false,
+    "runtime_network_allowed": false,
+    "ticket_supplied_strategy_code_allowed": false,
+    "selection_owner": "gpts-usage-center"
+  },
+  "strategies": [
+    {
+      "id": "expected-value",
+      "use_when": "Probabilities and consequences are sufficiently calibrated and risk neutrality is defensible.",
+      "required_evidence": ["calibrated probabilities", "outcome values", "sensitivity analysis"],
+      "invalid_when": ["tail losses dominate", "probabilities are uncalibrated", "irreversible high-consequence decisions"]
+    },
+    {
+      "id": "minimax-regret",
+      "use_when": "Future states are deeply uncertain and robust performance matters more than one forecast.",
+      "required_evidence": ["scenario set", "payoff matrix", "scenario coverage review"],
+      "invalid_when": ["scenario set omits plausible adverse states"]
+    },
+    {
+      "id": "robust-decision-making",
+      "use_when": "Policy or strategic choices must remain acceptable across many plausible futures.",
+      "required_evidence": ["large scenario ensemble", "vulnerability analysis", "stress and reverse-stress tests"],
+      "invalid_when": ["only one central forecast is available"]
+    },
+    {
+      "id": "adaptive-pathway",
+      "use_when": "Decisions can be staged and revised as new evidence arrives.",
+      "required_evidence": ["decision triggers", "monitoring variables", "switching costs", "fallback actions"],
+      "invalid_when": ["decision is fully irreversible at the initial stage"]
+    },
+    {
+      "id": "value-of-information",
+      "use_when": "Additional data collection may change the preferred action.",
+      "required_evidence": ["decision loss", "uncertain variables", "data collection cost"],
+      "invalid_when": ["new evidence cannot arrive before the decision"]
+    },
+    {
+      "id": "portfolio-diversification",
+      "use_when": "Multiple partially independent actions can reduce concentrated model or scenario risk.",
+      "required_evidence": ["dependency matrix", "capacity constraints", "joint stress tests"],
+      "invalid_when": ["actions share the same hidden failure mode"]
+    },
+    {
+      "id": "threshold-triggered-response",
+      "use_when": "A response should activate only after predeclared, validated indicators cross thresholds.",
+      "required_evidence": ["threshold calibration", "false-positive and false-negative costs", "drift monitoring"],
+      "invalid_when": ["threshold performance has not been evaluated"]
+    },
+    {
+      "id": "satisficing-with-guardrails",
+      "use_when": "No option is uniformly optimal and minimum acceptable outcomes and hard constraints are clear.",
+      "required_evidence": ["hard constraints", "minimum acceptable outcomes", "adverse scenario checks"],
+      "invalid_when": ["guardrails cannot be measured"]
+    }
+  ]
+}

@@ -1,0 +1,11 @@
+{
+  "schema_version":"compute-benchmark-registry-v1",
+  "promotion_rule":"No model may become decision-grade without applicable numerical truth, parameter recovery, frozen-real or justified domain evidence, adversarial tests, baseline comparison and shadow feedback.",
+  "categories":[
+    {"id":"golden","manifest":"benchmarks/golden/manifest.json","purpose":"algorithmic numerical truth","required_for":"all operations where an oracle exists"},
+    {"id":"parameter-recovery","manifest":"benchmarks/parameter-recovery/manifest.json","purpose":"recover known hidden parameters from generated observations","required_for":"calibratable models"},
+    {"id":"frozen-real","manifest":"benchmarks/frozen-real/manifest.json","purpose":"immutable real-data sample-out validation","required_for":"production and decision-grade maturity"},
+    {"id":"adversarial","manifest":"benchmarks/adversarial/manifest.json","purpose":"verify fail-closed behavior under invalid, weak or shifted evidence","required_for":"formal and high-risk models"},
+    {"id":"shadow","manifest":"benchmarks/shadow/manifest.json","purpose":"record predictions without affecting decisions and evaluate realized outcomes later","required_for":"high-stakes decision-grade promotion"}
+  ]
+}

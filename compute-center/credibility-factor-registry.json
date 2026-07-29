@@ -1,0 +1,25 @@
+{
+  "schema_version":"compute-credibility-factor-registry-v1",
+  "policy":{"single_weighted_credibility_score_allowed":false,"weakest_factor_must_be_reported":true,"evidence_hash_required_for_high_stakes":true,"requirements_scale_with_model_influence_and_decision_consequence":true},
+  "level_scale":{"minimum":0,"maximum":4,"meaning":{"0":"not addressed","1":"documented","2":"independently checked","3":"validated with relevant evidence","4":"validated in the intended-use domain with operational feedback"}},
+  "factors":[
+    {"id":"intended_use","domain":"use","description":"Clear proposed use, accepted use, boundaries and prohibited uses."},
+    {"id":"conceptual_model","domain":"development","description":"Relevant mechanisms, abstractions, omissions and alternatives are justified."},
+    {"id":"data_pedigree","domain":"development","description":"Development and validation data source, quality, breadth and provenance."},
+    {"id":"assumption_governance","domain":"development_and_use","description":"Assumptions are explicit, versioned, testable, risk-ranked and reviewed."},
+    {"id":"implementation_verification","domain":"development","description":"Code implements the conceptual and mathematical specification correctly."},
+    {"id":"solution_verification","domain":"use","description":"Numerical error, convergence and solver adequacy are assessed."},
+    {"id":"empirical_validation","domain":"development_and_use","description":"Outputs are compared with suitable referent or held-out data."},
+    {"id":"uncertainty_characterization","domain":"development_and_use","description":"Input, model, numerical and derived-result uncertainty are characterized."},
+    {"id":"results_robustness","domain":"use","description":"Sensitivity, alternative structures, seeds and stress scenarios are assessed."},
+    {"id":"input_pedigree","domain":"use","description":"Actual-use input source, quality, diversity, form and snapshot are documented."},
+    {"id":"technical_review","domain":"development_and_use","description":"Independent technical review is recorded."},
+    {"id":"process_management","domain":"development_and_use","description":"Configuration, version, defects, records and archival are controlled."}
+  ],
+  "profiles":{
+    "exploratory":{"default_required_level":0,"factor_overrides":{"intended_use":1}},
+    "formal":{"default_required_level":1,"factor_overrides":{"intended_use":2,"conceptual_model":2,"data_pedigree":2,"assumption_governance":2,"implementation_verification":2,"uncertainty_characterization":2,"results_robustness":2,"input_pedigree":2}},
+    "high_stakes":{"default_required_level":3,"factor_overrides":{}}
+  },
+  "risk_escalation":{"high_model_influence_and_high_consequence":{"increment":1,"cap":4,"factors":["assumption_governance","empirical_validation","uncertainty_characterization","results_robustness","input_pedigree","technical_review"]}}
+}

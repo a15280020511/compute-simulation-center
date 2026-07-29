@@ -1,0 +1,38 @@
+{
+  "schema_version": "compute-sample-registry-v1",
+  "policy": {
+    "raw_sample_storage_required": false,
+    "immutable_snapshot_reference_required": true,
+    "sample_hash_required": true,
+    "license_and_scope_required": true,
+    "synthetic_samples_must_be_labeled": true,
+    "runtime_network_allowed": false
+  },
+  "samples": [],
+  "required_fields": [
+    "sample_id",
+    "version",
+    "source_type",
+    "population",
+    "time_range",
+    "geographic_scope",
+    "variable_dictionary",
+    "sampling_method",
+    "known_biases",
+    "license",
+    "snapshot_sha256",
+    "validation_use",
+    "review_due_at"
+  ],
+  "source_types": [
+    "observed",
+    "administrative",
+    "survey",
+    "experiment",
+    "benchmark",
+    "historical",
+    "proxy",
+    "synthetic"
+  ],
+  "note": "The registry stores metadata and immutable snapshot references. It does not turn proxy, imputed or synthetic values into observations."
+}

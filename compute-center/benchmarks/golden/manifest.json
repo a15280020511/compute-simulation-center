@@ -1,0 +1,17 @@
+{
+  "schema_version": "compute-golden-benchmark-v1",
+  "purpose": "用解析真值、标准几何真值和已知统计关系验证计算中心数值实现，不验证现实假设。",
+  "release_rule": "任何一个必需真值用例失败，相关operation不得标记为decision-grade。",
+  "cases": [
+    {"id": "golden-break-even-001", "operation": "break_even_analysis", "oracle": "closed_form", "tolerance": 1e-12},
+    {"id": "golden-descriptive-001", "operation": "descriptive_statistics", "oracle": "closed_form", "tolerance": 1e-12},
+    {"id": "golden-linear-program-001", "operation": "constrained_optimization", "oracle": "vertex_enumeration", "tolerance": 1e-9},
+    {"id": "golden-sensitivity-001", "operation": "sensitivity_analysis", "oracle": "closed_form", "tolerance": 1e-12},
+    {"id": "golden-scenario-001", "operation": "scenario_compare", "oracle": "manual_ranking", "tolerance": 0},
+    {"id": "golden-monte-carlo-constant-001", "operation": "monte_carlo", "oracle": "degenerate_distribution", "tolerance": 1e-12},
+    {"id": "golden-beta-binomial-001", "operation": "bayesian_inference", "oracle": "conjugate_posterior", "tolerance": 1e-12},
+    {"id": "golden-ols-001", "operation": "econometric_analysis", "oracle": "exact_linear_relation", "tolerance": 1e-9},
+    {"id": "golden-geodesic-001", "operation": "gis_spatial_analysis", "oracle": "WGS84_equatorial_degree", "tolerance": 0.2},
+    {"id": "golden-markov-001", "operation": "markov_simulation", "oracle": "matrix_multiplication", "tolerance": 1e-12}
+  ]
+}

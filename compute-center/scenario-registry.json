@@ -1,0 +1,15 @@
+{
+  "schema_version":"compute-scenario-registry-v1",
+  "policy":{"scenario_values_must_be_in_ticket":true,"repository_may_store_domain_scenario_values":false,"baseline_required_for_formal_comparison":true},
+  "scenario_types":[
+    {"id":"baseline","purpose":"best supported central case","required":["evidence_basis","validity_domain"]},
+    {"id":"optimistic","purpose":"favorable but defensible bounds","required":["changed_assumption_ids"]},
+    {"id":"pessimistic","purpose":"unfavorable but defensible bounds","required":["changed_assumption_ids"]},
+    {"id":"stress","purpose":"severe plausible conditions","required":["stress_rationale","changed_assumption_ids"]},
+    {"id":"reverse_stress","purpose":"find conditions that break a decision or constraint","required":["failure_condition"]},
+    {"id":"counterfactual","purpose":"explicit alternative intervention or no-treatment world","required":["identification_basis"]},
+    {"id":"adversarial","purpose":"challenge model structure, data and decision robustness","required":["attack_surface"]},
+    {"id":"boundary","purpose":"test the edge of validated use","required":["validity_limit"]},
+    {"id":"no_intervention","purpose":"policy comparison reference","required":["status_quo_definition"]}
+  ]
+}

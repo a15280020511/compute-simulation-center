@@ -1,0 +1,99 @@
+{
+  "version": 1,
+  "absolute_tolerance": 1e-10,
+  "cases": [
+    {
+      "name": "constant-monte-carlo",
+      "ticket": {
+        "task_id": "golden-monte-carlo-001",
+        "operation": "monte_carlo",
+        "inputs": {
+          "iterations": 1000,
+          "seed": 20260727,
+          "variables": [
+            {"name": "x", "distribution": "constant", "value": 2}
+          ],
+          "model": {"intercept": 1, "coefficients": {"x": 2}},
+          "threshold": 6
+        }
+      },
+      "expected": {
+        "results.iterations": 1000,
+        "results.seed": 20260727,
+        "results.mean": 5.0,
+        "results.standard_deviation": 0.0,
+        "results.minimum": 5.0,
+        "results.maximum": 5.0,
+        "results.percentiles.p05": 5.0,
+        "results.percentiles.p50": 5.0,
+        "results.percentiles.p95": 5.0,
+        "results.probability_below_threshold": 1.0
+      }
+    },
+    {
+      "name": "descriptive-statistics",
+      "ticket": {
+        "task_id": "golden-statistics-001",
+        "operation": "descriptive_statistics",
+        "inputs": {"data": [1, 2, 3, 4, 5]}
+      },
+      "expected": {
+        "results.count": 5,
+        "results.mean": 3.0,
+        "results.median": 3.0,
+        "results.standard_deviation_population": 1.4142135623730951,
+        "results.minimum": 1.0,
+        "results.maximum": 5.0,
+        "results.percentiles.p05": 1.2,
+        "results.percentiles.p10": 1.4,
+        "results.percentiles.p25": 2.0,
+        "results.percentiles.p50": 3.0,
+        "results.percentiles.p75": 4.0,
+        "results.percentiles.p90": 4.6,
+        "results.percentiles.p95": 4.8
+      }
+    },
+    {
+      "name": "break-even",
+      "ticket": {
+        "task_id": "golden-break-even-001",
+        "operation": "break_even_analysis",
+        "inputs": {
+          "fixed_cost": 1000,
+          "unit_price": 20,
+          "variable_cost": 12,
+          "target_profit": 200
+        }
+      },
+      "expected": {
+        "results.contribution_margin_per_unit": 8.0,
+        "results.break_even_units": 150.0,
+        "results.minimum_whole_units": 150,
+        "results.target_profit": 200.0
+      }
+    },
+    {
+      "name": "scenario-ranking",
+      "ticket": {
+        "task_id": "golden-scenario-001",
+        "operation": "scenario_compare",
+        "inputs": {
+          "model": {"intercept": 0, "coefficients": {"benefit": 1, "cost": -1}},
+          "scenarios": [
+            {"name": "A", "values": {"benefit": 10, "cost": 8}},
+            {"name": "B", "values": {"benefit": 9, "cost": 3}}
+          ]
+        }
+      },
+      "expected": {
+        "results.best_scenario": "B",
+        "results.ranking.0.name": "B",
+        "results.ranking.0.score": 6.0,
+        "results.ranking.0.rank": 1,
+        "results.ranking.1.name": "A",
+        "results.ranking.1.score": 2.0,
+        "results.ranking.1.rank": 2
+      }
+    }
+  ]
+}

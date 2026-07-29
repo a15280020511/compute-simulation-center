@@ -1,0 +1,146 @@
+{
+  "schema_version": "data-readiness-policy-v2",
+  "owner": "gpts-usage-center",
+  "executor": "compute-center-preflight",
+  "external_data_fetch_allowed": false,
+  "model_calls_allowed": false,
+  "arbitrary_code_allowed": false,
+  "statuses": [
+    "DATA_READY",
+    "DATA_READY_WITH_ASSUMPTIONS",
+    "DATA_DEGRADED",
+    "USER_APPROVAL_REQUIRED",
+    "DATA_INSUFFICIENT"
+  ],
+  "source_priority": [
+    "api_observation",
+    "user_provided",
+    "public_source",
+    "historical",
+    "benchmark",
+    "proxy",
+    "gpts_assumption",
+    "expert_hypothesis"
+  ],
+  "default_policy": {
+    "enforcement": "strict",
+    "allow_assumptions": true,
+    "allow_proxy": true,
+    "require_user_approval_for_low_confidence": true,
+    "max_assumption_ratio": 0.25,
+    "small_sample_threshold": 10,
+    "outlier_rate_threshold": 0.05
+  },
+  "decision_profiles": {
+    "exploratory": {
+      "enforcement": "advisory",
+      "max_assumption_ratio": 0.5,
+      "calibration_required": false,
+      "benchmark_evidence_required": false
+    },
+    "formal": {
+      "enforcement": "strict",
+      "max_assumption_ratio": 0.25,
+      "calibration_required_for_probabilistic_claims": true,
+      "benchmark_evidence_required": true
+    },
+    "high_stakes": {
+      "enforcement": "strict",
+      "max_assumption_ratio": 0.1,
+      "calibration_required_for_probabilistic_claims": true,
+      "benchmark_evidence_required": true,
+      "independent_cross_check_required": true,
+      "user_approval_required": true
+    }
+  },
+  "calibration_thresholds": {
+    "minimum_feedback_observations": 20,
+    "brier_score_warning": 0.25,
+    "brier_score_block": 0.35,
+    "expected_calibration_error_warning": 0.1,
+    "expected_calibration_error_block": 0.2,
+    "interval_coverage_target": 0.9,
+    "interval_coverage_tolerance": 0.1
+  },
+  "drift_thresholds": {
+    "population_stability_index_warning": 0.1,
+    "population_stability_index_block": 0.25,
+    "kolmogorov_smirnov_warning": 0.15,
+    "kolmogorov_smirnov_block": 0.3,
+    "standardized_mean_shift_warning": 0.5,
+    "standardized_mean_shift_block": 1.0
+  },
+  "release_statuses": [
+    "DECISION_RELEASED",
+    "DECISION_CONDITIONAL",
+    "DECISION_BLOCKED"
+  ],
+  "representative_value_rules": [
+    {
+      "condition": "weights_available",
+      "method": "weighted_mean",
+      "reason": "样本权重不同"
+    },
+    {
+      "condition": "group_dimensions_present",
+      "method": "grouped_summary",
+      "reason": "时段、地域或类别差异明显"
+    },
+    {
+      "condition": "skewed_distribution",
+      "method": "median",
+      "reason": "分布偏态"
+    },
+    {
+      "condition": "outlier_rate_above_threshold",
+      "method": "trimmed_mean",
+      "reason": "存在显著异常值"
+    },
+    {
+      "condition": "small_sample",
+      "method": "interval",
+      "reason": "样本量不足，不输出伪精确单点"
+    },
+    {
+      "condition": "default",
+      "method": "arithmetic_mean",
+      "reason": "样本稳定且近似对称"
+    }
+  ],
+  "assumption_rules": {
+    "high": "可进入基础情景，但仍必须记录来源和失效条件",
+    "medium": "必须提供范围并执行敏感性分析或情景比较",
+    "low": "必须使用区间、分布或多情景，并在关键结论前取得用户批准",
+    "expert_hypothesis": "只能由GPTs重新结构化并创建新[compute]票据，不能直接执行"
+  },
+  "blocking_rules": [
+    "必需变量缺失且没有替代策略",
+    "低置信度关键假设未获用户批准且策略要求批准",
+    "假设占比超过允许上限且没有足够观测或基准数据",
+    "输入包含非有限数、非法概率、维度错误或不可解释单位冲突",
+    "严格模式下存在未解决的高严重度数据问题",
+    "概率结论存在严重失准或显著数据漂移",
+    "高风险任务缺少独立交叉校验或真实结果反馈"
+  ],
+  "numeric_checks": [
+    "non_finite_values",
+    "division_by_zero_risk",
+    "invalid_probability_range",
+    "probability_sum",
+    "negative_values_where_forbidden",
+    "dimension_mismatch",
+    "singular_or_ill_conditioned_system_risk",
+    "optimization_feasibility",
+    "convergence_risk",
+    "time_series_continuity",
+    "sample_size",
+    "outlier_rate",
+    "unit_consistency",
+    "time_scope_consistency",
+    "geographic_scope_consistency",
+    "probability_calibration",
+    "prediction_interval_coverage",
+    "distribution_drift",
+    "result_reproducibility"
+  ]
+}

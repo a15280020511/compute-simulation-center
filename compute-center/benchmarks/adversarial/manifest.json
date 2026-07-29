@@ -1,0 +1,15 @@
+{
+  "schema_version":"compute-adversarial-benchmark-v1",
+  "cases":[
+    {"id":"reject-probability-out-of-range-001","target":"constraint_engine","expected":"CONSTRAINT_POSTCHECK_FAILED"},
+    {"id":"reject-unregistered-operation-001","target":"compute-ticket","expected":"schema rejection"},
+    {"id":"reject-retired-model-001","target":"model_governance","expected":"MODEL_RETIRED"},
+    {"id":"reject-causal-no-overlap-001","target":"causal_policy_evaluation","expected":"association_only"},
+    {"id":"reject-causal-pretrend-001","target":"causal_policy_evaluation","expected":"parallel_trends_passed=false"},
+    {"id":"reject-weak-instrument-001","target":"causal_policy_evaluation","expected":"weak_instrument=true"},
+    {"id":"reject-bayesian-cycle-001","target":"bayesian_network_inference","expected":"DAG validation failure"},
+    {"id":"diffusion-multiple-seeds-001","target":"information_diffusion_analysis","expected":"distribution over runs instead of one deterministic claim"},
+    {"id":"block-severe-drift-001","target":"quality_gate","expected":"DECISION_BLOCKED"},
+    {"id":"preserve-imputed-provenance-001","target":"missing_data_analysis","expected":"original_data_overwritten=false"}
+  ]
+}

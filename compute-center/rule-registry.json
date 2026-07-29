@@ -1,0 +1,30 @@
+{
+  "schema_version": "compute-rule-registry-v2",
+  "policy": {
+    "arbitrary_rule_code_allowed": false,
+    "ticket_supplied_expressions_allowed": false,
+    "rules_are_versioned": true,
+    "rules_are_fail_closed": true,
+    "sole_enforcement_owner": "github-compute-center"
+  },
+  "rules": [
+    {"id":"RULE-DATA-PROVENANCE","category":"data","severity":"blocking","implementation":"compute_preflight.py","condition":"formal inputs require variable-level provenance or explicit limitations"},
+    {"id":"RULE-ASSUMPTION-RATIO","category":"assumption","severity":"blocking","implementation":"quality_gate.py","condition":"formal assumptions <=25%; high-stakes <=10%"},
+    {"id":"RULE-ASSUMPTION-LIBRARY","category":"assumption","severity":"blocking","implementation":"assumption_library.py","condition":"institutional assumptions must be versioned, approved, active, immutable and resolved through the repository library"},
+    {"id":"RULE-ASSUMPTION-DEPENDENCY","category":"assumption","severity":"blocking","implementation":"assumption_library.py","condition":"assumption dependencies must exist and remain acyclic"},
+    {"id":"RULE-ASSUMPTION-FALSIFIABILITY","category":"assumption","severity":"blocking","implementation":"assumption_library.py","condition":"critical epistemic or mixed assumptions require falsification and invalidation conditions"},
+    {"id":"RULE-MECHANISM-COVERAGE","category":"conceptual_model","severity":"blocking","implementation":"credibility_engine.py","condition":"critical excluded or unknown mechanisms prevent high-stakes credibility approval"},
+    {"id":"RULE-EXPERIMENT-DESIGN","category":"experiment","severity":"blocking","implementation":"experiment_assurance.py","condition":"stochastic formal use requires registered design, fixed seeds, adequate replications and a stopping rule"},
+    {"id":"RULE-RISK-ADJUSTED-CREDIBILITY","category":"credibility","severity":"blocking","implementation":"credibility_engine.py","condition":"high-stakes use requires every risk-adjusted credibility factor to meet its threshold with evidence"},
+    {"id":"RULE-HARD-CONSTRAINTS","category":"constraint","severity":"blocking","implementation":"constraint_engine.py","condition":"all hard constraints pass before execution and after solver completion"},
+    {"id":"RULE-MODEL-REGISTERED","category":"model","severity":"blocking","implementation":"model_governance.py","condition":"operation and mode resolve to a non-retired registered model"},
+    {"id":"RULE-CALIBRATION-IDENTIFIABLE","category":"calibration","severity":"blocking","implementation":"calibration_engine.py","condition":"non-identifiable parameters cannot be interpreted as unique mechanisms"},
+    {"id":"RULE-OUT-OF-SAMPLE","category":"validation","severity":"blocking","implementation":"model_comparison.py","condition":"formal complex models require sample-out evidence and a simple baseline"},
+    {"id":"RULE-CAUSAL-CLAIM","category":"causal","severity":"blocking","implementation":"causal_policy_operations.py","condition":"failed identification, overlap, pretrend, weak-IV or refutation checks downgrade output to association"},
+    {"id":"RULE-DIFFUSION-MULTIRUN","category":"diffusion","severity":"blocking","implementation":"information_diffusion_operations.py","condition":"formal propagation analysis requires multiple seeds or explicit deterministic justification"},
+    {"id":"RULE-BAYES-NO-AUTO-CAUSAL","category":"bayesian_network","severity":"blocking","implementation":"bayesian_network_operations.py","condition":"supplied or learned dependency structures are not automatically causal"},
+    {"id":"RULE-HIGH-STAKES-APPROVAL","category":"decision","severity":"blocking","implementation":"quality_gate.py","condition":"high-stakes release requires explicit user approval, benchmark evidence and independent cross-check"},
+    {"id":"RULE-DRIFT-RECALIBRATE","category":"lifecycle","severity":"blocking","implementation":"quality_gate.py","condition":"severe calibration failure or drift requires recalibration before reuse"},
+    {"id":"RULE-SUNSET","category":"lifecycle","severity":"blocking","implementation":"model_governance.py","condition":"expired or retired models cannot be used for new formal decisions"}
+  ]
+}

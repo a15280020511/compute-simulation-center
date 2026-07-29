@@ -1,0 +1,339 @@
+{
+  "schema_version": "compute-operation-input-schemas-v1",
+  "operations": {
+    "monte_carlo": {
+      "type": "object",
+      "required": [
+        "seed",
+        "variables",
+        "model"
+      ],
+      "properties": {
+        "seed": {
+          "type": "integer"
+        },
+        "variables": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 50
+        },
+        "model": {
+          "type": "object"
+        },
+        "iterations": {
+          "type": "integer"
+        }
+      }
+    },
+    "sensitivity_analysis": {
+      "type": "object",
+      "required": [
+        "variables",
+        "model"
+      ],
+      "properties": {
+        "variables": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 50
+        },
+        "model": {
+          "type": "object"
+        }
+      }
+    },
+    "scenario_compare": {
+      "type": "object",
+      "required": [
+        "scenarios",
+        "model"
+      ],
+      "properties": {
+        "scenarios": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 50
+        },
+        "model": {
+          "type": "object"
+        }
+      }
+    },
+    "constrained_optimization": {
+      "type": "object",
+      "required": [
+        "objective"
+      ],
+      "properties": {
+        "objective": {
+          "type": "array",
+          "minItems": 1
+        },
+        "A_ub": {
+          "type": "array"
+        },
+        "b_ub": {
+          "type": "array"
+        },
+        "bounds": {
+          "type": "array"
+        }
+      }
+    },
+    "break_even_analysis": {
+      "type": "object",
+      "required": [
+        "fixed_cost",
+        "unit_price",
+        "variable_cost"
+      ],
+      "properties": {
+        "fixed_cost": {
+          "type": "number"
+        },
+        "unit_price": {
+          "type": "number"
+        },
+        "variable_cost": {
+          "type": "number"
+        }
+      }
+    },
+    "descriptive_statistics": {
+      "type": "object",
+      "required": [
+        "data"
+      ],
+      "properties": {
+        "data": {
+          "type": "array",
+          "minItems": 1
+        }
+      }
+    },
+    "discrete_event_simulation": {
+      "type": "object",
+      "required": [
+        "seed",
+        "arrival",
+        "stages"
+      ],
+      "properties": {
+        "seed": {
+          "type": "integer"
+        },
+        "arrival": {
+          "type": "object"
+        },
+        "stages": {
+          "type": "array",
+          "minItems": 1
+        }
+      }
+    },
+    "repeated_game": {
+      "type": "object",
+      "required": [
+        "seed",
+        "red_payoffs",
+        "blue_payoffs",
+        "red_policy",
+        "blue_policy"
+      ],
+      "properties": {
+        "seed": {
+          "type": "integer"
+        },
+        "red_payoffs": {
+          "type": "array"
+        },
+        "blue_payoffs": {
+          "type": "array"
+        },
+        "red_policy": {
+          "type": "object"
+        },
+        "blue_policy": {
+          "type": "object"
+        }
+      }
+    },
+    "agent_evolution": {
+      "type": "object",
+      "required": [
+        "payoff_matrix",
+        "initial_shares"
+      ],
+      "properties": {
+        "payoff_matrix": {
+          "type": "array"
+        },
+        "initial_shares": {
+          "type": "array"
+        }
+      }
+    },
+    "time_series_forecast": {
+      "type": "object",
+      "required": [
+        "data"
+      ],
+      "properties": {
+        "data": {
+          "type": "array",
+          "minItems": 3
+        },
+        "horizon": {
+          "type": "integer"
+        }
+      }
+    },
+    "causal_screening": {
+      "type": "object",
+      "required": [
+        "treated_pre",
+        "treated_post",
+        "control_pre",
+        "control_post"
+      ],
+      "properties": {
+        "treated_pre": {
+          "type": "array"
+        },
+        "treated_post": {
+          "type": "array"
+        },
+        "control_pre": {
+          "type": "array"
+        },
+        "control_post": {
+          "type": "array"
+        }
+      }
+    },
+    "nonlinear_dynamics": {
+      "type": "object",
+      "required": [
+        "model",
+        "initial_state",
+        "parameters"
+      ],
+      "properties": {
+        "model": {
+          "type": "string"
+        },
+        "initial_state": {
+          "type": "array"
+        },
+        "parameters": {
+          "type": "object"
+        }
+      }
+    },
+    "pattern_discovery": {
+      "type": "object",
+      "required": [
+        "data"
+      ],
+      "properties": {
+        "data": {
+          "type": "array",
+          "minItems": 2
+        }
+      }
+    },
+    "assumption_validation": {
+      "type": "object",
+      "required": [
+        "data"
+      ],
+      "properties": {
+        "data": {
+          "type": "array",
+          "minItems": 2
+        }
+      }
+    },
+    "markov_simulation": {
+      "type": "object",
+      "required": [
+        "transition_matrix",
+        "initial_distribution"
+      ],
+      "properties": {
+        "transition_matrix": {
+          "type": "array"
+        },
+        "initial_distribution": {
+          "type": "array"
+        }
+      }
+    },
+    "gis_spatial_analysis": {
+      "type": "object",
+      "required": [
+        "mode"
+      ],
+      "properties": {
+        "mode": {
+          "type": "string"
+        }
+      }
+    },
+    "bayesian_inference": {
+      "type": "object",
+      "required": [
+        "mode"
+      ],
+      "properties": {
+        "mode": {
+          "type": "string"
+        }
+      }
+    },
+    "econometric_analysis": {
+      "type": "object",
+      "required": [
+        "mode"
+      ],
+      "properties": {
+        "mode": {
+          "type": "string"
+        }
+      }
+    },
+    "agent_based_simulation": {
+      "type": "object",
+      "required": [
+        "mode",
+        "seed"
+      ],
+      "properties": {
+        "mode": {
+          "type": "string"
+        },
+        "seed": {
+          "type": "integer"
+        }
+      }
+    },
+    "finance_decision_analysis": {
+      "type": "object",
+      "required": [
+        "mode"
+      ],
+      "properties": {
+        "mode": {
+          "enum": [
+            "performance_metrics",
+            "portfolio_optimization",
+            "investment_projection",
+            "business_unit_economics",
+            "capital_budgeting",
+            "strategy_backtest"
+          ]
+        }
+      }
+    }
+  }
+}

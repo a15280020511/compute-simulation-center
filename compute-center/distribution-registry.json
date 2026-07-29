@@ -1,0 +1,15 @@
+{
+  "schema_version":"compute-distribution-registry-v1",
+  "policy":{"ticket_defined_distribution_code_allowed":false,"parameter_validation_required":true,"truncation_must_be_explicit":true},
+  "distributions":[
+    {"id":"constant","uncertainty_use":"deterministic","required_parameters":["value"],"allowed_for":["fixed contractual value","validated invariant"]},
+    {"id":"uniform","uncertainty_use":"epistemic","required_parameters":["minimum","maximum"],"allowed_for":["bounded ignorance"],"warning":"Do not imply equal real-world frequency without justification."},
+    {"id":"triangular","uncertainty_use":"epistemic","required_parameters":["minimum","mode","maximum"],"allowed_for":["structured expert elicitation"]},
+    {"id":"normal","uncertainty_use":"aleatory_or_measurement","required_parameters":["mean","standard_deviation"],"allowed_for":["approximately symmetric variation"],"warning":"Use explicit clipping when the variable has physical bounds."},
+    {"id":"lognormal","uncertainty_use":"aleatory_or_epistemic","required_parameters":["mean","standard_deviation"],"allowed_for":["positive multiplicative quantities"]},
+    {"id":"beta","uncertainty_use":"aleatory_or_epistemic","required_parameters":["alpha","beta"],"allowed_for":["bounded proportions"]},
+    {"id":"categorical","uncertainty_use":"aleatory_or_scenario","required_parameters":["states","probabilities"],"allowed_for":["finite mutually exclusive outcomes"]},
+    {"id":"empirical","uncertainty_use":"aleatory","required_parameters":["snapshot_sha256","values"],"allowed_for":["frozen attributable observations"]},
+    {"id":"scenario_set","uncertainty_use":"epistemic","required_parameters":["scenario_ids"],"allowed_for":["deep uncertainty and structural alternatives"]}
+  ]
+}

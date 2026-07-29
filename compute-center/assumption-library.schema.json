@@ -1,0 +1,16 @@
+{
+  "$schema":"https://json-schema.org/draft/2020-12/schema",
+  "$id":"https://github.com/a15280020511/test/compute-center/assumption-library.schema.json",
+  "title":"Institutional Compute Assumption Library",
+  "type":"object",
+  "additionalProperties":false,
+  "required":["schema_version","policy","taxonomy","lifecycle","assumptions"],
+  "properties":{
+    "schema_version":{"const":"compute-assumption-library-v1"},
+    "policy":{"type":"object","additionalProperties":false,"required":["domain_assumptions_may_be_prepopulated","runtime_network_allowed","ticket_override_allowed","immutable_snapshot_required"],"properties":{"domain_assumptions_may_be_prepopulated":{"const":false},"runtime_network_allowed":{"const":false},"ticket_override_allowed":{"const":false},"immutable_snapshot_required":{"const":true},"approval_owner":{"type":"string","minLength":1,"maxLength":100}}},
+    "taxonomy":{"type":"object","additionalProperties":false,"required":["types","uncertainty_types","criticality_levels","evidence_strength_levels"],"properties":{"types":{"type":"array","minItems":8,"uniqueItems":true,"items":{"type":"string"}},"uncertainty_types":{"type":"array","minItems":4,"uniqueItems":true,"items":{"enum":["epistemic","aleatory","mixed","deterministic"]}},"criticality_levels":{"type":"array","minItems":4,"uniqueItems":true,"items":{"enum":["low","medium","high","critical"]}},"evidence_strength_levels":{"type":"array","minItems":4,"uniqueItems":true,"items":{"enum":["none","weak","moderate","strong"]}}}},
+    "lifecycle":{"type":"array","minItems":7,"uniqueItems":true,"items":{"enum":["proposed","reviewed","approved","calibrated","validated","invalidated","retired"]}},
+    "assumptions":{"type":"array","maxItems":5000,"items":{"type":"object","maxProperties":60}},
+    "note":{"type":"string","maxLength":4000}
+  }
+}
