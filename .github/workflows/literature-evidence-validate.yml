@@ -1,0 +1,33 @@
+name: Literature Evidence Validate
+
+on:
+  pull_request:
+    paths:
+      - 'compute-center/literature-evidence/**'
+      - 'compute-center/LITERATURE_DEPENDENCIES.md'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  offline-contract:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@a26af69be951213d495a4c3e4e4022e16d87065
+        with:
+          python-version: '3.12'
+      - run: |
+          python -m compileall -q compute-center/literature-evidence
+          python - <<'PY'
+          import importlib.util
+          from pathlib import Path
+          p=Path('compute-center/literature-evidence/literature_evidence.py')
+          spec=importlib.util.spec_from_file_location('lit',p); m=importlib.util.module_from_spec(spec); spec.loader.exec_module(m)
+          try: m._get('https://example.com/x')
+          except m.LiteratureEvidenceError: pass
+          else: raise SystemExit('allowlist failed')
+          PY
