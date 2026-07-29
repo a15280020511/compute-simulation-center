@@ -16,6 +16,7 @@ jobs:
       startsWith(github.event.issue.title, '[compute]')
     runs-on: ubuntu-24.04
     timeout-minutes: 30
+    environment: compute-numeric-offline
     env:
       GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

@@ -112,13 +112,17 @@
     }
   ],
   "literature_plane": {
-    "workflow": ".github/workflows/literature-evidence-validate.yml",
+    "execution_workflow": ".github/workflows/literature-evidence-ticket.yml",
+    "validation_workflow": ".github/workflows/literature-evidence-validate.yml",
+    "ticket_schema": "compute-center/literature-evidence-ticket.schema.json",
+    "github_environment": "compute-literature-evidence",
     "network_policy": "allowlisted-literature-only",
     "allowed_hosts": [
       "api.openalex.org",
       "api.crossref.org"
     ],
     "direct_numeric_dispatch_allowed": false,
+    "automatic_parameter_promotion_allowed": false,
     "evidence_freeze_required": true
   }
 }
