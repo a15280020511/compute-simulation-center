@@ -3,7 +3,7 @@ name: Apply Compute Hardening Bundle
 on:
   pull_request:
     paths:
-      - "tools/hardening-bundle.b64"
+      - "tools/hardening-chunks/**"
       - "tools/apply_hardening_bundle.py"
       - ".github/workflows/repository-line-audit.yml"
 
