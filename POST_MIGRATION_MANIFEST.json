@@ -5,8 +5,8 @@
   "source_commit": "abac3d776340c8c162b8fc0c670167fde94f3baa",
   "governance_version": "3.1.0",
   "optimization_status": "phase-1-controls-implemented; advanced modes controlled-preview",
-  "file_count": 169,
-  "total_bytes": 961074,
+  "file_count": 170,
+  "total_bytes": 965619,
   "files": [
     {
       "path": ".github/dependabot.yml",
@@ -15,8 +15,8 @@
     },
     {
       "path": ".github/workflows/compute-all-operations-validate.yml",
-      "size_bytes": 8569,
-      "sha256": "03a3be155234fbc559cf04f9358321cf2664e967853583adf2de65c63828ef83"
+      "size_bytes": 9558,
+      "sha256": "cd08f24667636b397dfae073f97a8a1369f73096ff1612db7fcc38e6da1789b7"
     },
     {
       "path": ".github/workflows/compute-network-isolation-validate.yml",
@@ -45,8 +45,8 @@
     },
     {
       "path": ".github/workflows/institutional-quality-matrix.yml",
-      "size_bytes": 2162,
-      "sha256": "4594271986f78485ecd8c83cd776cf6766cd9c7856e27dfc8de647b4dfae186c"
+      "size_bytes": 2266,
+      "sha256": "3ac5ce3a3d3e844ca6775429b95b309d58e463a05b71938755cf288f5da54fb0"
     },
     {
       "path": ".github/workflows/literature-evidence-validate.yml",
@@ -57,6 +57,11 @@
       "path": ".github/workflows/mesa-validate.yml",
       "size_bytes": 5375,
       "sha256": "e36e1bf6a52fd11f9ca412d3d900ca1300b625714f738ef01f31eb0926ca13ef"
+    },
+    {
+      "path": ".github/workflows/migration-manifest-refresh.yml",
+      "size_bytes": 2375,
+      "sha256": "de7d4ead014480dac8302062688b893c64d3ec7cf454c5e2e73e0f36f4ebaef9"
     },
     {
       "path": ".gitignore",
@@ -700,8 +705,8 @@
     },
     {
       "path": "compute-center/tests/test_accuracy_enhancements.py",
-      "size_bytes": 2078,
-      "sha256": "c7f74978bc5de6ced20ad878b004875e107c8c68f74349008e3398a5a0c64bd2"
+      "size_bytes": 3155,
+      "sha256": "bf734388641f5def8c818c0570896ee2d08be949ac778e2a7b3f60e61c1b7e85"
     },
     {
       "path": "compute-center/tests/test_accuracy_runtime.py",
