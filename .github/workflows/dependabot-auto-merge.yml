@@ -1,0 +1,53 @@
+name: Dependabot Safe Auto-Merge
+
+on:
+  workflow_run:
+    workflows:
+      - Validate Compute Center
+      - Institutional Compute Quality Matrix
+    types: [completed]
+
+permissions:
+  actions: read
+  contents: write
+  pull-requests: write
+
+jobs:
+  merge-safe-update:
+    if: >-
+      github.event.workflow_run.event == 'pull_request' &&
+      github.event.workflow_run.conclusion == 'success' &&
+      github.event.workflow_run.actor.login == 'dependabot[bot]'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 8
+    env:
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    steps:
+      - name: Require compute validation and safe version class
+        shell: bash
+        run: |
+          set -euo pipefail
+          sha='${{ github.event.workflow_run.head_sha }}'
+          pr="$(gh api "repos/${GITHUB_REPOSITORY}/commits/${sha}/pulls" --jq 'map(select(.state == "open" and .user.login == "dependabot[bot]"))[0].number // empty')"
+          [[ -n "$pr" ]] || exit 0
+          body="$(gh api "repos/${GITHUB_REPOSITORY}/pulls/${pr}" --jq '.body // ""')"
+          if ! grep -Eiq 'update-type: version-update:semver-(patch|minor)' <<<"$body"; then
+            echo 'Major or unclassified dependency update left for manual review.'
+            exit 0
+          fi
+          runs="$(gh api "repos/${GITHUB_REPOSITORY}/actions/runs?head_sha=${sha}&event=pull_request&per_page=100")"
+          python - "$pr" "$runs" <<'PY2'
+          import json, subprocess, sys
+          pr=sys.argv[1]; rows=json.loads(sys.argv[2]).get('workflow_runs',[])
+          required={'Validate Compute Center','Institutional Compute Quality Matrix'}
+          ok=True
+          for name in required:
+              candidates=[r for r in rows if r.get('name')==name]
+              candidates.sort(key=lambda r:r.get('run_attempt',0), reverse=True)
+              latest=candidates[0] if candidates else {}
+              ok &= latest.get('status')=='completed' and latest.get('conclusion')=='success'
+          if ok:
+              subprocess.run(['gh','pr','merge',pr,'--repo',__import__('os').environ['GITHUB_REPOSITORY'],'--squash','--delete-branch'],check=True)
+          else:
+              print('Major or unclassified dependency update left for manual review.' if not rows else 'Dependency update remains open until every relevant validation succeeds.')
+          PY2

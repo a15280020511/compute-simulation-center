@@ -1,0 +1,95 @@
+{
+  "schema_version": "domain-benchmark-registry-v1",
+  "default_maturity_without_domain_benchmark": "controlled-preview",
+  "required_evidence_per_managed_mode": [
+    "numerical_truth",
+    "parameter_recovery",
+    "frozen_real",
+    "boundary_adversarial"
+  ],
+  "domains": [
+    {
+      "id": "commercial-footfall",
+      "required_checks": [
+        "demand forecast",
+        "break-even",
+        "spatial variables",
+        "interval coverage"
+      ],
+      "status": "registry-created-data-pending"
+    },
+    {
+      "id": "finance-investment",
+      "required_checks": [
+        "backtest",
+        "risk metrics",
+        "portfolio constraints",
+        "out-of-sample performance"
+      ],
+      "status": "registry-created-data-pending"
+    },
+    {
+      "id": "public-policy",
+      "required_checks": [
+        "identification",
+        "placebo",
+        "parallel trends",
+        "heterogeneity"
+      ],
+      "status": "registry-created-data-pending"
+    },
+    {
+      "id": "social-behavior",
+      "required_checks": [
+        "parameter recovery",
+        "population shares",
+        "mechanism sensitivity",
+        "non-identifiability"
+      ],
+      "status": "registry-created-data-pending"
+    },
+    {
+      "id": "information-diffusion",
+      "required_checks": [
+        "reach",
+        "network sensitivity",
+        "multi-seed stability"
+      ],
+      "status": "registry-created-data-pending"
+    },
+    {
+      "id": "crisis-warning",
+      "required_checks": [
+        "Brier",
+        "ECE",
+        "false-positive",
+        "false-negative",
+        "threshold loss",
+        "drift"
+      ],
+      "status": "registry-created-data-pending"
+    },
+    {
+      "id": "resource-optimization",
+      "required_checks": [
+        "feasibility",
+        "constraint residual",
+        "optimality gap",
+        "infeasibility diagnosis"
+      ],
+      "status": "registry-created-data-pending"
+    },
+    {
+      "id": "china-real-world",
+      "required_checks": [
+        "population",
+        "commercial",
+        "geospatial",
+        "finance",
+        "policy",
+        "urban data"
+      ],
+      "status": "registry-created-data-pending"
+    }
+  ]
+}

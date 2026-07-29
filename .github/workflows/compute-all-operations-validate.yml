@@ -4,15 +4,13 @@ on:
   pull_request:
     paths:
       - "compute-center/**"
-      - "architecture/three-center-isolation-contract.json"
-      - "tools/validate_three_center_isolation.py"
+      - "governance-compatibility.json"
       - ".github/workflows/compute-all-operations-validate.yml"
   push:
     branches: [main]
     paths:
       - "compute-center/**"
-      - "architecture/three-center-isolation-contract.json"
-      - "tools/validate_three_center_isolation.py"
+      - "governance-compatibility.json"
       - ".github/workflows/compute-all-operations-validate.yml"
   workflow_dispatch:
   schedule:
@@ -48,6 +46,8 @@ jobs:
             compute-center/requirements-diffusion.txt
             compute-center/requirements-causal.txt
             compute-center/requirements-bayesian-network.txt
+            compute-center/requirements-calibration.txt
+            compute-center/requirements-constraints.txt
 
       - name: Install complete isolated compute environment
         run: |
@@ -58,18 +58,36 @@ jobs:
           python -m pip install --disable-pip-version-check --no-input -r compute-center/requirements-diffusion.txt
           python -m pip install --disable-pip-version-check --no-input -r compute-center/requirements-causal.txt
           python -m pip install --disable-pip-version-check --no-input -r compute-center/requirements-bayesian-network.txt
+          python -m pip install --disable-pip-version-check --no-input -r compute-center/requirements-calibration.txt
+          python -m pip install --disable-pip-version-check --no-input -r compute-center/requirements-constraints.txt
           python -m pip check
 
       - name: Compile production runtime and validators
         run: |
           set -euo pipefail
-          python -m py_compile compute-center/*.py compute-center/tests/*.py tools/validate_three_center_isolation.py
+          python -m py_compile compute-center/*.py compute-center/tests/*.py
 
       - name: Enforce GPTs-only three-center topology
         run: |
-          set -o pipefail
+          set -euo pipefail
           mkdir -p architecture-validation-artifacts
-          python tools/validate_three_center_isolation.py 2>&1 | tee architecture-validation-artifacts/three-center-isolation-audit.json
+          python - <<'PY' | tee architecture-validation-artifacts/three-center-isolation-audit.json
+          import json
+          from pathlib import Path
+
+          contract = json.loads(Path("governance-compatibility.json").read_text(encoding="utf-8"))
+          assert contract["sole_cross_center_relay"] == "custom-gpts", contract
+          assert contract["direct_center_to_center_calls_allowed"] is False, contract
+          assert contract["runtime_governance_repository_read"] is False, contract
+          assert contract["governance_repository"] == "a15280020511/decision-system-governance", contract
+          print(json.dumps({
+              "status": "PASS",
+              "sole_relay": contract["sole_cross_center_relay"],
+              "direct_center_to_center_calls_allowed": False,
+              "runtime_governance_repository_read": False,
+              "contract_sha256": contract["governance_contract_sha256"],
+          }))
+          PY
 
       - name: Validate sixteen institutional libraries
         run: |

@@ -1,0 +1,124 @@
+{
+  "schema_version": "accuracy-enhancement-capabilities-v1",
+  "catalog_status": "controlled-preview",
+  "network_default": "deny",
+  "ticket_supplied_code_allowed": false,
+  "promotion_rule": "A mode remains controlled-preview until dependency, numerical truth, parameter recovery, frozen-real, boundary and fault-injection tests pass.",
+  "packs": [
+    {
+      "id": "openturns-calibration",
+      "requirements": "requirements-calibration.txt",
+      "network_policy": "deny",
+      "modes": [
+        "linear_least_squares_calibration",
+        "nonlinear_least_squares_calibration",
+        "gaussian_linear_calibration",
+        "gaussian_nonlinear_calibration",
+        "bayesian_parameter_calibration",
+        "distribution_fitting",
+        "parameter_bootstrap",
+        "uncertainty_propagation",
+        "reliability_analysis",
+        "surrogate_validation"
+      ],
+      "implemented_now": [
+        "linear_least_squares_calibration",
+        "nonlinear_least_squares_calibration",
+        "distribution_fitting",
+        "parameter_bootstrap",
+        "uncertainty_propagation"
+      ],
+      "remaining_modes_fail_closed": true
+    },
+    {
+      "id": "mapie-conformal",
+      "requirements": "requirements-calibration.txt",
+      "network_policy": "deny",
+      "modes": [
+        "split_conformal_regression",
+        "cross_conformal_regression",
+        "time_series_prediction_interval",
+        "classification_prediction_set",
+        "coverage_evaluation",
+        "conditional_coverage_check"
+      ],
+      "implemented_now": [
+        "split_conformal_regression",
+        "cross_conformal_regression",
+        "coverage_evaluation",
+        "conditional_coverage_check"
+      ],
+      "remaining_modes_fail_closed": true
+    },
+    {
+      "id": "cvxpy-constraint-assurance",
+      "requirements": "requirements-constraints.txt",
+      "network_policy": "deny",
+      "modes": [
+        "convex_resource_allocation",
+        "robust_continuous_optimization",
+        "risk_constrained_optimization",
+        "second_order_cone_optimization",
+        "constraint_residual_audit",
+        "dual_sensitivity_analysis"
+      ],
+      "implemented_now": [
+        "convex_resource_allocation",
+        "constraint_residual_audit",
+        "dual_sensitivity_analysis"
+      ],
+      "remaining_modes_fail_closed": true
+    },
+    {
+      "id": "state-estimation",
+      "requirements": "requirements.txt",
+      "network_policy": "deny",
+      "modes": [
+        "kalman_filter",
+        "extended_kalman_filter",
+        "unscented_kalman_filter",
+        "ensemble_kalman_filter",
+        "particle_filter"
+      ],
+      "implemented_now": [
+        "kalman_filter",
+        "extended_kalman_filter",
+        "unscented_kalman_filter",
+        "ensemble_kalman_filter",
+        "particle_filter"
+      ],
+      "fixed_models_only": true
+    },
+    {
+      "id": "surrogate-experiment-design",
+      "requirements": "requirements-calibration.txt",
+      "network_policy": "deny",
+      "modes": [
+        "latin_hypercube_design",
+        "optimal_experiment_design",
+        "gaussian_process_surrogate",
+        "polynomial_chaos_surrogate",
+        "surrogate_error_validation",
+        "active_learning"
+      ],
+      "implemented_now": [
+        "latin_hypercube_design",
+        "gaussian_process_surrogate",
+        "polynomial_chaos_surrogate",
+        "surrogate_error_validation",
+        "active_learning"
+      ],
+      "remaining_modes_fail_closed": true
+    }
+  ],
+  "literature_plane": {
+    "workflow": ".github/workflows/literature-evidence-validate.yml",
+    "network_policy": "allowlisted-literature-only",
+    "allowed_hosts": [
+      "api.openalex.org",
+      "api.crossref.org"
+    ],
+    "direct_numeric_dispatch_allowed": false,
+    "evidence_freeze_required": true
+  }
+}
