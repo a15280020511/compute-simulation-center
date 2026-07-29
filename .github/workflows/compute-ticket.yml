@@ -41,6 +41,8 @@ jobs:
             compute-center/requirements-diffusion.txt
             compute-center/requirements-causal.txt
             compute-center/requirements-bayesian-network.txt
+            compute-center/requirements-calibration.txt
+            compute-center/requirements-constraints.txt
 
       - name: Install isolated core compute dependencies
         run: python -m pip install --disable-pip-version-check --no-input -r compute-center/requirements.txt
