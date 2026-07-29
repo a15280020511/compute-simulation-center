@@ -37,6 +37,16 @@ jobs:
             --output-dir audit-artifacts \
             --fail-on none
 
+      - name: Freeze reviewed source snapshot
+        run: |
+          set -euo pipefail
+          tar \
+            --exclude=.git \
+            --exclude=audit-artifacts \
+            -czf audit-artifacts/repository-source-${GITHUB_SHA}.tar.gz .
+          sha256sum audit-artifacts/repository-source-${GITHUB_SHA}.tar.gz \
+            > audit-artifacts/repository-source-${GITHUB_SHA}.sha256
+
       - name: Upload full audit evidence
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
