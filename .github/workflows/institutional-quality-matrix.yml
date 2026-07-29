@@ -41,6 +41,8 @@ jobs:
           esac
           python -m pip check
       - name: Compile and run governed tests
+        env:
+          RUN_CVXPY_SMOKE: ${{ matrix.pack == 'constraints' && '1' || '0' }}
         run: |
           set -euo pipefail
           python -m compileall -q compute-center
@@ -48,5 +50,6 @@ jobs:
           python - <<'PY'
           import json
           from pathlib import Path
-          for p in Path('compute-center').rglob('*.json'): json.loads(p.read_text(encoding='utf-8'))
+          for p in Path('compute-center').rglob('*.json'):
+              json.loads(p.read_text(encoding='utf-8'))
           PY
