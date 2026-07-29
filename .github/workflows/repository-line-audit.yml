@@ -5,44 +5,13 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: write
+  contents: read
 
 concurrency:
   group: repository-line-audit-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
-  apply-ownership-fix:
-    if: github.actor == github.repository_owner && github.head_ref == 'fix/compute-artifact-ownership'
-    runs-on: ubuntu-24.04
-    timeout-minutes: 10
-    steps:
-      - name: Checkout repair branch
-        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
-        with:
-          persist-credentials: true
-          ref: ${{ github.head_ref }}
-
-      - name: Set up Python 3.12
-        uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5
-        with:
-          python-version: "3.12"
-
-      - name: Apply and test Artifact ownership contract
-        run: |
-          set -euo pipefail
-          python tools/apply_artifact_ownership_fix.py
-          python -m unittest compute-center/tests/test_compute_workflow_contract.py -v
-
-      - name: Commit reviewed repair
-        run: |
-          set -euo pipefail
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add -A
-          git commit -m "fix: restore compute Artifact ownership after isolation"
-          git push origin "HEAD:${{ github.head_ref }}"
-
   audit:
     runs-on: ubuntu-24.04
     timeout-minutes: 15
