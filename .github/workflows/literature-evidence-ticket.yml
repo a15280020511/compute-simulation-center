@@ -60,7 +60,7 @@ jobs:
             --event-path "$GITHUB_EVENT_PATH" \
             --output-dir literature-artifacts
 
-      - name: Reject duplicate task ID
+      - name: Reject duplicate task ID or semantic fingerprint
         id: duplicate
         if: steps.prepare.outputs.accepted == 'true'
         continue-on-error: true
@@ -68,10 +68,14 @@ jobs:
         run: |
           set -euo pipefail
           task_id='${{ steps.prepare.outputs.task_id }}'
-          count="$(gh api --method GET search/issues \
+          fingerprint='${{ steps.prepare.outputs.semantic_fingerprint }}'
+          task_count="$(gh api --method GET search/issues \
             -f q="repo:${GITHUB_REPOSITORY} is:issue in:body \"${task_id}\"" \
             --jq "[.items[] | select(.number != ${ISSUE_NUMBER}) | select(.title | startswith(\"[literature]\") or startswith(\"[compute-literature]\"))] | length")"
-          if [[ "$count" != "0" ]]; then
+          fingerprint_count="$(gh api --method GET search/issues \
+            -f q="repo:${GITHUB_REPOSITORY} is:issue in:comments \"${fingerprint}\"" \
+            --jq "[.items[] | select(.number != ${ISSUE_NUMBER}) | select(.title | startswith(\"[literature]\") or startswith(\"[compute-literature]\"))] | length")"
+          if [[ "$task_count" != "0" || "$fingerprint_count" != "0" ]]; then
             echo "duplicate=true" >> "$GITHUB_OUTPUT"
             exit 1
           fi
@@ -95,7 +99,7 @@ jobs:
             cat > literature-comment.md <<EOF
           ## LITERATURE_TICKET_REJECTED
 
-          - Reason: \`duplicate task_id already exists in another literature Issue\`
+          - Reason: \`duplicate task_id or semantic fingerprint already exists in another literature Issue\`
           - External requests: \`0\`
           - Run: ${RUN_URL}
           EOF
