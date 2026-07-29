@@ -1,4 +1,5 @@
 import importlib.util
+import os
 import sys
 import unittest
 from pathlib import Path
@@ -80,7 +81,11 @@ class AccuracyEnhancementTests(unittest.TestCase):
         self.assertEqual(len(latin_hypercube_design([[0, 1], [0, 2]], 10)["design"]), 10)
         self.assertTrue(surrogate_error_validation([1, 2], [1, 2])["publish_allowed"])
 
-    @unittest.skipUnless(importlib.util.find_spec("cvxpy"), "optional CVXPY not installed")
+    @unittest.skipUnless(
+        os.environ.get("RUN_CVXPY_SMOKE") == "1"
+        and importlib.util.find_spec("cvxpy") is not None,
+        "CVXPY smoke is isolated to the constraints dependency matrix",
+    )
     def test_cvxpy_smoke(self):
         from cvxpy_assurance import convex_resource_allocation
 
