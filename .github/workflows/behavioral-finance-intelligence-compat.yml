@@ -1,0 +1,114 @@
+name: Test Behavioral Finance Intelligence Candidates
+
+on:
+  pull_request:
+    paths:
+      - "compute-center/requirements-gap-*.txt"
+      - "compute-center/validate_behavioral_finance_intelligence_candidate.py"
+      - ".github/workflows/behavioral-finance-intelligence-compat.yml"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: final-gap-compat-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  compatibility:
+    name: ${{ matrix.candidate }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - {candidate: quantlib, requirements: requirements-gap-quantlib.txt}
+          - {candidate: egttools, requirements: requirements-gap-egttools.txt}
+          - {candidate: pymdp, requirements: requirements-gap-pymdp.txt}
+          - {candidate: psyneulink, requirements: requirements-gap-psyneulink.txt}
+          - {candidate: pyod, requirements: requirements-gap-pyod.txt}
+          - {candidate: graspologic, requirements: requirements-gap-graspologic.txt}
+          - {candidate: mlxtend, requirements: requirements-gap-mlxtend.txt}
+    steps:
+      - name: Checkout pinned source
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          persist-credentials: false
+
+      - name: Set up Python 3.12
+        uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065
+        with:
+          python-version: "3.12"
+
+      - name: Install one isolated candidate
+        run: |
+          set -euo pipefail
+          python -m pip install --disable-pip-version-check --no-input \
+            -r compute-center/requirements.txt \
+            -r "compute-center/${{ matrix.requirements }}"
+          python -m pip check
+
+      - name: Compile fixed validator
+        run: python -m py_compile compute-center/validate_behavioral_finance_intelligence_candidate.py
+
+      - name: Execute deterministic local fixture
+        run: |
+          set -euo pipefail
+          mkdir -p compatibility-artifacts
+          python compute-center/validate_behavioral_finance_intelligence_candidate.py \
+            --candidate "${{ matrix.candidate }}" \
+            --output "compatibility-artifacts/${{ matrix.candidate }}.json"
+
+      - name: Verify safe evidence
+        env:
+          CANDIDATE: ${{ matrix.candidate }}
+        run: |
+          python - <<'PY'
+          import json
+          import os
+          from pathlib import Path
+
+          candidate = os.environ["CANDIDATE"]
+          row = json.loads((Path("compatibility-artifacts") / f"{candidate}.json").read_text(encoding="utf-8"))
+          assert row["status"] == "PASS"
+          assert row["candidate"] == candidate
+          assert row["network_used"] is False
+          assert row["model_calls"] == 0
+          assert row["arbitrary_code_used"] is False
+          assert row["remote_data_used"] is False
+          assert row["brokerage_execution_used"] is False
+          assert row["personal_psychological_diagnosis_allowed"] is False
+          if candidate == "pyod":
+              assert row["functional_result"]["agentic_engine_used"] is False
+              assert row["functional_result"]["mcp_used"] is False
+          PY
+
+      - name: Upload compatibility evidence
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: final-gap-${{ matrix.candidate }}-${{ github.run_id }}
+          path: compatibility-artifacts/
+          if-no-files-found: warn
+          retention-days: 30
+
+  receipt:
+    if: always()
+    needs: [compatibility]
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Write compatibility receipt
+        env:
+          RESULT: ${{ needs.compatibility.result }}
+        run: |
+          set -euo pipefail
+          {
+            echo "## Final Gap Compatibility Matrix"
+            echo
+            echo "- Candidates: 7"
+            echo "- Result: ${RESULT}"
+            echo "- Network used: false"
+            echo "- Model calls: 0"
+          } >> "$GITHUB_STEP_SUMMARY"
+          [[ "$RESULT" == "success" ]]
