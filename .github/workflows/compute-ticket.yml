@@ -71,6 +71,29 @@ jobs:
             compute-center/requirements-global-skgstat.txt
             compute-center/requirements-global-smt.txt
             compute-center/requirements-global-spreg.txt
+            compute-center/requirements-graph-igraph.txt
+            compute-center/requirements-graph-owlready2.txt
+            compute-center/requirements-graph-pyshacl.txt
+            compute-center/requirements-graph-rdflib.txt
+            compute-center/requirements-intelligence-datasketch.txt
+            compute-center/requirements-intelligence-problog.txt
+            compute-center/requirements-intelligence-rapidfuzz.txt
+            compute-center/requirements-intelligence-splink.txt
+            compute-center/requirements-policy-econ-ark.txt
+            compute-center/requirements-policy-policyengine.txt
+            compute-center/requirements-policy-taxcalc.txt
+            compute-center/requirements-strategy-axelrod.txt
+            compute-center/requirements-strategy-biogeme.txt
+            compute-center/requirements-strategy-clingo.txt
+            compute-center/requirements-strategy-negmas.txt
+            compute-center/requirements-strategy-open-spiel.txt
+            compute-center/requirements-strategy-pyagrum.txt
+            compute-center/requirements-strategy-pyblp.txt
+            compute-center/requirements-strategy-pygambit.txt
+            compute-center/requirements-strategy-pymc-marketing.txt
+            compute-center/requirements-strategy-scikit-criteria.txt
+            compute-center/requirements-strategy-scml.txt
+            compute-center/requirements-strategy-z3.txt
 
       - name: Install isolated core compute dependencies
         run: python -m pip install --disable-pip-version-check --no-input -r compute-center/requirements.txt
