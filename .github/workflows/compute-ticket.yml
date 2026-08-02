@@ -56,6 +56,21 @@ jobs:
             compute-center/requirements-thinktank-decision.txt
             compute-center/requirements-thinktank-bayesian.txt
             compute-center/requirements-thinktank-geospatial.txt
+            compute-center/requirements-global-aequilibrae.txt
+            compute-center/requirements-global-arch.txt
+            compute-center/requirements-global-control.txt
+            compute-center/requirements-global-econml.txt
+            compute-center/requirements-global-epydemix.txt
+            compute-center/requirements-global-lmfit.txt
+            compute-center/requirements-global-mapie.txt
+            compute-center/requirements-global-openturns.txt
+            compute-center/requirements-global-pm4py.txt
+            compute-center/requirements-global-pydoe3.txt
+            compute-center/requirements-global-pysd.txt
+            compute-center/requirements-global-rsome.txt
+            compute-center/requirements-global-skgstat.txt
+            compute-center/requirements-global-smt.txt
+            compute-center/requirements-global-spreg.txt
 
       - name: Install isolated core compute dependencies
         run: python -m pip install --disable-pip-version-check --no-input -r compute-center/requirements.txt
