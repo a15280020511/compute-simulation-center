@@ -11,6 +11,7 @@ from think_tank_data_operations import HANDLERS as DATA_HANDLERS
 from think_tank_decision_operations import HANDLERS as DECISION_HANDLERS
 from think_tank_econometric_operations import HANDLERS as ECONOMETRIC_HANDLERS
 from think_tank_finance_operations import HANDLERS as FINANCE_HANDLERS
+from think_tank_global_operations import HANDLERS as GLOBAL_HANDLERS
 
 HANDLERS: dict[str, Callable[[Mapping[str, Any]], dict[str, Any]]] = {
     **DATA_HANDLERS,
@@ -19,6 +20,7 @@ HANDLERS: dict[str, Callable[[Mapping[str, Any]], dict[str, Any]]] = {
     **FINANCE_HANDLERS,
     **DECISION_HANDLERS,
     **ADVANCED_HANDLERS,
+    **GLOBAL_HANDLERS,
 }
 
 if len(HANDLERS) != sum(
@@ -30,6 +32,7 @@ if len(HANDLERS) != sum(
         FINANCE_HANDLERS,
         DECISION_HANDLERS,
         ADVANCED_HANDLERS,
+        GLOBAL_HANDLERS,
     )
 ):
     raise RuntimeError("duplicate top think-tank mode registration")

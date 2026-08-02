@@ -5,83 +5,639 @@
   "network_policy": "deny",
   "arbitrary_code_allowed": false,
   "mode_requirements": {
-    "bounded_table_profile": ["requirements-thinktank-data.txt"],
-    "bounded_table_join": ["requirements-thinktank-data.txt"],
-    "schema_unit_validation": ["requirements-thinktank-data.txt"],
-    "robust_glm": ["requirements-thinktank-econometrics.txt"],
-    "panel_fixed_effects": ["requirements-thinktank-econometrics.txt"],
-    "survey_weighted_estimation": ["requirements-thinktank-econometrics.txt"],
-    "meta_analysis": ["requirements-thinktank-econometrics.txt"],
-    "survival_analysis": ["requirements-thinktank-econometrics.txt"],
-    "change_point_detection": ["requirements-thinktank-econometrics.txt"],
-    "mixed_effects_model": ["requirements-thinktank-econometrics.txt"],
-    "quantile_regression": ["requirements-thinktank-econometrics.txt"],
-    "granger_causality": ["requirements-thinktank-econometrics.txt"],
-    "power_analysis": ["requirements-thinktank-econometrics.txt"],
-    "unobserved_components_forecast": ["requirements-thinktank-econometrics.txt"],
-    "markov_regime_model": ["requirements-thinktank-econometrics.txt"],
-    "price_elasticity": ["requirements-thinktank-econometrics.txt"],
-    "customer_lifetime_value": ["requirements-thinktank-econometrics.txt"],
-    "customer_segmentation": ["requirements-thinktank-econometrics.txt"],
-    "churn_probability": ["requirements-thinktank-econometrics.txt"],
-    "marketing_mix_regression": ["requirements-thinktank-econometrics.txt"],
-    "inventory_policy": ["requirements-thinktank-econometrics.txt"],
-    "input_output_shock": ["requirements-thinktank-econometrics.txt"],
-    "consumer_choice_logit": ["requirements-thinktank-econometrics.txt"],
-    "process_capability": ["requirements-thinktank-econometrics.txt"],
-    "cvar_portfolio": ["requirements-thinktank-finance.txt"],
-    "drawdown_constrained_portfolio": ["requirements-thinktank-finance.txt"],
-    "financial_ratio_analysis": ["requirements-thinktank-finance.txt"],
-    "factor_attribution": ["requirements-thinktank-finance.txt"],
-    "multiobjective_pareto": ["requirements-thinktank-decision.txt"],
-    "bounded_hyperparameter_search": ["requirements-thinktank-decision.txt"],
-    "algebraic_resource_optimization": ["requirements-thinktank-decision.txt"],
-    "strategic_sandbox": ["requirements-thinktank-decision.txt"],
-    "influence_diagram": ["requirements-thinktank-decision.txt"],
-    "policy_microsimulation": ["requirements-thinktank-decision.txt"],
-    "hierarchical_bayesian_mean": ["requirements-thinktank-bayesian.txt"],
-    "raster_zonal_statistics": ["requirements-thinktank-geospatial.txt"],
-    "raster_change_detection": ["requirements-thinktank-geospatial.txt"],
-    "spatial_autocorrelation": ["requirements-thinktank-geospatial.txt"]
+    "aequilibrae_shortest_path": [
+      "requirements-global-aequilibrae.txt"
+    ],
+    "algebraic_resource_optimization": [
+      "requirements-thinktank-decision.txt"
+    ],
+    "arch_garch_forecast": [
+      "requirements-global-arch.txt"
+    ],
+    "bounded_hyperparameter_search": [
+      "requirements-thinktank-decision.txt"
+    ],
+    "bounded_table_join": [
+      "requirements-thinktank-data.txt"
+    ],
+    "bounded_table_profile": [
+      "requirements-thinktank-data.txt"
+    ],
+    "change_point_detection": [
+      "requirements-thinktank-econometrics.txt"
+    ],
+    "churn_probability": [
+      "requirements-thinktank-econometrics.txt"
+    ],
+    "consumer_choice_logit": [
+      "requirements-thinktank-econometrics.txt"
+    ],
+    "control_step_response": [
+      "requirements-global-control.txt"
+    ],
+    "customer_lifetime_value": [
+      "requirements-thinktank-econometrics.txt"
+    ],
+    "customer_segmentation": [
+      "requirements-thinktank-econometrics.txt"
+    ],
+    "cvar_portfolio": [
+      "requirements-thinktank-finance.txt"
+    ],
+    "drawdown_constrained_portfolio": [
+      "requirements-thinktank-finance.txt"
+    ],
+    "econml_linear_dml": [
+      "requirements-global-econml.txt"
+    ],
+    "epydemix_sir_simulation": [
+      "requirements-global-epydemix.txt"
+    ],
+    "factor_attribution": [
+      "requirements-thinktank-finance.txt"
+    ],
+    "financial_ratio_analysis": [
+      "requirements-thinktank-finance.txt"
+    ],
+    "granger_causality": [
+      "requirements-thinktank-econometrics.txt"
+    ],
+    "hierarchical_bayesian_mean": [
+      "requirements-thinktank-bayesian.txt"
+    ],
+    "influence_diagram": [
+      "requirements-thinktank-decision.txt"
+    ],
+    "input_output_shock": [
+      "requirements-thinktank-econometrics.txt"
+    ],
+    "inventory_policy": [
+      "requirements-thinktank-econometrics.txt"
+    ],
+    "lmfit_exponential_calibration": [
+      "requirements-global-lmfit.txt"
+    ],
+    "mapie_conformal_interval": [
+      "requirements-global-mapie.txt"
+    ],
+    "marketing_mix_regression": [
+      "requirements-thinktank-econometrics.txt"
+    ],
+    "markov_regime_model": [
+      "requirements-thinktank-econometrics.txt"
+    ],
+    "meta_analysis": [
+      "requirements-thinktank-econometrics.txt"
+    ],
+    "mixed_effects_model": [
+      "requirements-thinktank-econometrics.txt"
+    ],
+    "multiobjective_pareto": [
+      "requirements-thinktank-decision.txt"
+    ],
+    "openturns_reliability_probability": [
+      "requirements-global-openturns.txt"
+    ],
+    "panel_fixed_effects": [
+      "requirements-thinktank-econometrics.txt"
+    ],
+    "pm4py_directly_follows": [
+      "requirements-global-pm4py.txt"
+    ],
+    "policy_microsimulation": [
+      "requirements-thinktank-decision.txt"
+    ],
+    "power_analysis": [
+      "requirements-thinktank-econometrics.txt"
+    ],
+    "price_elasticity": [
+      "requirements-thinktank-econometrics.txt"
+    ],
+    "process_capability": [
+      "requirements-thinktank-econometrics.txt"
+    ],
+    "pydoe3_latin_hypercube": [
+      "requirements-global-pydoe3.txt"
+    ],
+    "pysd_stock_flow_scenario": [
+      "requirements-global-pysd.txt"
+    ],
+    "quantile_regression": [
+      "requirements-thinktank-econometrics.txt"
+    ],
+    "raster_change_detection": [
+      "requirements-thinktank-geospatial.txt"
+    ],
+    "raster_zonal_statistics": [
+      "requirements-thinktank-geospatial.txt"
+    ],
+    "robust_glm": [
+      "requirements-thinktank-econometrics.txt"
+    ],
+    "rsome_robust_allocation": [
+      "requirements-global-rsome.txt"
+    ],
+    "schema_unit_validation": [
+      "requirements-thinktank-data.txt"
+    ],
+    "skgstat_variogram": [
+      "requirements-global-skgstat.txt"
+    ],
+    "smt_rbf_surrogate": [
+      "requirements-global-smt.txt"
+    ],
+    "spatial_autocorrelation": [
+      "requirements-thinktank-geospatial.txt"
+    ],
+    "spreg_spatial_lag": [
+      "requirements-global-spreg.txt"
+    ],
+    "strategic_sandbox": [
+      "requirements-thinktank-decision.txt"
+    ],
+    "survey_weighted_estimation": [
+      "requirements-thinktank-econometrics.txt"
+    ],
+    "survival_analysis": [
+      "requirements-thinktank-econometrics.txt"
+    ],
+    "unobserved_components_forecast": [
+      "requirements-thinktank-econometrics.txt"
+    ]
   },
   "modes": {
-    "bounded_table_profile": {"maturity":"controlled-preview","network_policy":"deny","deterministic":true,"limits":{"max_rows":50000,"max_columns":100}},
-    "bounded_table_join": {"maturity":"controlled-preview","network_policy":"deny","deterministic":true,"limits":{"max_rows":50000,"max_columns":100}},
-    "schema_unit_validation": {"maturity":"controlled-preview","network_policy":"deny","deterministic":true,"limits":{"max_rows":50000,"max_columns":100}},
-    "robust_glm": {"maturity":"controlled-preview","network_policy":"deny","deterministic":true,"limits":{"max_rows":50000,"max_columns":100}},
-    "panel_fixed_effects": {"maturity":"controlled-preview","network_policy":"deny","deterministic":true,"limits":{"max_rows":50000,"max_entities":10000}},
-    "survey_weighted_estimation": {"maturity":"controlled-preview","network_policy":"deny","deterministic":true,"limits":{"max_rows":50000}},
-    "meta_analysis": {"maturity":"controlled-preview","network_policy":"deny","deterministic":true,"limits":{"max_studies":500}},
-    "survival_analysis": {"maturity":"controlled-preview","network_policy":"deny","deterministic":true,"limits":{"max_rows":50000,"max_columns":100}},
-    "change_point_detection": {"maturity":"controlled-preview","network_policy":"deny","deterministic":true,"limits":{"max_observations":50000}},
-    "mixed_effects_model": {"maturity":"controlled-preview","network_policy":"deny","deterministic":true,"limits":{"max_rows":50000,"max_groups":10000}},
-    "quantile_regression": {"maturity":"controlled-preview","network_policy":"deny","deterministic":true,"limits":{"max_rows":50000,"max_columns":100}},
-    "granger_causality": {"maturity":"controlled-preview","network_policy":"deny","deterministic":true,"limits":{"max_observations":50000,"max_lags":20}},
-    "power_analysis": {"maturity":"controlled-preview","network_policy":"deny","deterministic":true,"limits":{"max_groups":2}},
-    "unobserved_components_forecast": {"maturity":"controlled-preview","network_policy":"deny","deterministic":true,"limits":{"max_observations":50000,"max_horizon":365}},
-    "markov_regime_model": {"maturity":"controlled-preview","network_policy":"deny","deterministic":true,"limits":{"max_observations":50000,"max_regimes":4}},
-    "price_elasticity": {"maturity":"controlled-preview","network_policy":"deny","deterministic":true,"limits":{"max_observations":50000}},
-    "customer_lifetime_value": {"maturity":"controlled-preview","network_policy":"deny","deterministic":true,"limits":{"max_periods":600}},
-    "customer_segmentation": {"maturity":"controlled-preview","network_policy":"deny","deterministic":true,"limits":{"max_rows":50000,"max_columns":100,"max_clusters":20}},
-    "churn_probability": {"maturity":"controlled-preview","network_policy":"deny","deterministic":true,"limits":{"max_rows":50000,"max_columns":100}},
-    "marketing_mix_regression": {"maturity":"controlled-preview","network_policy":"deny","deterministic":true,"limits":{"max_rows":50000,"max_channels":100}},
-    "inventory_policy": {"maturity":"controlled-preview","network_policy":"deny","deterministic":true,"limits":{"max_items":1}},
-    "input_output_shock": {"maturity":"controlled-preview","network_policy":"deny","deterministic":true,"limits":{"max_sectors":100}},
-    "consumer_choice_logit": {"maturity":"controlled-preview","network_policy":"deny","deterministic":true,"limits":{"max_rows":50000,"max_columns":100}},
-    "process_capability": {"maturity":"controlled-preview","network_policy":"deny","deterministic":true,"limits":{"max_observations":50000}},
-    "cvar_portfolio": {"maturity":"controlled-preview","network_policy":"deny","deterministic":true,"limits":{"max_assets":50,"max_scenarios":2000}},
-    "drawdown_constrained_portfolio": {"maturity":"controlled-preview","network_policy":"deny","deterministic":true,"limits":{"max_assets":50,"max_observations":50000}},
-    "financial_ratio_analysis": {"maturity":"controlled-preview","network_policy":"deny","deterministic":true,"limits":{"max_fields":30}},
-    "factor_attribution": {"maturity":"controlled-preview","network_policy":"deny","deterministic":true,"limits":{"max_observations":50000,"max_factors":50}},
-    "multiobjective_pareto": {"maturity":"controlled-preview","network_policy":"deny","deterministic":true,"limits":{"max_variables":30,"max_objectives":10,"max_generations":500}},
-    "bounded_hyperparameter_search": {"maturity":"controlled-preview","network_policy":"deny","deterministic":true,"limits":{"max_parameters":20,"max_trials":1000}},
-    "algebraic_resource_optimization": {"maturity":"controlled-preview","network_policy":"deny","deterministic":true,"limits":{"max_variables":200,"max_constraints":1000}},
-    "strategic_sandbox": {"maturity":"controlled-preview","network_policy":"deny","deterministic":true,"limits":{"max_actors":50,"max_periods":1000}},
-    "influence_diagram": {"maturity":"controlled-preview","network_policy":"deny","deterministic":true,"limits":{"max_actions":50,"max_states":50}},
-    "policy_microsimulation": {"maturity":"controlled-preview","network_policy":"deny","deterministic":true,"limits":{"max_rows":50000,"max_brackets":50}},
-    "hierarchical_bayesian_mean": {"maturity":"controlled-preview","network_policy":"deny","deterministic":true,"limits":{"max_rows":5000,"max_groups":50,"max_draws":2000}},
-    "raster_zonal_statistics": {"maturity":"controlled-preview","network_policy":"deny","deterministic":true,"limits":{"max_cells":1000000,"max_zones":10000}},
-    "raster_change_detection": {"maturity":"controlled-preview","network_policy":"deny","deterministic":true,"limits":{"max_cells":1000000}},
-    "spatial_autocorrelation": {"maturity":"controlled-preview","network_policy":"deny","deterministic":true,"limits":{"max_observations":5000,"max_permutations":9999}}
+    "aequilibrae_shortest_path": {
+      "maturity": "controlled-preview",
+      "network_policy": "deny",
+      "deterministic": true,
+      "limits": {
+        "max_links": 5000,
+        "max_nodes": 10000
+      }
+    },
+    "algebraic_resource_optimization": {
+      "maturity": "controlled-preview",
+      "network_policy": "deny",
+      "deterministic": true,
+      "limits": {
+        "max_variables": 200,
+        "max_constraints": 1000
+      }
+    },
+    "arch_garch_forecast": {
+      "maturity": "controlled-preview",
+      "network_policy": "deny",
+      "deterministic": true,
+      "limits": {
+        "max_observations": 20000,
+        "max_horizon": 30
+      }
+    },
+    "bounded_hyperparameter_search": {
+      "maturity": "controlled-preview",
+      "network_policy": "deny",
+      "deterministic": true,
+      "limits": {
+        "max_parameters": 20,
+        "max_trials": 1000
+      }
+    },
+    "bounded_table_join": {
+      "maturity": "controlled-preview",
+      "network_policy": "deny",
+      "deterministic": true,
+      "limits": {
+        "max_rows": 50000,
+        "max_columns": 100
+      }
+    },
+    "bounded_table_profile": {
+      "maturity": "controlled-preview",
+      "network_policy": "deny",
+      "deterministic": true,
+      "limits": {
+        "max_rows": 50000,
+        "max_columns": 100
+      }
+    },
+    "change_point_detection": {
+      "maturity": "controlled-preview",
+      "network_policy": "deny",
+      "deterministic": true,
+      "limits": {
+        "max_observations": 50000
+      }
+    },
+    "churn_probability": {
+      "maturity": "controlled-preview",
+      "network_policy": "deny",
+      "deterministic": true,
+      "limits": {
+        "max_rows": 50000,
+        "max_columns": 100
+      }
+    },
+    "consumer_choice_logit": {
+      "maturity": "controlled-preview",
+      "network_policy": "deny",
+      "deterministic": true,
+      "limits": {
+        "max_rows": 50000,
+        "max_columns": 100
+      }
+    },
+    "control_step_response": {
+      "maturity": "controlled-preview",
+      "network_policy": "deny",
+      "deterministic": true,
+      "limits": {
+        "max_coefficients": 20,
+        "max_points": 1000
+      }
+    },
+    "customer_lifetime_value": {
+      "maturity": "controlled-preview",
+      "network_policy": "deny",
+      "deterministic": true,
+      "limits": {
+        "max_periods": 600
+      }
+    },
+    "customer_segmentation": {
+      "maturity": "controlled-preview",
+      "network_policy": "deny",
+      "deterministic": true,
+      "limits": {
+        "max_rows": 50000,
+        "max_columns": 100,
+        "max_clusters": 20
+      }
+    },
+    "cvar_portfolio": {
+      "maturity": "controlled-preview",
+      "network_policy": "deny",
+      "deterministic": true,
+      "limits": {
+        "max_assets": 50,
+        "max_scenarios": 2000
+      }
+    },
+    "drawdown_constrained_portfolio": {
+      "maturity": "controlled-preview",
+      "network_policy": "deny",
+      "deterministic": true,
+      "limits": {
+        "max_assets": 50,
+        "max_observations": 50000
+      }
+    },
+    "econml_linear_dml": {
+      "maturity": "controlled-preview",
+      "network_policy": "deny",
+      "deterministic": true,
+      "limits": {
+        "max_rows": 5000,
+        "max_features": 30,
+        "max_folds": 10
+      }
+    },
+    "epydemix_sir_simulation": {
+      "maturity": "controlled-preview",
+      "network_policy": "deny",
+      "deterministic": true,
+      "limits": {
+        "max_population": 10000000,
+        "max_days": 365,
+        "max_simulations": 200
+      }
+    },
+    "factor_attribution": {
+      "maturity": "controlled-preview",
+      "network_policy": "deny",
+      "deterministic": true,
+      "limits": {
+        "max_observations": 50000,
+        "max_factors": 50
+      }
+    },
+    "financial_ratio_analysis": {
+      "maturity": "controlled-preview",
+      "network_policy": "deny",
+      "deterministic": true,
+      "limits": {
+        "max_fields": 30
+      }
+    },
+    "granger_causality": {
+      "maturity": "controlled-preview",
+      "network_policy": "deny",
+      "deterministic": true,
+      "limits": {
+        "max_observations": 50000,
+        "max_lags": 20
+      }
+    },
+    "hierarchical_bayesian_mean": {
+      "maturity": "controlled-preview",
+      "network_policy": "deny",
+      "deterministic": true,
+      "limits": {
+        "max_rows": 5000,
+        "max_groups": 50,
+        "max_draws": 2000
+      }
+    },
+    "influence_diagram": {
+      "maturity": "controlled-preview",
+      "network_policy": "deny",
+      "deterministic": true,
+      "limits": {
+        "max_actions": 50,
+        "max_states": 50
+      }
+    },
+    "input_output_shock": {
+      "maturity": "controlled-preview",
+      "network_policy": "deny",
+      "deterministic": true,
+      "limits": {
+        "max_sectors": 100
+      }
+    },
+    "inventory_policy": {
+      "maturity": "controlled-preview",
+      "network_policy": "deny",
+      "deterministic": true,
+      "limits": {
+        "max_items": 1
+      }
+    },
+    "lmfit_exponential_calibration": {
+      "maturity": "controlled-preview",
+      "network_policy": "deny",
+      "deterministic": true,
+      "limits": {
+        "max_observations": 5000
+      }
+    },
+    "mapie_conformal_interval": {
+      "maturity": "controlled-preview",
+      "network_policy": "deny",
+      "deterministic": true,
+      "limits": {
+        "max_rows": 5000,
+        "max_features": 30,
+        "max_predictions": 1000
+      }
+    },
+    "marketing_mix_regression": {
+      "maturity": "controlled-preview",
+      "network_policy": "deny",
+      "deterministic": true,
+      "limits": {
+        "max_rows": 50000,
+        "max_channels": 100
+      }
+    },
+    "markov_regime_model": {
+      "maturity": "controlled-preview",
+      "network_policy": "deny",
+      "deterministic": true,
+      "limits": {
+        "max_observations": 50000,
+        "max_regimes": 4
+      }
+    },
+    "meta_analysis": {
+      "maturity": "controlled-preview",
+      "network_policy": "deny",
+      "deterministic": true,
+      "limits": {
+        "max_studies": 500
+      }
+    },
+    "mixed_effects_model": {
+      "maturity": "controlled-preview",
+      "network_policy": "deny",
+      "deterministic": true,
+      "limits": {
+        "max_rows": 50000,
+        "max_groups": 10000
+      }
+    },
+    "multiobjective_pareto": {
+      "maturity": "controlled-preview",
+      "network_policy": "deny",
+      "deterministic": true,
+      "limits": {
+        "max_variables": 30,
+        "max_objectives": 10,
+        "max_generations": 500
+      }
+    },
+    "openturns_reliability_probability": {
+      "maturity": "controlled-preview",
+      "network_policy": "deny",
+      "deterministic": true,
+      "limits": {
+        "max_dimensions": 1
+      }
+    },
+    "panel_fixed_effects": {
+      "maturity": "controlled-preview",
+      "network_policy": "deny",
+      "deterministic": true,
+      "limits": {
+        "max_rows": 50000,
+        "max_entities": 10000
+      }
+    },
+    "pm4py_directly_follows": {
+      "maturity": "controlled-preview",
+      "network_policy": "deny",
+      "deterministic": true,
+      "limits": {
+        "max_cases": 2000,
+        "max_events": 10000
+      }
+    },
+    "policy_microsimulation": {
+      "maturity": "controlled-preview",
+      "network_policy": "deny",
+      "deterministic": true,
+      "limits": {
+        "max_rows": 50000,
+        "max_brackets": 50
+      }
+    },
+    "power_analysis": {
+      "maturity": "controlled-preview",
+      "network_policy": "deny",
+      "deterministic": true,
+      "limits": {
+        "max_groups": 2
+      }
+    },
+    "price_elasticity": {
+      "maturity": "controlled-preview",
+      "network_policy": "deny",
+      "deterministic": true,
+      "limits": {
+        "max_observations": 50000
+      }
+    },
+    "process_capability": {
+      "maturity": "controlled-preview",
+      "network_policy": "deny",
+      "deterministic": true,
+      "limits": {
+        "max_observations": 50000
+      }
+    },
+    "pydoe3_latin_hypercube": {
+      "maturity": "controlled-preview",
+      "network_policy": "deny",
+      "deterministic": true,
+      "limits": {
+        "max_factors": 30,
+        "max_samples": 1000
+      }
+    },
+    "pysd_stock_flow_scenario": {
+      "maturity": "controlled-preview",
+      "network_policy": "deny",
+      "deterministic": true,
+      "limits": {
+        "max_steps": 1000,
+        "max_stocks": 1
+      }
+    },
+    "quantile_regression": {
+      "maturity": "controlled-preview",
+      "network_policy": "deny",
+      "deterministic": true,
+      "limits": {
+        "max_rows": 50000,
+        "max_columns": 100
+      }
+    },
+    "raster_change_detection": {
+      "maturity": "controlled-preview",
+      "network_policy": "deny",
+      "deterministic": true,
+      "limits": {
+        "max_cells": 1000000
+      }
+    },
+    "raster_zonal_statistics": {
+      "maturity": "controlled-preview",
+      "network_policy": "deny",
+      "deterministic": true,
+      "limits": {
+        "max_cells": 1000000,
+        "max_zones": 10000
+      }
+    },
+    "robust_glm": {
+      "maturity": "controlled-preview",
+      "network_policy": "deny",
+      "deterministic": true,
+      "limits": {
+        "max_rows": 50000,
+        "max_columns": 100
+      }
+    },
+    "rsome_robust_allocation": {
+      "maturity": "controlled-preview",
+      "network_policy": "deny",
+      "deterministic": true,
+      "limits": {
+        "max_assets": 50,
+        "max_scenarios": 500
+      }
+    },
+    "schema_unit_validation": {
+      "maturity": "controlled-preview",
+      "network_policy": "deny",
+      "deterministic": true,
+      "limits": {
+        "max_rows": 50000,
+        "max_columns": 100
+      }
+    },
+    "skgstat_variogram": {
+      "maturity": "controlled-preview",
+      "network_policy": "deny",
+      "deterministic": true,
+      "limits": {
+        "max_observations": 5000,
+        "max_dimensions": 3,
+        "max_lags": 50
+      }
+    },
+    "smt_rbf_surrogate": {
+      "maturity": "controlled-preview",
+      "network_policy": "deny",
+      "deterministic": true,
+      "limits": {
+        "max_training_rows": 1000,
+        "max_features": 20,
+        "max_predictions": 1000
+      }
+    },
+    "spatial_autocorrelation": {
+      "maturity": "controlled-preview",
+      "network_policy": "deny",
+      "deterministic": true,
+      "limits": {
+        "max_observations": 5000,
+        "max_permutations": 9999
+      }
+    },
+    "spreg_spatial_lag": {
+      "maturity": "controlled-preview",
+      "network_policy": "deny",
+      "deterministic": true,
+      "limits": {
+        "max_rows": 2000,
+        "max_features": 20,
+        "max_neighbors": 100
+      }
+    },
+    "strategic_sandbox": {
+      "maturity": "controlled-preview",
+      "network_policy": "deny",
+      "deterministic": true,
+      "limits": {
+        "max_actors": 50,
+        "max_periods": 1000
+      }
+    },
+    "survey_weighted_estimation": {
+      "maturity": "controlled-preview",
+      "network_policy": "deny",
+      "deterministic": true,
+      "limits": {
+        "max_rows": 50000
+      }
+    },
+    "survival_analysis": {
+      "maturity": "controlled-preview",
+      "network_policy": "deny",
+      "deterministic": true,
+      "limits": {
+        "max_rows": 50000,
+        "max_columns": 100
+      }
+    },
+    "unobserved_components_forecast": {
+      "maturity": "controlled-preview",
+      "network_policy": "deny",
+      "deterministic": true,
+      "limits": {
+        "max_observations": 50000,
+        "max_horizon": 365
+      }
+    }
   }
 }

@@ -259,20 +259,55 @@
         "activity contribution analysis"
       ],
       "network_policy": "deny"
-    }
-  ],
-  "conditional_backends": [
+    },
     {
-      "id": "pysd",
-      "status": "not-installed",
-      "activation_trigger": "A validated Vensim or XMILE model must be imported",
-      "required_controls": [
-        "per-model compatibility test",
-        "equation parity test",
-        "fallback to native stock-flow engine"
+      "id": "thinktank-global-discovery",
+      "status": "installed",
+      "requirement_packs": [
+        "requirements-global-aequilibrae.txt",
+        "requirements-global-arch.txt",
+        "requirements-global-control.txt",
+        "requirements-global-econml.txt",
+        "requirements-global-epydemix.txt",
+        "requirements-global-lmfit.txt",
+        "requirements-global-mapie.txt",
+        "requirements-global-openturns.txt",
+        "requirements-global-pm4py.txt",
+        "requirements-global-pydoe3.txt",
+        "requirements-global-pysd.txt",
+        "requirements-global-rsome.txt",
+        "requirements-global-skgstat.txt",
+        "requirements-global-smt.txt",
+        "requirements-global-spreg.txt"
+      ],
+      "operations": [
+        "finance_decision_analysis"
+      ],
+      "capabilities": [
+        "reliability and uncertainty",
+        "control response",
+        "process mining",
+        "surrogate modeling",
+        "causal machine learning",
+        "spatial econometrics",
+        "volatility forecasting",
+        "conformal intervals",
+        "experimental design",
+        "nonlinear calibration",
+        "variograms",
+        "robust optimization",
+        "transport paths",
+        "epidemic simulation",
+        "system dynamics"
+      ],
+      "network_policy": "deny",
+      "source_discovery": [
+        "Exa",
+        "Tavily"
       ]
     }
   ],
+  "conditional_backends": [],
   "external_adapters": [
     {
       "id": "pestpp_external_adapter",

@@ -11,8 +11,8 @@ from capability_manager import load_registry, validated_groups
 
 HERE = Path(__file__).resolve().parent
 PIN_RE = re.compile(r"^[A-Za-z0-9_.-]+==[^=\s]+$")
-EXPECTED_EXTENSION_MODES = 38
-EXPECTED_EFFECTIVE_MODES = 118
+EXPECTED_EXTENSION_MODES = 53
+EXPECTED_EFFECTIVE_MODES = 133
 
 
 def _load(name: str) -> dict[str, Any]:
@@ -77,6 +77,7 @@ def validate() -> dict[str, Any]:
         "thinktank-decision-optimization",
         "thinktank-hierarchical-bayesian",
         "thinktank-raster-spatial",
+        "thinktank-global-discovery",
     }
     if not required_packs.issubset(pack_ids):
         raise RuntimeError("method registry omits think-tank packs")

@@ -193,3 +193,7 @@ Recovery, rebuild and external-configuration backup instructions are maintained 
 - 新工具必须是仓库内固定模块、固定操作、固定依赖文件，不接受票据提供模块名、包名、Python代码或运行时安装命令。
 - `finance_decision_analysis` 已覆盖风险收益、组合优化、投资测算、商业单位经济、资本预算和固定策略回测。
 - 固定策略回测使用隔离的 `vectorbt==1.1.0`，只开放买入持有与均线交叉，不联网、不画图、不执行任意策略代码。
+
+## Global Think-Tank Toolkit
+
+Exa and Tavily global discovery produced 16 candidates. Fifteen passed isolated Python 3.12 compatibility and numerical smoke tests; CausalPy was excluded because it requires NumPy below the production baseline. The accepted modes remain fixed, bounded, repository-pinned, network-denied and controlled-preview.
