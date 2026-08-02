@@ -302,7 +302,7 @@
       "mode": "*",
       "version": "1.0.0",
       "maturity": "controlled-preview",
-      "engineering_maturity": "production",
+      "engineering_maturity": "controlled-preview",
       "evidence_maturity": "experimental",
       "risk_tier": "high",
       "calibration_supported": false,
