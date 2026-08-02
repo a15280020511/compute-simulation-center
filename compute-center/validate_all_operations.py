@@ -55,6 +55,7 @@ def fixtures() -> dict[str, dict[str, Any]]:
         "causal_policy_evaluation": {"mode": "backdoor_adjustment", "treatment": treatment, "outcome": outcome, "confounders": {"baseline_risk": confounder}},
         "bayesian_network_inference": {"mode": "fixed_network_inference", "nodes": ["A", "B"], "edges": [["A", "B"]], "cpds": [{"variable": "A", "variable_card": 2, "values": [[0.6], [0.4]]}, {"variable": "B", "variable_card": 2, "values": [[0.9, 0.2], [0.1, 0.8]], "evidence": ["A"], "evidence_card": [2]}], "query_variables": ["B"], "evidence": {"A": 1}},
         "sector_model_analysis": {"mode": "nash_bimatrix_equilibria", "row_payoffs": [[3, 0], [5, 1]], "column_payoffs": [[3, 5], [0, 1]]},
+        "strategic_policy_analysis": {"mode": "issue_tree_coverage", "root": "profit decline", "branches": [{"name": "revenue", "weight": 0.6, "evidence_count": 2}, {"name": "cost", "weight": 0.4, "evidence_count": 1}]},
     }
 
 

@@ -351,6 +351,19 @@
         "external_validation",
         "feedback_monitoring"
       ]
+    },
+    "strategic_policy_analysis": {
+      "problem_class": "strategic-policy-and-intelligence-analysis",
+      "system_level": "decision",
+      "feedback_structure": "adversarial-evidence-and-policy-response",
+      "required_gates": [
+        "input_quality",
+        "assumption_register",
+        "constraint_feasibility",
+        "uncertainty",
+        "stress_test",
+        "external_validation"
+      ]
     }
   }
 }

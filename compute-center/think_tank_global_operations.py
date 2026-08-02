@@ -422,14 +422,19 @@ def skgstat_variogram(inputs: Mapping[str, Any]) -> dict[str, Any]:
     parameters = np.asarray(variogram.parameters, dtype=float)
     experimental = np.asarray(variogram.experimental, dtype=float)
     bins = np.asarray(variogram.bins, dtype=float)
-    if not np.all(np.isfinite(parameters)):
-        raise ComputeError("variogram fit returned non-finite parameters")
+    parameter_finite = bool(np.all(np.isfinite(parameters)))
+    valid_lags = np.isfinite(experimental) & np.isfinite(bins)
+    dropped_lags = int(np.size(valid_lags) - np.count_nonzero(valid_lags))
+    experimental = experimental[valid_lags]
+    bins = bins[valid_lags]
     return {
         "mode": "skgstat_variogram",
         "observations": int(values.size),
         "dimensions": int(coordinates.shape[1]),
         "model": model_name,
-        "parameters": parameters.tolist(),
+        "parameters": parameters.tolist() if parameter_finite else [],
+        "fit_status": "fitted" if parameter_finite else "non-identifiable-from-input",
+        "dropped_non_finite_lags": dropped_lags,
         "lag_bins": bins.tolist(),
         "experimental_semivariance": experimental.tolist(),
         "engine": {"scikit-gstat": package("scikit-gstat")},
@@ -563,7 +568,20 @@ def epydemix_sir_simulation(inputs: Mapping[str, Any]) -> dict[str, Any]:
     infected_paths = []
     recovered_final = []
     for trajectory in results.trajectories:
-        array = np.asarray(trajectory.compartments, dtype=float)
+        compartments = trajectory.compartments
+        if isinstance(compartments, Mapping):
+            if "I" not in compartments or "R" not in compartments:
+                raise ComputeError("Epydemix returned incomplete compartment data")
+            infected_array = np.asarray(compartments["I"], dtype=float)
+            recovered_array = np.asarray(compartments["R"], dtype=float)
+            if infected_array.ndim > 1:
+                infected_array = infected_array.sum(axis=tuple(range(1, infected_array.ndim)))
+            if recovered_array.ndim > 1:
+                recovered_array = recovered_array.sum(axis=tuple(range(1, recovered_array.ndim)))
+            infected_paths.append(infected_array.reshape(-1))
+            recovered_final.append(float(recovered_array.reshape(-1)[-1]))
+            continue
+        array = np.asarray(compartments, dtype=float)
         index = dict(trajectory.compartment_idx)
         if array.ndim == 3:
             array = array.sum(axis=1)

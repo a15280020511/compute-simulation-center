@@ -1,10 +1,10 @@
 {
   "schema_version": "compute-capabilities-v9",
   "catalog_status": "production",
-  "operation_count": 27,
-  "managed_mode_count": 80,
+  "operation_count": 28,
+  "managed_mode_count": 110,
   "extension_mode_count": 53,
-  "effective_managed_mode_count": 133,
+  "effective_managed_mode_count": 163,
   "capability_manager_version": 2,
   "selection_owner": "gpts-usage-center",
   "maintenance_owner": "ordinary-web-gpt-with-github-plugin",
@@ -74,7 +74,30 @@
     "RSOME": "1.3.1; scenario-robust optimization",
     "AequilibraE": "1.6.2; directed transport-network path analysis",
     "Epydemix": "1.3.1; bounded compartmental epidemic simulation",
-    "PySD": "3.14.3; fixed-template system-dynamics execution"
+    "PySD": "3.14.3; fixed-template system-dynamics execution",
+    "OpenSpiel": "2.0.1",
+    "PyGambit": "16.7.0",
+    "NegMAS": "0.15.7",
+    "SCML": "0.8.3",
+    "Axelrod": "4.14.0",
+    "PyBLP": "1.2.0",
+    "PyMC-Marketing": "0.19.4",
+    "Biogeme": "3.3.3",
+    "pyAgrum": "3.0.0",
+    "Scikit-Criteria": "0.9",
+    "clingo": "5.8.0",
+    "Z3 Solver": "5.0.0.0",
+    "Econ-ARK": "0.17.2",
+    "Tax-Calculator": "6.7.3",
+    "PolicyEngine Core": "3.30.3",
+    "Splink": "4.0.16",
+    "RapidFuzz": "3.14.5",
+    "datasketch": "2.0.0",
+    "RDFLib": "7.6.0",
+    "PySHACL": "0.40.1",
+    "Owlready2": "0.51",
+    "python-igraph": "1.0.0",
+    "ProbLog": "2.2.10"
   },
   "toolkit_assessment": {
     "current_scope_sufficient_for_existing_operations": true,
@@ -100,7 +123,8 @@
       "reliability probability, control response, surrogate modeling and experimental design",
       "process mining, spatial lag econometrics and heterogeneous causal-effect estimation",
       "GARCH volatility, conformal intervals and scenario-robust allocation",
-      "transport shortest paths, epidemic compartments and fixed-template system dynamics"
+      "transport shortest paths, epidemic compartments and fixed-template system dynamics",
+      "strategic games, negotiation, policy counterfactuals, entity resolution, evidence graphs and structured intelligence analysis"
     ],
     "not_intended_for": [
       "individual psychological diagnosis or deterministic individual prediction",
@@ -595,6 +619,59 @@
         "数值收敛或可行性状态",
         "模型假设和适用边界",
         "独立验证或冻结基准后方可用于正式决策"
+      ]
+    },
+    {
+      "id": "strategic_policy_analysis",
+      "description": "断网执行博弈、谈判、市场竞争、营销配置、金融政策反事实、实体消歧、证据图谱、规则推理和公开结构化情报分析。",
+      "modes": [
+        "open_spiel_policy_evaluation",
+        "pygambit_pure_equilibria",
+        "axelrod_strategy_tournament",
+        "negmas_bilateral_bargaining",
+        "scml_supply_chain_competition",
+        "pyblp_price_counterfactual",
+        "pymc_marketing_budget_allocation",
+        "biogeme_choice_share",
+        "pyagrum_bayesian_evidence",
+        "scikit_criteria_method_agreement",
+        "clingo_rule_action_set",
+        "z3_constraint_counterexample",
+        "hark_household_policy_response",
+        "taxcalc_policy_counterfactual",
+        "policyengine_transfer_counterfactual",
+        "splink_entity_resolution",
+        "rapidfuzz_record_collision",
+        "datasketch_set_similarity",
+        "rdflib_claim_evidence_graph",
+        "pyshacl_graph_validation",
+        "owlready2_ontology_summary",
+        "igraph_link_analysis",
+        "problog_evidence_probability",
+        "issue_tree_coverage",
+        "value_driver_tree",
+        "source_reliability_matrix",
+        "claim_evidence_contradiction",
+        "event_timeline_collision",
+        "red_team_challenge_matrix",
+        "net_assessment_balance"
+      ],
+      "dependency_policy": "每个包支持模式只安装仓库固定的精确版本依赖；纯方法模式仅使用核心数值栈。",
+      "limits": {
+        "maximum_runtime_seconds": 120,
+        "maximum_memory_mb": 4096,
+        "runtime_network_policy": "deny",
+        "arbitrary_code_allowed": false,
+        "ticket_supplied_agents_allowed": false,
+        "remote_graph_or_ontology_loading_allowed": false
+      },
+      "maturity": "controlled-preview",
+      "required_evidence": [
+        "输入字段、权重、规则、时间和实体范围",
+        "依赖引擎版本与模式回执",
+        "假设、适用边界和反例",
+        "涉及个人数据时必须具备合法来源、用途限制和最小化证明",
+        "高风险决策必须独立验证并由人类批准"
       ]
     }
   ]
