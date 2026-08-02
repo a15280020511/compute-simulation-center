@@ -48,8 +48,8 @@ class StrategicIntelligenceTests(unittest.TestCase):
         self.assertTrue(set(THINK_TANK_MODES) <= set(ALL_SUPPORTED_MODES))
         self.assertTrue(set(SUPPORTED_MODES).isdisjoint(set(THINK_TANK_MODES)))
         self.assertEqual(len(SUPPORTED_MODES), 22)
-        self.assertEqual(len(THINK_TANK_MODES), 38)
-        self.assertEqual(len(ALL_SUPPORTED_MODES), 60)
+        self.assertEqual(len(THINK_TANK_MODES), 53)
+        self.assertEqual(len(ALL_SUPPORTED_MODES), 75)
 
     def test_weighted_mcda_ranks_alternatives(self):
         result = weighted_mcda({
