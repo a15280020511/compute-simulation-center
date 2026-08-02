@@ -1,0 +1,6 @@
+pandas==2.3.3
+scikit-learn==1.9.0
+fairlearn==0.14.0
+shap==0.52.0
+cleanlab==2.9.0
+copulas==0.14.1
