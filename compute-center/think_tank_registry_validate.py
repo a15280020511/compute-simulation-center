@@ -12,7 +12,7 @@ from capability_manager import load_registry, validated_groups
 HERE = Path(__file__).resolve().parent
 PIN_RE = re.compile(r"^[A-Za-z0-9_.-]+==[^=\s]+$")
 EXPECTED_EXTENSION_MODES = 53
-EXPECTED_EFFECTIVE_MODES = 133
+EXPECTED_EFFECTIVE_MODES = 163
 
 
 def _load(name: str) -> dict[str, Any]:
