@@ -1,0 +1,8 @@
+pandas==2.3.3
+statsmodels==0.14.6
+linearmodels==7.0
+lifelines==0.30.3
+ruptures==1.1.10
+scikit-learn==1.9.0
+samplics==0.6.0
+pymrio==0.6.3

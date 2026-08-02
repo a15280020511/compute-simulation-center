@@ -9,6 +9,7 @@ or imports ticket-supplied modules.
 from __future__ import annotations
 
 import argparse
+import copy
 import importlib
 import json
 import re
@@ -18,11 +19,49 @@ from typing import Any
 
 HERE = Path(__file__).resolve().parent
 REGISTRY_PATH = HERE / "tool-registry.json"
+THINK_TANK_REGISTRY_PATH = HERE / "think-tank-mode-registry.json"
 MODULE_RE = re.compile(r"^[a-z][a-z0-9_]{2,63}$")
 REQUIREMENT_RE = re.compile(r"^requirements-[a-z0-9-]+\.txt$")
 MODE_RE = re.compile(r"^[a-z][a-z0-9_]{2,63}$")
 ALLOWED_NETWORK_POLICIES = {"deny"}
 ALLOWED_MATURITY = {"production", "controlled-preview"}
+
+
+def _merge_think_tank_registry(value: dict[str, Any]) -> dict[str, Any]:
+    if not THINK_TANK_REGISTRY_PATH.is_file():
+        return value
+    extension = json.loads(THINK_TANK_REGISTRY_PATH.read_text(encoding="utf-8"))
+    if not isinstance(extension, Mapping) or extension.get("schema_version") != "think-tank-mode-registry-v1":
+        raise RuntimeError("invalid think-tank mode registry schema")
+    if extension.get("network_policy") != "deny" or extension.get("arbitrary_code_allowed") is not False:
+        raise RuntimeError("think-tank mode registry violates offline or arbitrary-code policy")
+    target_id = str(extension.get("target_group") or "")
+    groups = value.get("groups")
+    if not isinstance(groups, list):
+        raise RuntimeError("compute tool registry has no groups")
+    matches = [group for group in groups if isinstance(group, Mapping) and group.get("id") == target_id]
+    if len(matches) != 1:
+        raise RuntimeError("think-tank mode registry target group is missing or ambiguous")
+    target = matches[0]
+    modes = extension.get("modes")
+    requirements = extension.get("mode_requirements")
+    if not isinstance(modes, Mapping) or not modes or not isinstance(requirements, Mapping):
+        raise RuntimeError("think-tank mode registry is incomplete")
+    if set(modes) != set(requirements):
+        raise RuntimeError("think-tank mode and requirement maps must have identical keys")
+    existing_modes = target.get("modes") or {}
+    existing_requirements = target.get("mode_requirements") or {}
+    if not isinstance(existing_modes, Mapping) or not isinstance(existing_requirements, Mapping):
+        raise RuntimeError("target group has invalid mode maps")
+    duplicates = sorted(set(existing_modes) & set(modes))
+    if duplicates:
+        raise RuntimeError(f"think-tank modes conflict with stable registry: {duplicates}")
+    target["modes"] = {**dict(existing_modes), **copy.deepcopy(dict(modes))}
+    target["mode_requirements"] = {
+        **dict(existing_requirements),
+        **copy.deepcopy(dict(requirements)),
+    }
+    return value
 
 
 def load_registry() -> dict[str, Any]:
@@ -35,7 +74,7 @@ def load_registry() -> dict[str, Any]:
         raise RuntimeError("arbitrary compute extensions must remain disabled")
     if not isinstance(value.get("groups"), list) or not value["groups"]:
         raise RuntimeError("compute tool registry has no groups")
-    return value
+    return _merge_think_tank_registry(value)
 
 
 def _requirement_files(rows: Any, group_id: str) -> list[str]:
@@ -68,7 +107,7 @@ def _validated_modes(group: Mapping[str, Any], group_id: str) -> dict[str, dict[
         limits = metadata.get("limits")
         if not isinstance(limits, Mapping) or not limits:
             raise RuntimeError(f"mode limits are required in group {group_id}: {mode}")
-        if any(not isinstance(value, int) or value <= 0 for value in limits.values()):
+        if any(not isinstance(item, int) or item <= 0 for item in limits.values()):
             raise RuntimeError(f"mode limits must be positive integers in group {group_id}: {mode}")
         result[str(mode)] = metadata
     return result

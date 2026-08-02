@@ -7,7 +7,11 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
-from decision_intelligence_gateway import SUPPORTED_MODES, finance_decision_analysis  # noqa: E402
+from decision_intelligence_gateway import (  # noqa: E402
+    ALL_SUPPORTED_MODES,
+    SUPPORTED_MODES,
+    finance_decision_analysis,
+)
 from operations_research_modes import assignment_optimization, mixed_integer_optimization, vehicle_routing  # noqa: E402
 from professional_forecasting_operations import (  # noqa: E402
     exponential_smoothing_forecast,
@@ -28,6 +32,7 @@ from strategic_intelligence_operations import (  # noqa: E402
     value_of_information,
     weighted_mcda,
 )
+from think_tank_operations import SUPPORTED_MODES as THINK_TANK_MODES  # noqa: E402
 
 
 class StrategicIntelligenceTests(unittest.TestCase):
@@ -40,7 +45,11 @@ class StrategicIntelligenceTests(unittest.TestCase):
             "value_of_information", "competing_hypotheses", "indicators_and_warnings",
         }
         self.assertTrue(expected <= set(SUPPORTED_MODES))
+        self.assertTrue(set(THINK_TANK_MODES) <= set(ALL_SUPPORTED_MODES))
+        self.assertTrue(set(SUPPORTED_MODES).isdisjoint(set(THINK_TANK_MODES)))
         self.assertEqual(len(SUPPORTED_MODES), 22)
+        self.assertEqual(len(THINK_TANK_MODES), 38)
+        self.assertEqual(len(ALL_SUPPORTED_MODES), 60)
 
     def test_weighted_mcda_ranks_alternatives(self):
         result = weighted_mcda({

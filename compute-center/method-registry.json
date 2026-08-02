@@ -19,12 +19,16 @@
     {"id":"mesa-social-behavior","status":"installed","operations":["agent_based_simulation"],"capabilities":["heterogeneous agents","group behavior","network interaction"],"network_policy":"deny"},
     {"id":"ndlib-diffusion","status":"installed","version":"5.1.1","requirements":"requirements-diffusion.txt","operations":["information_diffusion_analysis"],"network_policy":"deny"},
     {"id":"dowhy-causal","status":"installed","version":"0.14","requirements":"requirements-causal.txt","operations":["causal_policy_evaluation"],"network_policy":"deny"},
-    {"id":"pgmpy-bayesian-network","status":"installed","version":"1.1.2","requirements":"requirements-bayesian-network.txt","operations":["bayesian_network_inference"],"network_policy":"deny"}
+    {"id":"pgmpy-bayesian-network","status":"installed","version":"1.1.2","requirements":"requirements-bayesian-network.txt","operations":["bayesian_network_inference"],"network_policy":"deny"},
+    {"id":"thinktank-data-engineering","status":"installed","requirements":"requirements-thinktank-data.txt","operations":["finance_decision_analysis"],"capabilities":["columnar profiling","bounded joins","schema validation","unit conversion"],"network_policy":"deny"},
+    {"id":"thinktank-econometrics-business","status":"installed","requirements":"requirements-thinktank-econometrics.txt","operations":["finance_decision_analysis"],"capabilities":["advanced statsmodels","panel econometrics","survey weighting","meta-analysis","survival","consumer and operating analytics"],"network_policy":"deny"},
+    {"id":"thinktank-finance-risk","status":"installed","requirements":"requirements-thinktank-finance.txt","operations":["finance_decision_analysis"],"capabilities":["CVaR","drawdown constraints","financial ratios","factor attribution"],"network_policy":"deny"},
+    {"id":"thinktank-decision-optimization","status":"installed","requirements":"requirements-thinktank-decision.txt","operations":["finance_decision_analysis"],"capabilities":["multi-objective optimization","bounded search","algebraic optimization","strategic sandbox","influence diagrams","policy microsimulation"],"network_policy":"deny"},
+    {"id":"thinktank-hierarchical-bayesian","status":"installed","requirements":"requirements-thinktank-bayesian.txt","operations":["finance_decision_analysis"],"capabilities":["hierarchical Bayesian estimation","MCMC diagnostics","partial pooling"],"network_policy":"deny"},
+    {"id":"thinktank-raster-spatial","status":"installed","requirements":"requirements-thinktank-geospatial.txt","operations":["finance_decision_analysis"],"capabilities":["raster statistics","raster change detection","spatial autocorrelation"],"network_policy":"deny"}
   ],
   "conditional_backends": [
-    {"id":"optuna","status":"not-installed","activation_trigger":"SciPy global search is insufficient for mixed categorical, conditional or expensive search spaces","required_controls":["fixed sampler","bounded trials","fixed seed","no user objective code"]},
-    {"id":"pysd","status":"not-installed","activation_trigger":"A validated Vensim or XMILE model must be imported","required_controls":["per-model compatibility test","equation parity test","fallback to native stock-flow engine"]},
-    {"id":"pymc-arviz","status":"not-installed","activation_trigger":"A formal hierarchical, latent-variable, time-varying or measurement-error Bayesian model is required","required_controls":["R-hat","effective sample size","divergence checks","posterior predictive checks"]}
+    {"id":"pysd","status":"not-installed","activation_trigger":"A validated Vensim or XMILE model must be imported","required_controls":["per-model compatibility test","equation parity test","fallback to native stock-flow engine"]}
   ],
   "external_adapters": [
     {"id":"pestpp_external_adapter","status":"not-installed","activation_trigger":"High-dimensional ill-conditioned external simulator calibration","runtime_policy":"file-in-file-out only; no shell from ticket"},
