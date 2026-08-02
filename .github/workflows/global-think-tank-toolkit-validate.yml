@@ -28,7 +28,7 @@ permissions:
   contents: read
 
 concurrency:
-  group: global-think-tank-toolkit-${{ github.ref }}-${{ matrix.mode }}
+  group: global-think-tank-toolkit-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
@@ -134,3 +134,177 @@ jobs:
           path: global-toolkit-artifacts/
           if-no-files-found: error
           retention-days: 30
+
+  candidate-compatibility:
+    name: candidate-${{ matrix.id }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - {id: open_spiel, package: open-spiel, module: pyspiel}
+          - {id: pygambit, package: pygambit, module: pygambit}
+          - {id: negmas, package: negmas, module: negmas}
+          - {id: scml, package: scml, module: scml}
+          - {id: axelrod, package: axelrod, module: axelrod}
+          - {id: pyblp, package: pyblp, module: pyblp}
+          - {id: pymc_marketing, package: pymc-marketing, module: pymc_marketing}
+          - {id: biogeme, package: biogeme, module: biogeme}
+          - {id: pyagrum, package: pyagrum, module: pyagrum}
+          - {id: scikit_criteria, package: scikit-criteria, module: skcriteria}
+          - {id: clingo, package: clingo, module: clingo}
+          - {id: z3_solver, package: z3-solver, module: z3}
+          - {id: sequence_jacobian, package: sequence-jacobian, module: sequence_jacobian}
+          - {id: econ_ark, package: econ-ark, module: HARK}
+          - {id: ogcore, package: ogcore, module: ogcore}
+          - {id: taxcalc, package: taxcalc, module: taxcalc}
+          - {id: policyengine_core, package: policyengine-core, module: policyengine_core}
+          - {id: dolo, package: dolo, module: dolo}
+          - {id: splink, package: splink, module: splink}
+          - {id: rapidfuzz, package: rapidfuzz, module: rapidfuzz}
+          - {id: datasketch, package: datasketch, module: datasketch}
+          - {id: rdflib, package: rdflib, module: rdflib}
+          - {id: pyshacl, package: pyshacl, module: pyshacl}
+          - {id: owlready2, package: owlready2, module: owlready2}
+          - {id: python_igraph, package: python-igraph, module: igraph}
+          - {id: pyreason, package: pyreason, module: pyreason}
+          - {id: problog, package: problog, module: problog}
+          - {id: pycib, package: pycib, module: pycib}
+          - {id: causalml, package: causalml, module: causalml}
+          - {id: pettingzoo, package: pettingzoo, module: pettingzoo}
+          - {id: rhodium, package: rhodium, module: rhodium}
+    steps:
+      - name: Checkout pinned source
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          persist-credentials: false
+
+      - name: Set up Python 3.12
+        uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065
+        with:
+          python-version: "3.12"
+
+      - name: Install baseline and one candidate
+        env:
+          PACKAGE: ${{ matrix.package }}
+        run: |
+          set -euo pipefail
+          python -m pip install --disable-pip-version-check --no-input -r compute-center/requirements.txt
+          python -m pip install --disable-pip-version-check --no-input --upgrade-strategy only-if-needed "$PACKAGE"
+          python -m pip check
+
+      - name: Verify baseline and fixed smoke fixture
+        env:
+          CANDIDATE_ID: ${{ matrix.id }}
+          PACKAGE: ${{ matrix.package }}
+          MODULE: ${{ matrix.module }}
+        run: |
+          set -euo pipefail
+          mkdir -p candidate-artifacts
+          python - <<'PY'
+          import importlib
+          import importlib.metadata
+          import json
+          import os
+          from pathlib import Path
+          import numpy
+          import scipy
+
+          assert numpy.__version__ == "2.4.6", numpy.__version__
+          assert scipy.__version__ == "1.18.0", scipy.__version__
+          candidate = os.environ["CANDIDATE_ID"]
+          package = os.environ["PACKAGE"]
+          module = importlib.import_module(os.environ["MODULE"])
+          checks = {"import": True}
+
+          if candidate == "open_spiel":
+              assert module.load_game("matrix_rps").num_players() == 2
+              checks["matrix_game"] = True
+          elif candidate == "axelrod":
+              assert len(module.Match((module.TitForTat(), module.Cooperator()), turns=5).play()) == 5
+              checks["repeated_game"] = True
+          elif candidate == "pyagrum":
+              network = module.BayesNet("smoke")
+              network.add(module.LabelizedVariable("x", "x", 2))
+              assert network.size() == 1
+              checks["bayesian_network"] = True
+          elif candidate == "clingo":
+              ctl = module.Control(["0"])
+              ctl.add("base", [], "a. b :- a. #show b/0.")
+              ctl.ground([("base", [])])
+              models = []
+              ctl.solve(on_model=lambda model: models.append(str(model)))
+              assert models and "b" in models[0]
+              checks["answer_set"] = True
+          elif candidate == "z3_solver":
+              x = module.Int("x")
+              solver = module.Solver()
+              solver.add(x > 2, x < 4)
+              assert solver.check() == module.sat
+              checks["constraint_solver"] = True
+          elif candidate == "rapidfuzz":
+              from rapidfuzz import fuzz
+              assert fuzz.ratio("alpha", "alpha") == 100
+              checks["fuzzy_match"] = True
+          elif candidate == "datasketch":
+              from datasketch import MinHash
+              left = MinHash(num_perm=32)
+              right = MinHash(num_perm=32)
+              for token in (b"a", b"b"):
+                  left.update(token)
+                  right.update(token)
+              assert left.jaccard(right) == 1.0
+              checks["minhash"] = True
+          elif candidate == "rdflib":
+              graph = module.Graph()
+              graph.add((module.URIRef("urn:s"), module.URIRef("urn:p"), module.Literal("v")))
+              assert len(graph) == 1
+              checks["rdf_graph"] = True
+          elif candidate == "pyshacl":
+              from rdflib import Graph
+              data = Graph().parse(data="@prefix ex: <urn:> . ex:a ex:p ex:b .", format="turtle")
+              conforms, _, _ = module.validate(data_graph=data)
+              assert isinstance(conforms, bool)
+              checks["shacl_validation"] = True
+          elif candidate == "owlready2":
+              assert module.get_ontology("urn:smoke") is not None
+              checks["ontology"] = True
+          elif candidate == "python_igraph":
+              graph = module.Graph.Ring(5)
+              assert graph.vcount() == 5 and graph.ecount() == 5
+              checks["graph_algorithms"] = True
+          elif candidate == "problog":
+              from problog import get_evaluatable
+              from problog.program import PrologString
+              assert get_evaluatable().create_from(PrologString("0.5::a. query(a). ")).evaluate()
+              checks["probabilistic_logic"] = True
+          elif candidate == "pettingzoo":
+              assert hasattr(module, "AECEnv") or hasattr(module, "ParallelEnv")
+              checks["multiagent_api"] = True
+
+          result = {
+              "status": "PASS",
+              "candidate": candidate,
+              "package": package,
+              "version": importlib.metadata.version(package),
+              "numpy": numpy.__version__,
+              "scipy": scipy.__version__,
+              "checks": checks,
+              "network_used_by_fixture": False,
+              "arbitrary_user_code": False,
+          }
+          Path(f"candidate-artifacts/{candidate}.json").write_text(
+              json.dumps(result, ensure_ascii=False, indent=2), encoding="utf-8"
+          )
+          PY
+          python -m pip freeze --all > "candidate-artifacts/${CANDIDATE_ID}-freeze.txt"
+
+      - name: Upload compatibility evidence
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: strategic-policy-candidate-${{ matrix.id }}-${{ github.run_id }}
+          path: candidate-artifacts/
+          if-no-files-found: warn
+          retention-days: 14
