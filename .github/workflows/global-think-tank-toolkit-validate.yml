@@ -105,9 +105,11 @@ jobs:
           MODE: ${{ matrix.mode }}
         run: |
           python - <<'PY'
+          import ast
           import json
           import os
           from pathlib import Path
+
           mode = os.environ['MODE']
           data = json.loads((Path('strategic-policy-artifacts') / f'{mode}.json').read_text(encoding='utf-8'))
           assert data['status'] == 'PASS'
@@ -115,8 +117,15 @@ jobs:
           assert data['network_used'] is False
           assert data['arbitrary_code_used'] is False
           source = Path('compute-center/strategic_policy_intelligence_operations.py').read_text(encoding='utf-8')
-          for forbidden in ('import requests', 'import socket', 'urllib.request', 'subprocess.', 'eval(', 'exec('):
+          for forbidden in ('import requests', 'import socket', 'urllib.request', 'subprocess.', 'pickle.loads'):
               assert forbidden not in source
+          tree = ast.parse(source)
+          observed = {
+              node.func.id
+              for node in ast.walk(tree)
+              if isinstance(node, ast.Call) and isinstance(node.func, ast.Name)
+          }
+          assert {'eval', 'exec', 'compile'}.isdisjoint(observed)
           PY
 
       - name: Upload mode evidence
