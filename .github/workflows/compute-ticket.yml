@@ -44,6 +44,12 @@ jobs:
             compute-center/requirements-bayesian-network.txt
             compute-center/requirements-calibration.txt
             compute-center/requirements-constraints.txt
+            compute-center/requirements-thinktank-data.txt
+            compute-center/requirements-thinktank-econometrics.txt
+            compute-center/requirements-thinktank-finance.txt
+            compute-center/requirements-thinktank-decision.txt
+            compute-center/requirements-thinktank-bayesian.txt
+            compute-center/requirements-thinktank-geospatial.txt
 
       - name: Install isolated core compute dependencies
         run: python -m pip install --disable-pip-version-check --no-input -r compute-center/requirements.txt
