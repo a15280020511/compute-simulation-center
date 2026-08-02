@@ -22,6 +22,15 @@ LEGACY_MODES = {
     "strategy_backtest",
 }
 
+PRODUCTION_HANDLER_MODES = (
+    set(QUANT_HANDLERS)
+    | set(FORECAST_HANDLERS)
+    | set(OR_HANDLERS)
+    | set(STRATEGIC_HANDLERS)
+)
+PRODUCTION_MODES = LEGACY_MODES | PRODUCTION_HANDLER_MODES
+PREVIEW_MODES = set(THINK_TANK_HANDLERS)
+
 MODE_HANDLERS: dict[str, Callable[[Mapping[str, Any]], dict[str, Any]]] = {
     **QUANT_HANDLERS,
     **FORECAST_HANDLERS,
@@ -30,7 +39,13 @@ MODE_HANDLERS: dict[str, Callable[[Mapping[str, Any]], dict[str, Any]]] = {
     **THINK_TANK_HANDLERS,
 }
 
-SUPPORTED_MODES = tuple(sorted(LEGACY_MODES | set(MODE_HANDLERS)))
+if PRODUCTION_MODES & PREVIEW_MODES:
+    raise RuntimeError("production and controlled-preview decision modes must not overlap")
+
+# Backward-compatible production set used by the established 22-mode gate.
+SUPPORTED_MODES = tuple(sorted(PRODUCTION_MODES))
+# Complete executable allowlist, including the separately governed preview extension.
+ALL_SUPPORTED_MODES = tuple(sorted(PRODUCTION_MODES | PREVIEW_MODES))
 
 
 def finance_decision_analysis(inputs: Mapping[str, Any]) -> dict[str, Any]:
