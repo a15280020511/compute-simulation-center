@@ -11,6 +11,7 @@ from operations_research_modes import HANDLERS as OR_HANDLERS
 from professional_forecasting_operations import HANDLERS as FORECAST_HANDLERS
 from quantitative_operations import HANDLERS as QUANT_HANDLERS
 from strategic_intelligence_operations import HANDLERS as STRATEGIC_HANDLERS
+from think_tank_operations import HANDLERS as THINK_TANK_HANDLERS
 
 LEGACY_MODES = {
     "performance_metrics",
@@ -26,6 +27,7 @@ MODE_HANDLERS: dict[str, Callable[[Mapping[str, Any]], dict[str, Any]]] = {
     **FORECAST_HANDLERS,
     **OR_HANDLERS,
     **STRATEGIC_HANDLERS,
+    **THINK_TANK_HANDLERS,
 }
 
 SUPPORTED_MODES = tuple(sorted(LEGACY_MODES | set(MODE_HANDLERS)))
