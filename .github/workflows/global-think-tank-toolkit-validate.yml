@@ -99,13 +99,7 @@ jobs:
             compute-center/think_tank_global_operations.py \
             compute-center/validate_global_think_tank_pack.py
 
-      - name: Execute numerical smoke test under denied network namespace
-        uses: docker://python:3.12-slim
-        with:
-          args: /bin/true
-        continue-on-error: true
-
-      - name: Execute fixed numerical fixture
+      - name: Execute fixed local-data numerical fixture
         run: |
           set -euo pipefail
           mkdir -p global-toolkit-artifacts
@@ -113,7 +107,7 @@ jobs:
             --mode "${{ matrix.mode }}" \
             --output "global-toolkit-artifacts/${{ matrix.mode }}.json"
 
-      - name: Verify evidence contract
+      - name: Verify offline evidence contract
         run: |
           python - <<'PY'
           import json
@@ -125,6 +119,9 @@ jobs:
           assert data['mode'] == mode
           assert data['network_used'] is False
           assert data['arbitrary_code_used'] is False
+          source = Path('compute-center/think_tank_global_operations.py').read_text(encoding='utf-8')
+          for forbidden in ('import requests', 'import socket', 'urllib.request', 'httpx.'):
+              assert forbidden not in source
           PY
         env:
           MODE: ${{ matrix.mode }}
