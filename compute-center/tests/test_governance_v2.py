@@ -41,7 +41,7 @@ class GovernanceV2Tests(unittest.TestCase):
         operations = {row["operation"] for row in registry["models"]}
         report = validate_registry_operation_coverage(operations)
         self.assertEqual(report["status"], "PASS")
-        self.assertEqual(report["covered_operation_count"], 26)
+        self.assertEqual(report["covered_operation_count"], 27)
         self.assertTrue(registered_model("monte_carlo")["calibration_supported"])
         for name in ("crisis_early_warning", "information_diffusion_analysis", "causal_policy_evaluation", "bayesian_network_inference"):
             self.assertEqual(registered_model(name)["maturity"], "controlled-preview")

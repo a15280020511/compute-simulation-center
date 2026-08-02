@@ -1,43 +1,326 @@
 {
   "schema_version": "compute-model-registry-v2",
   "registry_status": "production",
-  "allowed_maturity": ["experimental", "controlled-preview", "production", "decision-grade", "retired"],
+  "allowed_maturity": [
+    "experimental",
+    "controlled-preview",
+    "production",
+    "decision-grade",
+    "retired"
+  ],
   "defaults": {
-    "mode": "*", "version": "1.0.0", "maturity": "production", "engineering_maturity": "production", "evidence_maturity": "experimental", "risk_tier": "medium",
-    "intended_use": ["Bounded execution under the registered operation schema."],
-    "prohibited_use": ["Unregistered runtime code", "External network access", "Claims beyond validated scope"],
+    "mode": "*",
+    "version": "1.0.0",
+    "maturity": "production",
+    "engineering_maturity": "production",
+    "evidence_maturity": "experimental",
+    "risk_tier": "medium",
+    "intended_use": [
+      "Bounded execution under the registered operation schema."
+    ],
+    "prohibited_use": [
+      "Unregistered runtime code",
+      "External network access",
+      "Claims beyond validated scope"
+    ],
     "theoretical_basis": "Existing repository implementation and frozen operation contract.",
-    "required_variables": [], "parameter_definitions": [], "calibration_datasets": [], "validation_datasets": [], "benchmark_ids": [],
-    "known_failure_conditions": ["Inputs outside registered bounds", "Missing provenance for formal decisions"],
-    "assurance_owner": "compute-quality-gate", "last_calibrated_at": null,
-    "revalidation_trigger": ["dependency_change", "data_drift", "performance_degradation", "scope_change"], "sunset_date": null
+    "required_variables": [],
+    "parameter_definitions": [],
+    "calibration_datasets": [],
+    "validation_datasets": [],
+    "benchmark_ids": [],
+    "known_failure_conditions": [
+      "Inputs outside registered bounds",
+      "Missing provenance for formal decisions"
+    ],
+    "assurance_owner": "compute-quality-gate",
+    "last_calibrated_at": null,
+    "revalidation_trigger": [
+      "dependency_change",
+      "data_drift",
+      "performance_degradation",
+      "scope_change"
+    ],
+    "sunset_date": null
   },
   "models": [
-    {"model_id":"monte_carlo-registered-v1","operation":"monte_carlo","calibration_supported":true,"allowed_backends":["least_squares","slsqp","differential_evolution","likelihood"]},
-    {"model_id":"sensitivity_analysis-registered-v1","operation":"sensitivity_analysis","calibration_supported":false,"allowed_backends":[]},
-    {"model_id":"scenario_compare-registered-v1","operation":"scenario_compare","calibration_supported":false,"allowed_backends":[]},
-    {"model_id":"constrained_optimization-registered-v1","operation":"constrained_optimization","calibration_supported":false,"allowed_backends":[]},
-    {"model_id":"break_even_analysis-registered-v1","operation":"break_even_analysis","calibration_supported":false,"allowed_backends":[]},
-    {"model_id":"descriptive_statistics-registered-v1","operation":"descriptive_statistics","calibration_supported":false,"allowed_backends":[]},
-    {"model_id":"discrete_event_simulation-registered-v1","operation":"discrete_event_simulation","calibration_supported":true,"allowed_backends":["least_squares","slsqp","differential_evolution","likelihood"]},
-    {"model_id":"repeated_game-registered-v1","operation":"repeated_game","calibration_supported":false,"allowed_backends":[]},
-    {"model_id":"agent_evolution-registered-v1","operation":"agent_evolution","calibration_supported":true,"allowed_backends":["least_squares","slsqp","differential_evolution","likelihood"]},
-    {"model_id":"time_series_forecast-registered-v1","operation":"time_series_forecast","calibration_supported":true,"allowed_backends":["least_squares","slsqp","differential_evolution","likelihood"]},
-    {"model_id":"causal_screening-registered-v1","operation":"causal_screening","calibration_supported":false,"allowed_backends":[]},
-    {"model_id":"nonlinear_dynamics-registered-v1","operation":"nonlinear_dynamics","calibration_supported":true,"allowed_backends":["least_squares","slsqp","differential_evolution","likelihood"]},
-    {"model_id":"pattern_discovery-registered-v1","operation":"pattern_discovery","calibration_supported":false,"allowed_backends":[]},
-    {"model_id":"assumption_validation-registered-v1","operation":"assumption_validation","calibration_supported":false,"allowed_backends":[]},
-    {"model_id":"markov_simulation-registered-v1","operation":"markov_simulation","calibration_supported":true,"allowed_backends":["least_squares","slsqp","differential_evolution","likelihood"]},
-    {"model_id":"gis_spatial_analysis-registered-v1","operation":"gis_spatial_analysis","calibration_supported":false,"allowed_backends":[]},
-    {"model_id":"bayesian_inference-registered-v1","operation":"bayesian_inference","calibration_supported":false,"allowed_backends":[]},
-    {"model_id":"econometric_analysis-registered-v1","operation":"econometric_analysis","calibration_supported":true,"allowed_backends":["least_squares","slsqp","differential_evolution","likelihood"]},
-    {"model_id":"agent_based_simulation-registered-v1","operation":"agent_based_simulation","calibration_supported":true,"allowed_backends":["least_squares","slsqp","differential_evolution","likelihood"]},
-    {"model_id":"finance_decision_analysis-registered-v1","operation":"finance_decision_analysis","calibration_supported":true,"allowed_backends":["least_squares","slsqp","differential_evolution","likelihood"]},
-    {"model_id":"missing_data_analysis-registered-v1","operation":"missing_data_analysis","maturity":"controlled-preview","engineering_maturity":"controlled-preview","risk_tier":"medium","calibration_supported":false,"allowed_backends":[],"theoretical_basis":"Missingness profiling, complete-case diagnostics and multiple imputation by chained equations."},
-    {"model_id":"system_dynamics_simulation-registered-v1","operation":"system_dynamics_simulation","maturity":"controlled-preview","engineering_maturity":"controlled-preview","risk_tier":"medium","calibration_supported":true,"allowed_backends":["least_squares","slsqp","differential_evolution","likelihood"],"theoretical_basis":"Bounded stock-flow, feedback, delay, capacity, depletion and adoption dynamics."},
-    {"model_id":"crisis_early_warning-registered-v1","operation":"crisis_early_warning","maturity":"controlled-preview","engineering_maturity":"controlled-preview","risk_tier":"high","calibration_supported":true,"allowed_backends":["least_squares","slsqp","differential_evolution","likelihood"],"theoretical_basis":"Risk scoring, statistical warning, threshold decision loss, escalation and constrained response allocation.","prohibited_use":["Autonomous emergency command","Unverified real-world alert issuance","External network access"]},
-    {"model_id":"information_diffusion_analysis-registered-v1","operation":"information_diffusion_analysis","maturity":"controlled-preview","engineering_maturity":"controlled-preview","risk_tier":"high","calibration_supported":true,"allowed_backends":["least_squares","slsqp","differential_evolution","likelihood"],"theoretical_basis":"Network diffusion, threshold adoption, cascade and opinion-dynamics models through a pinned NDlib-compatible adapter.","prohibited_use":["Individual account targeting","Claiming one simulated path is a forecast","External data collection","External network access"]},
-    {"model_id":"causal_policy_evaluation-registered-v1","operation":"causal_policy_evaluation","maturity":"controlled-preview","engineering_maturity":"controlled-preview","risk_tier":"high","calibration_supported":false,"allowed_backends":[],"theoretical_basis":"DoWhy model-identify-estimate-refute workflow with fixed backdoor, propensity, DID, IV, placebo and sensitivity modes.","prohibited_use":["Causal claims after failed identification or refutation","Ticket-supplied estimators","External network access"]},
-    {"model_id":"bayesian_network_inference-registered-v1","operation":"bayesian_network_inference","maturity":"controlled-preview","engineering_maturity":"controlled-preview","risk_tier":"high","calibration_supported":false,"allowed_backends":[],"theoretical_basis":"Discrete Bayesian networks with fixed DAG validation, exact variable elimination, parameter learning and EM through pgmpy.","prohibited_use":["Automatically labeling learned dependencies as causal","Unbounded state spaces","External network access"]}
+    {
+      "model_id": "monte_carlo-registered-v1",
+      "operation": "monte_carlo",
+      "calibration_supported": true,
+      "allowed_backends": [
+        "least_squares",
+        "slsqp",
+        "differential_evolution",
+        "likelihood"
+      ]
+    },
+    {
+      "model_id": "sensitivity_analysis-registered-v1",
+      "operation": "sensitivity_analysis",
+      "calibration_supported": false,
+      "allowed_backends": []
+    },
+    {
+      "model_id": "scenario_compare-registered-v1",
+      "operation": "scenario_compare",
+      "calibration_supported": false,
+      "allowed_backends": []
+    },
+    {
+      "model_id": "constrained_optimization-registered-v1",
+      "operation": "constrained_optimization",
+      "calibration_supported": false,
+      "allowed_backends": []
+    },
+    {
+      "model_id": "break_even_analysis-registered-v1",
+      "operation": "break_even_analysis",
+      "calibration_supported": false,
+      "allowed_backends": []
+    },
+    {
+      "model_id": "descriptive_statistics-registered-v1",
+      "operation": "descriptive_statistics",
+      "calibration_supported": false,
+      "allowed_backends": []
+    },
+    {
+      "model_id": "discrete_event_simulation-registered-v1",
+      "operation": "discrete_event_simulation",
+      "calibration_supported": true,
+      "allowed_backends": [
+        "least_squares",
+        "slsqp",
+        "differential_evolution",
+        "likelihood"
+      ]
+    },
+    {
+      "model_id": "repeated_game-registered-v1",
+      "operation": "repeated_game",
+      "calibration_supported": false,
+      "allowed_backends": []
+    },
+    {
+      "model_id": "agent_evolution-registered-v1",
+      "operation": "agent_evolution",
+      "calibration_supported": true,
+      "allowed_backends": [
+        "least_squares",
+        "slsqp",
+        "differential_evolution",
+        "likelihood"
+      ]
+    },
+    {
+      "model_id": "time_series_forecast-registered-v1",
+      "operation": "time_series_forecast",
+      "calibration_supported": true,
+      "allowed_backends": [
+        "least_squares",
+        "slsqp",
+        "differential_evolution",
+        "likelihood"
+      ]
+    },
+    {
+      "model_id": "causal_screening-registered-v1",
+      "operation": "causal_screening",
+      "calibration_supported": false,
+      "allowed_backends": []
+    },
+    {
+      "model_id": "nonlinear_dynamics-registered-v1",
+      "operation": "nonlinear_dynamics",
+      "calibration_supported": true,
+      "allowed_backends": [
+        "least_squares",
+        "slsqp",
+        "differential_evolution",
+        "likelihood"
+      ]
+    },
+    {
+      "model_id": "pattern_discovery-registered-v1",
+      "operation": "pattern_discovery",
+      "calibration_supported": false,
+      "allowed_backends": []
+    },
+    {
+      "model_id": "assumption_validation-registered-v1",
+      "operation": "assumption_validation",
+      "calibration_supported": false,
+      "allowed_backends": []
+    },
+    {
+      "model_id": "markov_simulation-registered-v1",
+      "operation": "markov_simulation",
+      "calibration_supported": true,
+      "allowed_backends": [
+        "least_squares",
+        "slsqp",
+        "differential_evolution",
+        "likelihood"
+      ]
+    },
+    {
+      "model_id": "gis_spatial_analysis-registered-v1",
+      "operation": "gis_spatial_analysis",
+      "calibration_supported": false,
+      "allowed_backends": []
+    },
+    {
+      "model_id": "bayesian_inference-registered-v1",
+      "operation": "bayesian_inference",
+      "calibration_supported": false,
+      "allowed_backends": []
+    },
+    {
+      "model_id": "econometric_analysis-registered-v1",
+      "operation": "econometric_analysis",
+      "calibration_supported": true,
+      "allowed_backends": [
+        "least_squares",
+        "slsqp",
+        "differential_evolution",
+        "likelihood"
+      ]
+    },
+    {
+      "model_id": "agent_based_simulation-registered-v1",
+      "operation": "agent_based_simulation",
+      "calibration_supported": true,
+      "allowed_backends": [
+        "least_squares",
+        "slsqp",
+        "differential_evolution",
+        "likelihood"
+      ]
+    },
+    {
+      "model_id": "finance_decision_analysis-registered-v1",
+      "operation": "finance_decision_analysis",
+      "calibration_supported": true,
+      "allowed_backends": [
+        "least_squares",
+        "slsqp",
+        "differential_evolution",
+        "likelihood"
+      ]
+    },
+    {
+      "model_id": "missing_data_analysis-registered-v1",
+      "operation": "missing_data_analysis",
+      "maturity": "controlled-preview",
+      "engineering_maturity": "controlled-preview",
+      "risk_tier": "medium",
+      "calibration_supported": false,
+      "allowed_backends": [],
+      "theoretical_basis": "Missingness profiling, complete-case diagnostics and multiple imputation by chained equations."
+    },
+    {
+      "model_id": "system_dynamics_simulation-registered-v1",
+      "operation": "system_dynamics_simulation",
+      "maturity": "controlled-preview",
+      "engineering_maturity": "controlled-preview",
+      "risk_tier": "medium",
+      "calibration_supported": true,
+      "allowed_backends": [
+        "least_squares",
+        "slsqp",
+        "differential_evolution",
+        "likelihood"
+      ],
+      "theoretical_basis": "Bounded stock-flow, feedback, delay, capacity, depletion and adoption dynamics."
+    },
+    {
+      "model_id": "crisis_early_warning-registered-v1",
+      "operation": "crisis_early_warning",
+      "maturity": "controlled-preview",
+      "engineering_maturity": "controlled-preview",
+      "risk_tier": "high",
+      "calibration_supported": true,
+      "allowed_backends": [
+        "least_squares",
+        "slsqp",
+        "differential_evolution",
+        "likelihood"
+      ],
+      "theoretical_basis": "Risk scoring, statistical warning, threshold decision loss, escalation and constrained response allocation.",
+      "prohibited_use": [
+        "Autonomous emergency command",
+        "Unverified real-world alert issuance",
+        "External network access"
+      ]
+    },
+    {
+      "model_id": "information_diffusion_analysis-registered-v1",
+      "operation": "information_diffusion_analysis",
+      "maturity": "controlled-preview",
+      "engineering_maturity": "controlled-preview",
+      "risk_tier": "high",
+      "calibration_supported": true,
+      "allowed_backends": [
+        "least_squares",
+        "slsqp",
+        "differential_evolution",
+        "likelihood"
+      ],
+      "theoretical_basis": "Network diffusion, threshold adoption, cascade and opinion-dynamics models through a pinned NDlib-compatible adapter.",
+      "prohibited_use": [
+        "Individual account targeting",
+        "Claiming one simulated path is a forecast",
+        "External data collection",
+        "External network access"
+      ]
+    },
+    {
+      "model_id": "causal_policy_evaluation-registered-v1",
+      "operation": "causal_policy_evaluation",
+      "maturity": "controlled-preview",
+      "engineering_maturity": "controlled-preview",
+      "risk_tier": "high",
+      "calibration_supported": false,
+      "allowed_backends": [],
+      "theoretical_basis": "DoWhy model-identify-estimate-refute workflow with fixed backdoor, propensity, DID, IV, placebo and sensitivity modes.",
+      "prohibited_use": [
+        "Causal claims after failed identification or refutation",
+        "Ticket-supplied estimators",
+        "External network access"
+      ]
+    },
+    {
+      "model_id": "bayesian_network_inference-registered-v1",
+      "operation": "bayesian_network_inference",
+      "maturity": "controlled-preview",
+      "engineering_maturity": "controlled-preview",
+      "risk_tier": "high",
+      "calibration_supported": false,
+      "allowed_backends": [],
+      "theoretical_basis": "Discrete Bayesian networks with fixed DAG validation, exact variable elimination, parameter learning and EM through pgmpy.",
+      "prohibited_use": [
+        "Automatically labeling learned dependencies as causal",
+        "Unbounded state spaces",
+        "External network access"
+      ]
+    },
+    {
+      "model_id": "sector_model_analysis-registered-v1",
+      "operation": "sector_model_analysis",
+      "maturity": "controlled-preview",
+      "engineering_maturity": "controlled-preview",
+      "evidence_maturity": "experimental",
+      "risk_tier": "high",
+      "calibration_supported": false,
+      "allowed_backends": [],
+      "theoretical_basis": "Fixed adapters for DoubleML, QuantEcon, Nashpy, EMA Workbench, PyPSA, pandapower, WNTR, Pywr, GSTools, PyKrige and Brightway-compatible matrix LCA.",
+      "prohibited_use": [
+        "Ticket-supplied code or packages",
+        "External database or network access",
+        "Autonomous power, water or infrastructure control",
+        "Formal policy or engineering claims without independent validation"
+      ]
+    }
   ]
 }

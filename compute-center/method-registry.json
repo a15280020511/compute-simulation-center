@@ -14,24 +14,277 @@
     ]
   },
   "installed_method_packs": [
-    {"id":"scipy-calibration","status":"installed","operations":["monte_carlo","constrained_optimization","system_dynamics_simulation"],"capabilities":["least_squares","slsqp","differential_evolution","likelihood"],"network_policy":"deny"},
-    {"id":"statsmodels-missing-data","status":"installed","operations":["missing_data_analysis"],"capabilities":["MICE","complete-case diagnostics","imputation sensitivity"],"network_policy":"deny"},
-    {"id":"mesa-social-behavior","status":"installed","operations":["agent_based_simulation"],"capabilities":["heterogeneous agents","group behavior","network interaction"],"network_policy":"deny"},
-    {"id":"ndlib-diffusion","status":"installed","version":"5.1.1","requirements":"requirements-diffusion.txt","operations":["information_diffusion_analysis"],"network_policy":"deny"},
-    {"id":"dowhy-causal","status":"installed","version":"0.14","requirements":"requirements-causal.txt","operations":["causal_policy_evaluation"],"network_policy":"deny"},
-    {"id":"pgmpy-bayesian-network","status":"installed","version":"1.1.2","requirements":"requirements-bayesian-network.txt","operations":["bayesian_network_inference"],"network_policy":"deny"},
-    {"id":"thinktank-data-engineering","status":"installed","requirements":"requirements-thinktank-data.txt","operations":["finance_decision_analysis"],"capabilities":["columnar profiling","bounded joins","schema validation","unit conversion"],"network_policy":"deny"},
-    {"id":"thinktank-econometrics-business","status":"installed","requirements":"requirements-thinktank-econometrics.txt","operations":["finance_decision_analysis"],"capabilities":["advanced statsmodels","panel econometrics","survey weighting","meta-analysis","survival","consumer and operating analytics"],"network_policy":"deny"},
-    {"id":"thinktank-finance-risk","status":"installed","requirements":"requirements-thinktank-finance.txt","operations":["finance_decision_analysis"],"capabilities":["CVaR","drawdown constraints","financial ratios","factor attribution"],"network_policy":"deny"},
-    {"id":"thinktank-decision-optimization","status":"installed","requirements":"requirements-thinktank-decision.txt","operations":["finance_decision_analysis"],"capabilities":["multi-objective optimization","bounded search","algebraic optimization","strategic sandbox","influence diagrams","policy microsimulation"],"network_policy":"deny"},
-    {"id":"thinktank-hierarchical-bayesian","status":"installed","requirements":"requirements-thinktank-bayesian.txt","operations":["finance_decision_analysis"],"capabilities":["hierarchical Bayesian estimation","MCMC diagnostics","partial pooling"],"network_policy":"deny"},
-    {"id":"thinktank-raster-spatial","status":"installed","requirements":"requirements-thinktank-geospatial.txt","operations":["finance_decision_analysis"],"capabilities":["raster statistics","raster change detection","spatial autocorrelation"],"network_policy":"deny"}
+    {
+      "id": "scipy-calibration",
+      "status": "installed",
+      "operations": [
+        "monte_carlo",
+        "constrained_optimization",
+        "system_dynamics_simulation"
+      ],
+      "capabilities": [
+        "least_squares",
+        "slsqp",
+        "differential_evolution",
+        "likelihood"
+      ],
+      "network_policy": "deny"
+    },
+    {
+      "id": "statsmodels-missing-data",
+      "status": "installed",
+      "operations": [
+        "missing_data_analysis"
+      ],
+      "capabilities": [
+        "MICE",
+        "complete-case diagnostics",
+        "imputation sensitivity"
+      ],
+      "network_policy": "deny"
+    },
+    {
+      "id": "mesa-social-behavior",
+      "status": "installed",
+      "operations": [
+        "agent_based_simulation"
+      ],
+      "capabilities": [
+        "heterogeneous agents",
+        "group behavior",
+        "network interaction"
+      ],
+      "network_policy": "deny"
+    },
+    {
+      "id": "ndlib-diffusion",
+      "status": "installed",
+      "version": "5.1.1",
+      "requirements": "requirements-diffusion.txt",
+      "operations": [
+        "information_diffusion_analysis"
+      ],
+      "network_policy": "deny"
+    },
+    {
+      "id": "dowhy-causal",
+      "status": "installed",
+      "version": "0.14",
+      "requirements": "requirements-causal.txt",
+      "operations": [
+        "causal_policy_evaluation"
+      ],
+      "network_policy": "deny"
+    },
+    {
+      "id": "pgmpy-bayesian-network",
+      "status": "installed",
+      "version": "1.1.2",
+      "requirements": "requirements-bayesian-network.txt",
+      "operations": [
+        "bayesian_network_inference"
+      ],
+      "network_policy": "deny"
+    },
+    {
+      "id": "thinktank-data-engineering",
+      "status": "installed",
+      "requirements": "requirements-thinktank-data.txt",
+      "operations": [
+        "finance_decision_analysis"
+      ],
+      "capabilities": [
+        "columnar profiling",
+        "bounded joins",
+        "schema validation",
+        "unit conversion"
+      ],
+      "network_policy": "deny"
+    },
+    {
+      "id": "thinktank-econometrics-business",
+      "status": "installed",
+      "requirements": "requirements-thinktank-econometrics.txt",
+      "operations": [
+        "finance_decision_analysis"
+      ],
+      "capabilities": [
+        "advanced statsmodels",
+        "panel econometrics",
+        "survey weighting",
+        "meta-analysis",
+        "survival",
+        "consumer and operating analytics"
+      ],
+      "network_policy": "deny"
+    },
+    {
+      "id": "thinktank-finance-risk",
+      "status": "installed",
+      "requirements": "requirements-thinktank-finance.txt",
+      "operations": [
+        "finance_decision_analysis"
+      ],
+      "capabilities": [
+        "CVaR",
+        "drawdown constraints",
+        "financial ratios",
+        "factor attribution"
+      ],
+      "network_policy": "deny"
+    },
+    {
+      "id": "thinktank-decision-optimization",
+      "status": "installed",
+      "requirements": "requirements-thinktank-decision.txt",
+      "operations": [
+        "finance_decision_analysis"
+      ],
+      "capabilities": [
+        "multi-objective optimization",
+        "bounded search",
+        "algebraic optimization",
+        "strategic sandbox",
+        "influence diagrams",
+        "policy microsimulation"
+      ],
+      "network_policy": "deny"
+    },
+    {
+      "id": "thinktank-hierarchical-bayesian",
+      "status": "installed",
+      "requirements": "requirements-thinktank-bayesian.txt",
+      "operations": [
+        "finance_decision_analysis"
+      ],
+      "capabilities": [
+        "hierarchical Bayesian estimation",
+        "MCMC diagnostics",
+        "partial pooling"
+      ],
+      "network_policy": "deny"
+    },
+    {
+      "id": "thinktank-raster-spatial",
+      "status": "installed",
+      "requirements": "requirements-thinktank-geospatial.txt",
+      "operations": [
+        "finance_decision_analysis"
+      ],
+      "capabilities": [
+        "raster statistics",
+        "raster change detection",
+        "spatial autocorrelation"
+      ],
+      "network_policy": "deny"
+    },
+    {
+      "id": "sector-causal-economics-strategy",
+      "status": "installed",
+      "requirements": "requirements-sector-causal-econ.txt",
+      "operations": [
+        "sector_model_analysis"
+      ],
+      "capabilities": [
+        "double/debiased machine learning",
+        "Markov chains",
+        "bimatrix equilibrium",
+        "robust regret screening"
+      ],
+      "network_policy": "deny"
+    },
+    {
+      "id": "sector-energy-systems",
+      "status": "installed",
+      "requirements": "requirements-sector-energy.txt",
+      "operations": [
+        "sector_model_analysis"
+      ],
+      "capabilities": [
+        "linear power flow",
+        "power-system network modeling"
+      ],
+      "network_policy": "deny"
+    },
+    {
+      "id": "sector-distribution-grid",
+      "status": "installed",
+      "requirements": "requirements-sector-grid.txt",
+      "operations": [
+        "sector_model_analysis"
+      ],
+      "capabilities": [
+        "AC power flow",
+        "distribution-grid diagnostics"
+      ],
+      "network_policy": "deny"
+    },
+    {
+      "id": "sector-water-systems",
+      "status": "installed",
+      "requirements": "requirements-sector-water.txt",
+      "operations": [
+        "sector_model_analysis"
+      ],
+      "capabilities": [
+        "hydraulic network simulation",
+        "water-resource allocation"
+      ],
+      "network_policy": "deny"
+    },
+    {
+      "id": "sector-geostatistics",
+      "status": "installed",
+      "requirements": "requirements-sector-geostat.txt",
+      "operations": [
+        "sector_model_analysis"
+      ],
+      "capabilities": [
+        "random fields",
+        "variograms",
+        "ordinary kriging"
+      ],
+      "network_policy": "deny"
+    },
+    {
+      "id": "sector-lifecycle-assessment",
+      "status": "installed",
+      "requirements": "requirements-sector-lca.txt",
+      "operations": [
+        "sector_model_analysis"
+      ],
+      "capabilities": [
+        "Brightway-compatible matrix inventory",
+        "impact characterization",
+        "activity contribution analysis"
+      ],
+      "network_policy": "deny"
+    }
   ],
   "conditional_backends": [
-    {"id":"pysd","status":"not-installed","activation_trigger":"A validated Vensim or XMILE model must be imported","required_controls":["per-model compatibility test","equation parity test","fallback to native stock-flow engine"]}
+    {
+      "id": "pysd",
+      "status": "not-installed",
+      "activation_trigger": "A validated Vensim or XMILE model must be imported",
+      "required_controls": [
+        "per-model compatibility test",
+        "equation parity test",
+        "fallback to native stock-flow engine"
+      ]
+    }
   ],
   "external_adapters": [
-    {"id":"pestpp_external_adapter","status":"not-installed","activation_trigger":"High-dimensional ill-conditioned external simulator calibration","runtime_policy":"file-in-file-out only; no shell from ticket"},
-    {"id":"dakota_external_adapter","status":"not-installed","activation_trigger":"Multi-physics, multi-fidelity or high-cost parallel uncertainty quantification","runtime_policy":"separate reviewed engineering environment"}
+    {
+      "id": "pestpp_external_adapter",
+      "status": "not-installed",
+      "activation_trigger": "High-dimensional ill-conditioned external simulator calibration",
+      "runtime_policy": "file-in-file-out only; no shell from ticket"
+    },
+    {
+      "id": "dakota_external_adapter",
+      "status": "not-installed",
+      "activation_trigger": "Multi-physics, multi-fidelity or high-cost parallel uncertainty quantification",
+      "runtime_policy": "separate reviewed engineering environment"
+    }
   ]
 }
