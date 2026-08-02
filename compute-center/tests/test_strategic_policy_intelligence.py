@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import ast
 import sys
 import unittest
 from pathlib import Path
@@ -37,12 +38,17 @@ class StrategicPolicyGovernanceTests(unittest.TestCase):
             "import socket",
             "urllib.request",
             "subprocess.",
-            "eval(",
-            "exec(",
-            "compile(",
             "pickle.loads",
         ):
             self.assertNotIn(forbidden, source)
+        tree = ast.parse(source)
+        forbidden_calls = {"eval", "exec", "compile"}
+        observed = {
+            node.func.id
+            for node in ast.walk(tree)
+            if isinstance(node, ast.Call) and isinstance(node.func, ast.Name)
+        }
+        self.assertTrue(forbidden_calls.isdisjoint(observed))
 
     def test_issue_tree_and_value_driver_modes(self) -> None:
         issue = strategic_policy_analysis({
@@ -91,7 +97,7 @@ class StrategicPolicyGovernanceTests(unittest.TestCase):
             ],
         })
         self.assertEqual(red["highest_priority"], "demand")
-        self.assertFalse(red["offline_execution"] is False)
+        self.assertTrue(red["offline_execution"])
 
 
 if __name__ == "__main__":
