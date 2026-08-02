@@ -77,7 +77,7 @@ def hierarchical_forecast_reconciliation(inputs: Mapping[str, Any]) -> dict[str,
     if bottom_count > summing.shape[0]:
         raise ComputeError("summing_matrix has more bottom series than total series")
     idx_bottom = np.arange(summing.shape[0] - bottom_count, summing.shape[0], dtype=int)
-    reconciled = BottomUp().fit_predict(S=summing, y_hat=base_forecasts, idx_bottom=idx_bottom)
+    reconciled = BottomUp().fit_predict(S=summing, y_hat=base_forecasts)
     if not isinstance(reconciled, Mapping) or "mean" not in reconciled:
         raise ComputeError("hierarchical reconciliation returned an unexpected schema")
     mean = np.asarray(reconciled["mean"], dtype=float)
