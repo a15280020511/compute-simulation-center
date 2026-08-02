@@ -1,0 +1,80 @@
+name: Collect specialized diagnostics
+
+on:
+  push:
+    branches:
+      - feat/exa-thinktank-tool-expansion-v2
+
+permissions:
+  actions: read
+  contents: read
+  pull-requests: write
+
+concurrency:
+  group: collect-specialized-diagnostics
+  cancel-in-progress: true
+
+jobs:
+  collect:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    steps:
+      - name: Wait for matching diagnostic matrix
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          target_sha="${GITHUB_SHA}"
+          run_id=""
+          for attempt in $(seq 1 120); do
+            run_id=$(gh api "repos/${GITHUB_REPOSITORY}/actions/workflows/specialized-think-tank-diagnostic.yml/runs?branch=feat%2Fexa-thinktank-tool-expansion-v2&per_page=20" --jq ".workflow_runs[] | select(.head_sha == \"${target_sha}\") | .id" | head -n1)
+            if [ -n "$run_id" ]; then
+              status=$(gh api "repos/${GITHUB_REPOSITORY}/actions/runs/${run_id}" --jq '.status')
+              if [ "$status" = "completed" ]; then
+                echo "RUN_ID=$run_id" >> "$GITHUB_ENV"
+                exit 0
+              fi
+            fi
+            sleep 15
+          done
+          echo "diagnostic run did not complete" >&2
+          exit 1
+      - name: Download diagnostic artifacts
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          mkdir -p downloaded extracted
+          gh api "repos/${GITHUB_REPOSITORY}/actions/runs/${RUN_ID}/artifacts?per_page=100" --jq '.artifacts[] | select(.name | startswith("specialized-diagnostic-")) | [.id,.name] | @tsv' > artifacts.tsv
+          while IFS=$'\t' read -r artifact_id artifact_name; do
+            gh api "repos/${GITHUB_REPOSITORY}/actions/artifacts/${artifact_id}/zip" > "downloaded/${artifact_name}.zip"
+            mkdir -p "extracted/${artifact_name}"
+            unzip -q "downloaded/${artifact_name}.zip" -d "extracted/${artifact_name}"
+          done < artifacts.tsv
+      - name: Build compact report
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          rows=[]
+          for path in sorted(Path('extracted').rglob('*.json')):
+              data=json.loads(path.read_text(encoding='utf-8'))
+              rows.append(data)
+          lines=['## Specialized pack diagnostics', '', f'- Diagnostic run: `{__import__("os").environ["RUN_ID"]}`', '']
+          for row in sorted(rows,key=lambda x:x.get('pack','')):
+              pack=row.get('pack','unknown')
+              status=row.get('status','UNKNOWN')
+              lines.append(f'### `{pack}` — {status}')
+              if status=='PASS':
+                  lines.append(f'- Modes: `{row.get("mode_count",0)}`')
+              else:
+                  lines.append(f'- Error: `{row.get("error_type")}: {row.get("error")}`')
+                  lines.append('```text')
+                  lines.extend(row.get('traceback_tail',[])[-12:])
+                  lines.append('```')
+              lines.append('')
+          Path('diagnostics-comment.md').write_text('\n'.join(lines),encoding='utf-8')
+          PY
+          cat diagnostics-comment.md
+      - name: Post PR report
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh api "repos/${GITHUB_REPOSITORY}/issues/25/comments" -f body=@diagnostics-comment.md
