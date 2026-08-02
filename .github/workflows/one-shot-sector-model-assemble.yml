@@ -37,7 +37,10 @@ jobs:
           python-version: "3.12"
 
       - name: Assemble registries and deterministic contracts
-        run: python .maintenance/assemble_sector_model_toolkit.py
+        run: |
+          set -euo pipefail
+          python .maintenance/assemble_sector_model_toolkit.py
+          python .maintenance/add_sector_ticket_schema.py
 
       - name: Install bounded assembly environment
         run: |
