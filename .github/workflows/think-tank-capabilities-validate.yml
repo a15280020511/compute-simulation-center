@@ -31,7 +31,14 @@ jobs:
         with:
           python-version: "3.12"
           cache: pip
-          cache-dependency-path: compute-center/requirements.txt
+          cache-dependency-path: |
+            compute-center/requirements.txt
+            compute-center/requirements-thinktank-data.txt
+            compute-center/requirements-thinktank-econometrics.txt
+            compute-center/requirements-thinktank-finance.txt
+            compute-center/requirements-thinktank-decision.txt
+            compute-center/requirements-thinktank-bayesian.txt
+            compute-center/requirements-thinktank-geospatial.txt
       - run: python -m pip install --disable-pip-version-check --no-input -r compute-center/requirements.txt
       - run: python -m py_compile compute-center/*.py compute-center/tests/*.py
       - run: python compute-center/think_tank_registry_validate.py
