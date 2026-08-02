@@ -6,6 +6,7 @@ on:
       - feat/exa-institutional-toolkit-expansion
     paths:
       - "compute-center/generate_effective_capabilities.py"
+      - "compute-center/.generate-institutional-trigger"
 
 permissions:
   contents: write
