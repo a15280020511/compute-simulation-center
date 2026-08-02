@@ -1,0 +1,221 @@
+name: One-shot Global Think Tank Toolkit Assembly
+
+on:
+  issues:
+    types: [opened]
+
+permissions:
+  contents: write
+  issues: write
+
+concurrency:
+  group: maintenance-global-toolkit-assembly
+  cancel-in-progress: false
+
+jobs:
+  assemble:
+    if: >-
+      github.actor == github.repository_owner &&
+      startsWith(github.event.issue.title, '[maintenance-global-toolkit-assembly]')
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    env:
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      ISSUE_NUMBER: ${{ github.event.issue.number }}
+      TARGET_BRANCH: feat/global-think-tank-toolkit-20260803
+    steps:
+      - name: Checkout target branch
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ env.TARGET_BRANCH }}
+          fetch-depth: 0
+
+      - name: Set up Python 3.12
+        uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065
+        with:
+          python-version: "3.12"
+
+      - name: Install deterministic registry dependencies
+        run: |
+          python -m pip install --disable-pip-version-check --no-input -r compute-center/requirements.txt
+          python -m pip check
+
+      - name: Register 15 bounded global modes
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import json
+          from pathlib import Path
+
+          root = Path('compute-center')
+          modes = {
+              'openturns_reliability_probability': ('requirements-global-openturns.txt', {'max_dimensions': 1}),
+              'control_step_response': ('requirements-global-control.txt', {'max_coefficients': 20, 'max_points': 1000}),
+              'pm4py_directly_follows': ('requirements-global-pm4py.txt', {'max_cases': 2000, 'max_events': 10000}),
+              'smt_rbf_surrogate': ('requirements-global-smt.txt', {'max_training_rows': 1000, 'max_features': 20, 'max_predictions': 1000}),
+              'econml_linear_dml': ('requirements-global-econml.txt', {'max_rows': 5000, 'max_features': 30, 'max_folds': 10}),
+              'spreg_spatial_lag': ('requirements-global-spreg.txt', {'max_rows': 2000, 'max_features': 20, 'max_neighbors': 100}),
+              'arch_garch_forecast': ('requirements-global-arch.txt', {'max_observations': 20000, 'max_horizon': 30}),
+              'mapie_conformal_interval': ('requirements-global-mapie.txt', {'max_rows': 5000, 'max_features': 30, 'max_predictions': 1000}),
+              'pydoe3_latin_hypercube': ('requirements-global-pydoe3.txt', {'max_factors': 30, 'max_samples': 1000}),
+              'lmfit_exponential_calibration': ('requirements-global-lmfit.txt', {'max_observations': 5000}),
+              'skgstat_variogram': ('requirements-global-skgstat.txt', {'max_observations': 5000, 'max_dimensions': 3, 'max_lags': 50}),
+              'rsome_robust_allocation': ('requirements-global-rsome.txt', {'max_assets': 50, 'max_scenarios': 500}),
+              'aequilibrae_shortest_path': ('requirements-global-aequilibrae.txt', {'max_links': 5000, 'max_nodes': 10000}),
+              'epydemix_sir_simulation': ('requirements-global-epydemix.txt', {'max_population': 10000000, 'max_days': 365, 'max_simulations': 200}),
+              'pysd_stock_flow_scenario': ('requirements-global-pysd.txt', {'max_steps': 1000, 'max_stocks': 1}),
+          }
+
+          path = root / 'think_tank_operations.py'
+          text = path.read_text(encoding='utf-8')
+          import_line = 'from think_tank_global_operations import HANDLERS as GLOBAL_HANDLERS\n'
+          anchor = 'from think_tank_finance_operations import HANDLERS as FINANCE_HANDLERS\n'
+          if import_line not in text:
+              text = text.replace(anchor, anchor + import_line, 1)
+          if '    **GLOBAL_HANDLERS,\n' not in text:
+              text = text.replace('    **ADVANCED_HANDLERS,\n}', '    **ADVANCED_HANDLERS,\n    **GLOBAL_HANDLERS,\n}', 1)
+          if '        GLOBAL_HANDLERS,\n' not in text:
+              text = text.replace('        ADVANCED_HANDLERS,\n', '        ADVANCED_HANDLERS,\n        GLOBAL_HANDLERS,\n', 1)
+          path.write_text(text, encoding='utf-8')
+
+          registry_path = root / 'think-tank-mode-registry.json'
+          registry = json.loads(registry_path.read_text(encoding='utf-8'))
+          for mode, (requirements, limits) in modes.items():
+              if mode in registry['modes'] or mode in registry['mode_requirements']:
+                  raise RuntimeError(f'duplicate global mode: {mode}')
+              registry['mode_requirements'][mode] = [requirements]
+              registry['modes'][mode] = {
+                  'maturity': 'controlled-preview',
+                  'network_policy': 'deny',
+                  'deterministic': True,
+                  'limits': limits,
+              }
+          registry['mode_requirements'] = dict(sorted(registry['mode_requirements'].items()))
+          registry['modes'] = dict(sorted(registry['modes'].items()))
+          registry_path.write_text(json.dumps(registry, ensure_ascii=False, indent=2) + '\n', encoding='utf-8')
+
+          validator_path = root / 'think_tank_registry_validate.py'
+          validator = validator_path.read_text(encoding='utf-8')
+          validator = validator.replace('EXPECTED_EXTENSION_MODES = 38', 'EXPECTED_EXTENSION_MODES = 53')
+          validator = validator.replace('EXPECTED_EFFECTIVE_MODES = 118', 'EXPECTED_EFFECTIVE_MODES = 133')
+          validator = validator.replace(
+              '        "thinktank-raster-spatial",\n',
+              '        "thinktank-raster-spatial",\n        "thinktank-global-discovery",\n',
+              1,
+          )
+          validator_path.write_text(validator, encoding='utf-8')
+
+          capabilities_path = root / 'compute-capabilities.json'
+          capabilities = json.loads(capabilities_path.read_text(encoding='utf-8'))
+          capabilities['extension_mode_count'] = 53
+          capabilities['effective_managed_mode_count'] = 133
+          packages = capabilities['runtime_packages']
+          packages.update({
+              'OpenTURNS': '1.27.post1; reliability and uncertainty probability',
+              'python-control': '0.10.2; bounded control-system response analysis',
+              'PM4Py': '2.7.23.3; bounded process mining',
+              'SMT': '2.14.1; surrogate modeling',
+              'EconML': '0.16.0; heterogeneous causal-effect estimation',
+              'spreg': '1.9.0; spatial lag econometrics',
+              'arch': '8.0.0; GARCH volatility and risk forecasting',
+              'MAPIE': '1.4.1; conformal prediction intervals',
+              'pyDOE3': '1.6.2; bounded experimental design',
+              'lmfit': '1.3.4; nonlinear parameter calibration',
+              'scikit-gstat': '1.0.23; variogram and spatial structure analysis',
+              'RSOME': '1.3.1; scenario-robust optimization',
+              'AequilibraE': '1.6.2; directed transport-network path analysis',
+              'Epydemix': '1.3.1; bounded compartmental epidemic simulation',
+              'PySD': '3.14.3; fixed-template system-dynamics execution',
+          })
+          finance = next(row for row in capabilities['operations'] if row.get('id') == 'finance_decision_analysis')
+          finance['modes'] = sorted(set(finance.get('modes') or []) | set(modes))
+          scope = capabilities['toolkit_assessment']['scope']
+          additions = [
+              'reliability probability, control response, surrogate modeling and experimental design',
+              'process mining, spatial lag econometrics and heterogeneous causal-effect estimation',
+              'GARCH volatility, conformal intervals and scenario-robust allocation',
+              'transport shortest paths, epidemic compartments and fixed-template system dynamics',
+          ]
+          for item in additions:
+              if item not in scope:
+                  scope.append(item)
+          capabilities['limits'].update({
+              'global_process_events': 10000,
+              'global_surrogate_rows': 1000,
+              'global_causal_rows': 5000,
+              'global_spatial_lag_rows': 2000,
+              'global_transport_links': 5000,
+              'global_epidemic_simulations': 200,
+          })
+          capabilities_path.write_text(json.dumps(capabilities, ensure_ascii=False, indent=2) + '\n', encoding='utf-8')
+
+          methods_path = root / 'method-registry.json'
+          methods = json.loads(methods_path.read_text(encoding='utf-8'))
+          if not any(row.get('id') == 'thinktank-global-discovery' for row in methods['installed_method_packs']):
+              methods['installed_method_packs'].append({
+                  'id': 'thinktank-global-discovery',
+                  'status': 'installed',
+                  'requirement_packs': sorted({value[0] for value in modes.values()}),
+                  'operations': ['finance_decision_analysis'],
+                  'capabilities': [
+                      'reliability and uncertainty', 'control response', 'process mining',
+                      'surrogate modeling', 'causal machine learning', 'spatial econometrics',
+                      'volatility forecasting', 'conformal intervals', 'experimental design',
+                      'nonlinear calibration', 'variograms', 'robust optimization',
+                      'transport paths', 'epidemic simulation', 'system dynamics',
+                  ],
+                  'network_policy': 'deny',
+                  'source_discovery': ['Exa', 'Tavily'],
+              })
+          methods['conditional_backends'] = [
+              row for row in methods.get('conditional_backends', []) if row.get('id') != 'pysd'
+          ]
+          methods_path.write_text(json.dumps(methods, ensure_ascii=False, indent=2) + '\n', encoding='utf-8')
+
+          readme_path = root / 'README.md'
+          readme = readme_path.read_text(encoding='utf-8')
+          marker = '## Global Think-Tank Toolkit\n'
+          if marker not in readme:
+              readme += '''\n## Global Think-Tank Toolkit\n\nExa and Tavily global discovery produced 16 candidates. Fifteen passed isolated Python 3.12 compatibility and numerical smoke tests; CausalPy was excluded because it requires NumPy below the production baseline. The accepted modes remain fixed, bounded, repository-pinned, network-denied and controlled-preview.\n'''
+          readme_path.write_text(readme, encoding='utf-8')
+          PY
+
+      - name: Run static registry and gateway checks
+        run: |
+          set -euo pipefail
+          python -m py_compile \
+            compute-center/think_tank_global_operations.py \
+            compute-center/think_tank_operations.py \
+            compute-center/decision_intelligence_gateway.py \
+            compute-center/validate_global_think_tank_pack.py \
+            compute-center/think_tank_registry_validate.py
+          python compute-center/think_tank_registry_validate.py
+          python compute-center/capability_manager.py validate
+          python - <<'PY'
+          import sys
+          sys.path.insert(0, 'compute-center')
+          from think_tank_global_operations import HANDLERS
+          from think_tank_operations import HANDLERS as ALL_HANDLERS
+          assert len(HANDLERS) == 15
+          assert set(HANDLERS).issubset(ALL_HANDLERS)
+          assert len(ALL_HANDLERS) == 53
+          print({'status': 'PASS', 'global_modes': 15, 'think_tank_modes': len(ALL_HANDLERS)})
+          PY
+          git diff --check
+
+      - name: Commit assembled registry
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add compute-center
+          if git diff --cached --quiet; then
+            echo 'No registry changes to commit'
+          else
+            git commit -m 'feat: register 15 global think-tank toolkit modes'
+            git push origin "HEAD:${TARGET_BRANCH}"
+          fi
+
+      - name: Publish PASS
+        run: |
+          gh issue comment "$ISSUE_NUMBER" --body 'GLOBAL_TOOLKIT_ASSEMBLY_PASS: registered 15 bounded Exa/Tavily-discovered modes; extension count 53, effective managed mode count 133; CausalPy excluded for NumPy conflict; static registry and gateway checks passed.'
