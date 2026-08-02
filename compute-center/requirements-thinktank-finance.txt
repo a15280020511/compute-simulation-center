@@ -1,0 +1,4 @@
+pandas==3.0.3
+statsmodels==0.14.6
+riskfolio-lib==7.3.0
+financetoolkit==1.9.4
