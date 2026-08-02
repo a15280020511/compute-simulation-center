@@ -28,6 +28,7 @@ from strategic_intelligence_operations import (  # noqa: E402
     value_of_information,
     weighted_mcda,
 )
+from think_tank_operations import SUPPORTED_MODES as THINK_TANK_MODES  # noqa: E402
 
 
 class StrategicIntelligenceTests(unittest.TestCase):
@@ -40,7 +41,9 @@ class StrategicIntelligenceTests(unittest.TestCase):
             "value_of_information", "competing_hypotheses", "indicators_and_warnings",
         }
         self.assertTrue(expected <= set(SUPPORTED_MODES))
-        self.assertEqual(len(SUPPORTED_MODES), 22)
+        self.assertTrue(set(THINK_TANK_MODES) <= set(SUPPORTED_MODES))
+        self.assertEqual(len(THINK_TANK_MODES), 38)
+        self.assertEqual(len(SUPPORTED_MODES), 60)
 
     def test_weighted_mcda_ranks_alternatives(self):
         result = weighted_mcda({
