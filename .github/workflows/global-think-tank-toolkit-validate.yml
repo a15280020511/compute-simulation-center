@@ -57,14 +57,22 @@ jobs:
           PY
           git diff --check
 
-      - name: Commit generated registration to pull-request branch
+      - name: Commit non-workflow registration files
         run: |
           set -euo pipefail
+          git restore --source=HEAD --staged --worktree \
+            .github/workflows/compute-ticket.yml \
+            .github/workflows/global-think-tank-toolkit-validate.yml \
+            .github/workflows/strategic-policy-candidate-compatibility.yml
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git add -A
+          git add compute-center/tool-registry.json \
+                  compute-center/compute-capabilities.json \
+                  compute-center/systems-computation-matrix.json \
+                  compute-center/think_tank_global_operations.py \
+                  compute-center/strategic_policy_intelligence_operations.py
           if git diff --cached --quiet; then
-            echo 'No generated changes remain.'
+            echo 'No generated non-workflow changes remain.'
           else
             git commit -m 'feat: register strategic policy intelligence capability pack'
             git push origin "HEAD:${GITHUB_HEAD_REF}"
