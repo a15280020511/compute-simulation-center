@@ -1,4 +1,4 @@
-name: Generate Strategic Policy Registration
+name: Commit Strategic Policy Registration
 
 on:
   pull_request:
@@ -12,22 +12,24 @@ on:
       - ".github/workflows/global-think-tank-toolkit-validate.yml"
 
 permissions:
-  contents: read
+  contents: write
 
 concurrency:
   group: strategic-policy-registration-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
-  generate:
+  register:
+    if: github.event.pull_request.head.repo.full_name == github.repository
     runs-on: ubuntu-24.04
     timeout-minutes: 20
     steps:
-      - name: Checkout branch
+      - name: Checkout pull-request branch
         uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
         with:
-          persist-credentials: false
+          ref: ${{ github.head_ref }}
           fetch-depth: 0
+          persist-credentials: true
 
       - name: Install control-plane baseline
         run: |
@@ -44,36 +46,26 @@ jobs:
             compute-center/strategic_policy_intelligence_operations.py \
             compute-center/register_strategic_policy_pack.py \
             compute-center/think_tank_global_operations.py
-          python compute-center/capability_manager.py validate > registration-capability-manager.json
-          python compute-center/systems_matrix.py validate > registration-systems-matrix.json
-          python compute-center/maintenance_audit.py --root . --output registration-maintenance-audit.json
+          python compute-center/capability_manager.py validate > /tmp/capability-manager.json
+          python compute-center/systems_matrix.py validate > /tmp/systems-matrix.json
+          python compute-center/maintenance_audit.py --root . --output /tmp/maintenance-audit.json
           python - <<'PY'
           import json
-          assert json.load(open('registration-capability-manager.json'))['status'] == 'PASS'
-          assert json.load(open('registration-systems-matrix.json'))['status'] == 'PASS'
-          assert json.load(open('registration-maintenance-audit.json'))['configuration']['status'] == 'PASS'
+          assert json.load(open('/tmp/capability-manager.json'))['status'] == 'PASS'
+          assert json.load(open('/tmp/systems-matrix.json'))['status'] == 'PASS'
+          assert json.load(open('/tmp/maintenance-audit.json'))['configuration']['status'] == 'PASS'
           PY
           git diff --check
 
-      - name: Stage generated registration files
+      - name: Commit generated registration to pull-request branch
         run: |
           set -euo pipefail
-          mkdir -p registration-artifact/compute-center registration-artifact/.github/workflows
-          cp compute-center/tool-registry.json registration-artifact/compute-center/
-          cp compute-center/compute-capabilities.json registration-artifact/compute-center/
-          cp compute-center/systems-computation-matrix.json registration-artifact/compute-center/
-          cp compute-center/think_tank_global_operations.py registration-artifact/compute-center/
-          cp compute-center/strategic_policy_intelligence_operations.py registration-artifact/compute-center/
-          cp .github/workflows/compute-ticket.yml registration-artifact/.github/workflows/
-          cp .github/workflows/global-think-tank-toolkit-validate.yml registration-artifact/.github/workflows/
-          cp registration-capability-manager.json registration-artifact/
-          cp registration-systems-matrix.json registration-artifact/
-          cp registration-maintenance-audit.json registration-artifact/
-
-      - name: Upload generated registration artifact
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
-        with:
-          name: strategic-policy-registration-${{ github.run_id }}
-          path: registration-artifact/
-          if-no-files-found: error
-          retention-days: 14
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add -A
+          if git diff --cached --quiet; then
+            echo 'No generated changes remain.'
+          else
+            git commit -m 'feat: register strategic policy intelligence capability pack'
+            git push origin "HEAD:${GITHUB_HEAD_REF}"
+          fi
