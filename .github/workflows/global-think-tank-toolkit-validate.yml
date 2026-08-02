@@ -16,7 +16,7 @@ permissions:
   issues: write
 
 concurrency:
-  group: strategic-policy-mode-${{ github.ref }}-${{ matrix.mode }}
+  group: strategic-policy-mode-${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
