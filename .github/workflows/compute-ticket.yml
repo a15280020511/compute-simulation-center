@@ -50,6 +50,16 @@ jobs:
             compute-center/requirements-thinktank-decision.txt
             compute-center/requirements-thinktank-bayesian.txt
             compute-center/requirements-thinktank-geospatial.txt
+            compute-center/requirements-institutional-economics.txt
+            compute-center/requirements-institutional-forecasting.txt
+            compute-center/requirements-institutional-decision.txt
+            compute-center/requirements-institutional-spatial.txt
+            compute-center/requirements-institutional-energy.txt
+            compute-center/requirements-institutional-climate-health.txt
+            compute-center/requirements-institutional-finance.txt
+            compute-center/requirements-institutional-knowledge.txt
+            compute-center/requirements-institutional-engineering.txt
+            compute-center/requirements-institutional-assurance.txt
 
       - name: Install isolated core compute dependencies
         run: python -m pip install --disable-pip-version-check --no-input -r compute-center/requirements.txt
