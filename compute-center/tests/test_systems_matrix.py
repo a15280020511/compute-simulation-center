@@ -15,7 +15,7 @@ class SystemsComputationMatrixTests(unittest.TestCase):
     def test_matrix_covers_every_public_operation(self):
         matrix = systems_matrix.load_systems_matrix()
         self.assertEqual(matrix["schema_version"], "compute-systems-matrix-v1")
-        self.assertEqual(len(matrix["routes"]), 27)
+        self.assertEqual(len(matrix["routes"]), 28)
         self.assertEqual(set(matrix["routes"]), systems_matrix.capability_operation_ids())
 
     def test_decision_routes_require_assumptions_and_stress(self):
