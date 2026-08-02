@@ -44,6 +44,12 @@ jobs:
             compute-center/requirements-bayesian-network.txt
             compute-center/requirements-calibration.txt
             compute-center/requirements-constraints.txt
+            compute-center/requirements-sector-causal-econ.txt
+            compute-center/requirements-sector-energy.txt
+            compute-center/requirements-sector-geostat.txt
+            compute-center/requirements-sector-grid.txt
+            compute-center/requirements-sector-lca.txt
+            compute-center/requirements-sector-water.txt
             compute-center/requirements-thinktank-data.txt
             compute-center/requirements-thinktank-econometrics.txt
             compute-center/requirements-thinktank-finance.txt
