@@ -13,16 +13,16 @@ from capability_manager import requirements_for_ticket, runtime_plan
 from think_tank_business_operations import customer_lifetime_value, inventory_policy, process_capability
 from think_tank_decision_operations import influence_diagram, policy_microsimulation, strategic_sandbox
 from think_tank_operations import SUPPORTED_MODES
-from think_tank_registry_validate import validate
+from think_tank_registry_validate import EXPECTED_EFFECTIVE_MODES, EXPECTED_EXTENSION_MODES, validate
 
 
 class ThinkTankRegistryTests(unittest.TestCase):
     def test_extension_registry_and_catalog_are_consistent(self) -> None:
         result = validate()
         self.assertEqual(result["status"], "PASS")
-        self.assertEqual(result["extension_modes"], 38)
-        self.assertEqual(result["effective_managed_modes"], 118)
-        self.assertEqual(len(SUPPORTED_MODES), 38)
+        self.assertEqual(result["extension_modes"], EXPECTED_EXTENSION_MODES)
+        self.assertEqual(result["effective_managed_modes"], EXPECTED_EFFECTIVE_MODES)
+        self.assertEqual(len(SUPPORTED_MODES), EXPECTED_EXTENSION_MODES)
 
     def test_mode_specific_dependency_resolution(self) -> None:
         cases = {
