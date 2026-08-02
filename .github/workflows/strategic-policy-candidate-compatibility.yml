@@ -1,6 +1,11 @@
 name: Strategic Policy Candidate Compatibility
 
 on:
+  push:
+    branches:
+      - feat/strategic-policy-intelligence-toolkit-20260803
+    paths:
+      - ".github/workflows/strategic-policy-candidate-compatibility.yml"
   pull_request:
     paths:
       - ".github/workflows/strategic-policy-candidate-compatibility.yml"
@@ -142,7 +147,8 @@ jobs:
               left = MinHash(num_perm=32)
               right = MinHash(num_perm=32)
               for token in (b"a", b"b"):
-                  left.update(token); right.update(token)
+                  left.update(token)
+                  right.update(token)
               assert left.jaccard(right) == 1.0
               checks["minhash"] = True
           elif candidate == "rdflib":
