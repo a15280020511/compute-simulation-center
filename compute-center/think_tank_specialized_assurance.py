@@ -2,6 +2,8 @@
 """Fairness, explainability, label-quality, reliability and control-system modes."""
 from __future__ import annotations
 
+import math
+
 from collections.abc import Mapping
 from typing import Any, Callable
 
@@ -140,7 +142,7 @@ def reliability_life_distribution(inputs: Mapping[str, Any]) -> dict[str, Any]:
         raise ComputeError("mission_time must be positive")
     reliability = float(np.exp(-((mission_time / alpha) ** beta)))
     distribution = getattr(fit, "distribution", None)
-    mean_life = float(getattr(distribution, "mean", alpha * np.math.gamma(1 + 1 / beta)))
+    mean_life = float(getattr(distribution, "mean", alpha * math.gamma(1 + 1 / beta)))
     median_life = float(getattr(distribution, "median", alpha * np.log(2) ** (1 / beta)))
     return {
         "mode": "reliability_life_distribution",
