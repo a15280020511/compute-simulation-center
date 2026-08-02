@@ -1,0 +1,42 @@
+name: One-shot specialized validator source fix
+
+on:
+  push:
+    branches:
+      - feat/exa-thinktank-tool-expansion-v2
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: feat/exa-thinktank-tool-expansion-v2
+          fetch-depth: 0
+      - name: Apply deterministic source correction
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          path = Path('compute-center/validate_specialized_packs.py')
+          source = path.read_text(encoding='utf-8')
+          if '    import pandas as pd\n' not in source:
+              raise SystemExit('validator already corrected')
+          if '\nimport pandas as pd\n' not in source.split('from pathlib import Path', 1)[0]:
+              source = source.replace('import numpy as np\n', 'import numpy as np\nimport pandas as pd\n', 1)
+          source = source.replace('    import pandas as pd\n', '')
+          path.write_text(source, encoding='utf-8')
+          PY
+          python -m py_compile compute-center/validate_specialized_packs.py
+          rm .github/workflows/self-patch-specialized-validator.yml
+      - name: Commit correction and remove one-shot workflow
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add compute-center/validate_specialized_packs.py .github/workflows/self-patch-specialized-validator.yml
+          git commit -m 'fix: remove validator pandas import shadowing'
+          git push origin HEAD:feat/exa-thinktank-tool-expansion-v2
