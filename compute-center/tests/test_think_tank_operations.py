@@ -21,7 +21,7 @@ class ThinkTankRegistryTests(unittest.TestCase):
         result = validate()
         self.assertEqual(result["status"], "PASS")
         self.assertEqual(result["extension_modes"], 38)
-        self.assertEqual(result["effective_managed_modes"], 107)
+        self.assertEqual(result["effective_managed_modes"], 148)
         self.assertEqual(len(SUPPORTED_MODES), 38)
 
     def test_mode_specific_dependency_resolution(self) -> None:

@@ -7,6 +7,7 @@ from typing import Any, Callable
 
 from compute_runner import ComputeError
 from finance_operations import finance_decision_analysis as legacy_finance_decision_analysis
+from institutional_toolkit_operations import HANDLERS as INSTITUTIONAL_HANDLERS
 from operations_research_modes import HANDLERS as OR_HANDLERS
 from professional_forecasting_operations import HANDLERS as FORECAST_HANDLERS
 from quantitative_operations import HANDLERS as QUANT_HANDLERS
@@ -29,7 +30,9 @@ PRODUCTION_HANDLER_MODES = (
     | set(STRATEGIC_HANDLERS)
 )
 PRODUCTION_MODES = LEGACY_MODES | PRODUCTION_HANDLER_MODES
-PREVIEW_MODES = set(THINK_TANK_HANDLERS)
+THINK_TANK_PREVIEW_MODES = set(THINK_TANK_HANDLERS)
+INSTITUTIONAL_PREVIEW_MODES = set(INSTITUTIONAL_HANDLERS)
+PREVIEW_MODES = THINK_TANK_PREVIEW_MODES | INSTITUTIONAL_PREVIEW_MODES
 
 MODE_HANDLERS: dict[str, Callable[[Mapping[str, Any]], dict[str, Any]]] = {
     **QUANT_HANDLERS,
@@ -37,14 +40,17 @@ MODE_HANDLERS: dict[str, Callable[[Mapping[str, Any]], dict[str, Any]]] = {
     **OR_HANDLERS,
     **STRATEGIC_HANDLERS,
     **THINK_TANK_HANDLERS,
+    **INSTITUTIONAL_HANDLERS,
 }
 
 if PRODUCTION_MODES & PREVIEW_MODES:
     raise RuntimeError("production and controlled-preview decision modes must not overlap")
+if THINK_TANK_PREVIEW_MODES & INSTITUTIONAL_PREVIEW_MODES:
+    raise RuntimeError("controlled-preview extensions must not expose duplicate modes")
 
 # Backward-compatible production set used by the established 22-mode gate.
 SUPPORTED_MODES = tuple(sorted(PRODUCTION_MODES))
-# Complete executable allowlist, including the separately governed preview extension.
+# Complete executable allowlist, including separately governed preview extensions.
 ALL_SUPPORTED_MODES = tuple(sorted(PRODUCTION_MODES | PREVIEW_MODES))
 
 

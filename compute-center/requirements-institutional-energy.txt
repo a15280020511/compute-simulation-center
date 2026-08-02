@@ -1,0 +1,4 @@
+pandas==2.3.3
+highspy==1.15.1
+pypsa==1.2.2
+pandapower==3.5.4
