@@ -1,4 +1,4 @@
-pandas==3.0.3
+pandas==2.3.3
 statsmodels==0.14.6
 linearmodels==7.0
 lifelines==0.30.3
