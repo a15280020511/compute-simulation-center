@@ -12,7 +12,7 @@ from capability_manager import load_registry, validated_groups
 HERE = Path(__file__).resolve().parent
 PIN_RE = re.compile(r"^[A-Za-z0-9_.-]+==[^=\s]+$")
 EXPECTED_EXTENSION_MODES = 38
-EXPECTED_EFFECTIVE_MODES = 107
+EXPECTED_EFFECTIVE_MODES = 148
 
 
 def _load(name: str) -> dict[str, Any]:
@@ -58,8 +58,9 @@ def validate() -> dict[str, Any]:
         raise RuntimeError("effective registry does not expose all extension modes")
     validated_groups()
 
-    if capabilities.get("extension_mode_count") != EXPECTED_EXTENSION_MODES:
-        raise RuntimeError("capability extension_mode_count mismatch")
+    think_tank_count = capabilities.get("think_tank_extension_mode_count", capabilities.get("extension_mode_count"))
+    if think_tank_count != EXPECTED_EXTENSION_MODES:
+        raise RuntimeError("capability think_tank_extension_mode_count mismatch")
     if capabilities.get("effective_managed_mode_count") != EXPECTED_EFFECTIVE_MODES:
         raise RuntimeError("capability effective_managed_mode_count mismatch")
     finance = next(row for row in capabilities["operations"] if row.get("id") == "finance_decision_analysis")
