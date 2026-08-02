@@ -30,31 +30,327 @@
     "feedback_monitoring": "drift and realized-outcome errors are recorded"
   },
   "routes": {
-    "monte_carlo": {"problem_class":"uncertainty-propagation","system_level":"validation","feedback_structure":"exogenous-randomness","required_gates":["input_quality","assumption_register","uncertainty","stress_test"]},
-    "sensitivity_analysis": {"problem_class":"global-attribution","system_level":"validation","feedback_structure":"parameter-response","required_gates":["input_quality","assumption_register","uncertainty","stress_test"]},
-    "scenario_compare": {"problem_class":"policy-comparison","system_level":"decision","feedback_structure":"discrete-scenarios","required_gates":["input_quality","assumption_register","uncertainty","stress_test"]},
-    "constrained_optimization": {"problem_class":"resource-optimization","system_level":"decision","feedback_structure":"constraint-coupled","required_gates":["input_quality","assumption_register","constraint_feasibility","stress_test"]},
-    "break_even_analysis": {"problem_class":"threshold-analysis","system_level":"decision","feedback_structure":"static-accounting","required_gates":["input_quality","assumption_register","uncertainty","stress_test"]},
-    "descriptive_statistics": {"problem_class":"observation-summary","system_level":"observation","feedback_structure":"none","required_gates":["input_quality"]},
-    "discrete_event_simulation": {"problem_class":"process-simulation","system_level":"state-evolution","feedback_structure":"queue-and-capacity","required_gates":["input_quality","assumption_register","calibration","uncertainty","stress_test"]},
-    "repeated_game": {"problem_class":"strategic-interaction","system_level":"mechanism","feedback_structure":"adaptive-payoff","required_gates":["assumption_register","uncertainty","stress_test"]},
-    "agent_evolution": {"problem_class":"population-dynamics","system_level":"state-evolution","feedback_structure":"adaptive-selection","required_gates":["input_quality","assumption_register","calibration","uncertainty","stress_test"]},
-    "time_series_forecast": {"problem_class":"forecasting","system_level":"state-estimation","feedback_structure":"temporal-dependence","required_gates":["input_quality","identifiability","uncertainty","external_validation","feedback_monitoring"]},
-    "causal_screening": {"problem_class":"association-screening","system_level":"observation","feedback_structure":"none","required_gates":["input_quality","assumption_register","uncertainty"]},
-    "nonlinear_dynamics": {"problem_class":"dynamic-system","system_level":"state-evolution","feedback_structure":"nonlinear-feedback","required_gates":["input_quality","assumption_register","identifiability","calibration","uncertainty","stress_test"]},
-    "pattern_discovery": {"problem_class":"structure-discovery","system_level":"observation","feedback_structure":"none","required_gates":["input_quality","uncertainty","external_validation"]},
-    "assumption_validation": {"problem_class":"assumption-audit","system_level":"validation","feedback_structure":"evidence-update","required_gates":["input_quality","assumption_register","uncertainty","external_validation"]},
-    "markov_simulation": {"problem_class":"state-transition","system_level":"state-evolution","feedback_structure":"transition-feedback","required_gates":["input_quality","assumption_register","calibration","uncertainty","stress_test"]},
-    "gis_spatial_analysis": {"problem_class":"spatial-relation","system_level":"observation","feedback_structure":"spatial-topology","required_gates":["input_quality","external_validation"]},
-    "bayesian_inference": {"problem_class":"probabilistic-estimation","system_level":"state-estimation","feedback_structure":"evidence-update","required_gates":["input_quality","assumption_register","identifiability","uncertainty","external_validation"]},
-    "econometric_analysis": {"problem_class":"statistical-identification","system_level":"mechanism","feedback_structure":"observational-dependence","required_gates":["input_quality","assumption_register","identifiability","uncertainty","external_validation"]},
-    "finance_decision_analysis": {"problem_class":"financial-decision","system_level":"decision","feedback_structure":"market-and-budget-feedback","required_gates":["input_quality","assumption_register","constraint_feasibility","uncertainty","stress_test","external_validation","feedback_monitoring"]},
-    "agent_based_simulation": {"problem_class":"emergent-behavior","system_level":"state-evolution","feedback_structure":"local-adaptive-feedback","required_gates":["input_quality","assumption_register","identifiability","calibration","uncertainty","stress_test","external_validation"]},
-    "missing_data_analysis": {"problem_class":"data-gap-governance","system_level":"observation","feedback_structure":"collection-feedback","required_gates":["input_quality","assumption_register","uncertainty","external_validation"]},
-    "system_dynamics_simulation": {"problem_class":"stock-flow-policy","system_level":"state-evolution","feedback_structure":"stock-flow-delay-feedback","required_gates":["input_quality","assumption_register","identifiability","calibration","uncertainty","stress_test","external_validation","feedback_monitoring"]},
-    "crisis_early_warning": {"problem_class":"risk-warning","system_level":"decision","feedback_structure":"threshold-and-response-feedback","required_gates":["input_quality","assumption_register","identifiability","calibration","uncertainty","stress_test","external_validation","feedback_monitoring"]},
-    "information_diffusion_analysis": {"problem_class":"network-diffusion","system_level":"state-evolution","feedback_structure":"network-contagion-feedback","required_gates":["input_quality","assumption_register","calibration","uncertainty","stress_test","external_validation"]},
-    "causal_policy_evaluation": {"problem_class":"causal-policy-effect","system_level":"mechanism","feedback_structure":"policy-response-feedback","required_gates":["input_quality","assumption_register","identifiability","uncertainty","stress_test","external_validation","feedback_monitoring"]},
-    "bayesian_network_inference": {"problem_class":"structured-probabilistic-inference","system_level":"mechanism","feedback_structure":"directed-dependency","required_gates":["input_quality","assumption_register","identifiability","uncertainty","external_validation"]}
+    "monte_carlo": {
+      "problem_class": "uncertainty-propagation",
+      "system_level": "validation",
+      "feedback_structure": "exogenous-randomness",
+      "required_gates": [
+        "input_quality",
+        "assumption_register",
+        "uncertainty",
+        "stress_test"
+      ]
+    },
+    "sensitivity_analysis": {
+      "problem_class": "global-attribution",
+      "system_level": "validation",
+      "feedback_structure": "parameter-response",
+      "required_gates": [
+        "input_quality",
+        "assumption_register",
+        "uncertainty",
+        "stress_test"
+      ]
+    },
+    "scenario_compare": {
+      "problem_class": "policy-comparison",
+      "system_level": "decision",
+      "feedback_structure": "discrete-scenarios",
+      "required_gates": [
+        "input_quality",
+        "assumption_register",
+        "uncertainty",
+        "stress_test"
+      ]
+    },
+    "constrained_optimization": {
+      "problem_class": "resource-optimization",
+      "system_level": "decision",
+      "feedback_structure": "constraint-coupled",
+      "required_gates": [
+        "input_quality",
+        "assumption_register",
+        "constraint_feasibility",
+        "stress_test"
+      ]
+    },
+    "break_even_analysis": {
+      "problem_class": "threshold-analysis",
+      "system_level": "decision",
+      "feedback_structure": "static-accounting",
+      "required_gates": [
+        "input_quality",
+        "assumption_register",
+        "uncertainty",
+        "stress_test"
+      ]
+    },
+    "descriptive_statistics": {
+      "problem_class": "observation-summary",
+      "system_level": "observation",
+      "feedback_structure": "none",
+      "required_gates": [
+        "input_quality"
+      ]
+    },
+    "discrete_event_simulation": {
+      "problem_class": "process-simulation",
+      "system_level": "state-evolution",
+      "feedback_structure": "queue-and-capacity",
+      "required_gates": [
+        "input_quality",
+        "assumption_register",
+        "calibration",
+        "uncertainty",
+        "stress_test"
+      ]
+    },
+    "repeated_game": {
+      "problem_class": "strategic-interaction",
+      "system_level": "mechanism",
+      "feedback_structure": "adaptive-payoff",
+      "required_gates": [
+        "assumption_register",
+        "uncertainty",
+        "stress_test"
+      ]
+    },
+    "agent_evolution": {
+      "problem_class": "population-dynamics",
+      "system_level": "state-evolution",
+      "feedback_structure": "adaptive-selection",
+      "required_gates": [
+        "input_quality",
+        "assumption_register",
+        "calibration",
+        "uncertainty",
+        "stress_test"
+      ]
+    },
+    "time_series_forecast": {
+      "problem_class": "forecasting",
+      "system_level": "state-estimation",
+      "feedback_structure": "temporal-dependence",
+      "required_gates": [
+        "input_quality",
+        "identifiability",
+        "uncertainty",
+        "external_validation",
+        "feedback_monitoring"
+      ]
+    },
+    "causal_screening": {
+      "problem_class": "association-screening",
+      "system_level": "observation",
+      "feedback_structure": "none",
+      "required_gates": [
+        "input_quality",
+        "assumption_register",
+        "uncertainty"
+      ]
+    },
+    "nonlinear_dynamics": {
+      "problem_class": "dynamic-system",
+      "system_level": "state-evolution",
+      "feedback_structure": "nonlinear-feedback",
+      "required_gates": [
+        "input_quality",
+        "assumption_register",
+        "identifiability",
+        "calibration",
+        "uncertainty",
+        "stress_test"
+      ]
+    },
+    "pattern_discovery": {
+      "problem_class": "structure-discovery",
+      "system_level": "observation",
+      "feedback_structure": "none",
+      "required_gates": [
+        "input_quality",
+        "uncertainty",
+        "external_validation"
+      ]
+    },
+    "assumption_validation": {
+      "problem_class": "assumption-audit",
+      "system_level": "validation",
+      "feedback_structure": "evidence-update",
+      "required_gates": [
+        "input_quality",
+        "assumption_register",
+        "uncertainty",
+        "external_validation"
+      ]
+    },
+    "markov_simulation": {
+      "problem_class": "state-transition",
+      "system_level": "state-evolution",
+      "feedback_structure": "transition-feedback",
+      "required_gates": [
+        "input_quality",
+        "assumption_register",
+        "calibration",
+        "uncertainty",
+        "stress_test"
+      ]
+    },
+    "gis_spatial_analysis": {
+      "problem_class": "spatial-relation",
+      "system_level": "observation",
+      "feedback_structure": "spatial-topology",
+      "required_gates": [
+        "input_quality",
+        "external_validation"
+      ]
+    },
+    "bayesian_inference": {
+      "problem_class": "probabilistic-estimation",
+      "system_level": "state-estimation",
+      "feedback_structure": "evidence-update",
+      "required_gates": [
+        "input_quality",
+        "assumption_register",
+        "identifiability",
+        "uncertainty",
+        "external_validation"
+      ]
+    },
+    "econometric_analysis": {
+      "problem_class": "statistical-identification",
+      "system_level": "mechanism",
+      "feedback_structure": "observational-dependence",
+      "required_gates": [
+        "input_quality",
+        "assumption_register",
+        "identifiability",
+        "uncertainty",
+        "external_validation"
+      ]
+    },
+    "finance_decision_analysis": {
+      "problem_class": "financial-decision",
+      "system_level": "decision",
+      "feedback_structure": "market-and-budget-feedback",
+      "required_gates": [
+        "input_quality",
+        "assumption_register",
+        "constraint_feasibility",
+        "uncertainty",
+        "stress_test",
+        "external_validation",
+        "feedback_monitoring"
+      ]
+    },
+    "agent_based_simulation": {
+      "problem_class": "emergent-behavior",
+      "system_level": "state-evolution",
+      "feedback_structure": "local-adaptive-feedback",
+      "required_gates": [
+        "input_quality",
+        "assumption_register",
+        "identifiability",
+        "calibration",
+        "uncertainty",
+        "stress_test",
+        "external_validation"
+      ]
+    },
+    "missing_data_analysis": {
+      "problem_class": "data-gap-governance",
+      "system_level": "observation",
+      "feedback_structure": "collection-feedback",
+      "required_gates": [
+        "input_quality",
+        "assumption_register",
+        "uncertainty",
+        "external_validation"
+      ]
+    },
+    "system_dynamics_simulation": {
+      "problem_class": "stock-flow-policy",
+      "system_level": "state-evolution",
+      "feedback_structure": "stock-flow-delay-feedback",
+      "required_gates": [
+        "input_quality",
+        "assumption_register",
+        "identifiability",
+        "calibration",
+        "uncertainty",
+        "stress_test",
+        "external_validation",
+        "feedback_monitoring"
+      ]
+    },
+    "crisis_early_warning": {
+      "problem_class": "risk-warning",
+      "system_level": "decision",
+      "feedback_structure": "threshold-and-response-feedback",
+      "required_gates": [
+        "input_quality",
+        "assumption_register",
+        "identifiability",
+        "calibration",
+        "uncertainty",
+        "stress_test",
+        "external_validation",
+        "feedback_monitoring"
+      ]
+    },
+    "information_diffusion_analysis": {
+      "problem_class": "network-diffusion",
+      "system_level": "state-evolution",
+      "feedback_structure": "network-contagion-feedback",
+      "required_gates": [
+        "input_quality",
+        "assumption_register",
+        "calibration",
+        "uncertainty",
+        "stress_test",
+        "external_validation"
+      ]
+    },
+    "causal_policy_evaluation": {
+      "problem_class": "causal-policy-effect",
+      "system_level": "mechanism",
+      "feedback_structure": "policy-response-feedback",
+      "required_gates": [
+        "input_quality",
+        "assumption_register",
+        "identifiability",
+        "uncertainty",
+        "stress_test",
+        "external_validation",
+        "feedback_monitoring"
+      ]
+    },
+    "bayesian_network_inference": {
+      "problem_class": "structured-probabilistic-inference",
+      "system_level": "mechanism",
+      "feedback_structure": "directed-dependency",
+      "required_gates": [
+        "input_quality",
+        "assumption_register",
+        "identifiability",
+        "uncertainty",
+        "external_validation"
+      ]
+    },
+    "sector_model_analysis": {
+      "problem_class": "sector-specific-modeling",
+      "system_level": "decision",
+      "feedback_structure": "sector-network-and-scenario-feedback",
+      "required_gates": [
+        "input_quality",
+        "assumption_register",
+        "constraint_feasibility",
+        "identifiability",
+        "uncertainty",
+        "calibration",
+        "stress_test",
+        "external_validation",
+        "feedback_monitoring"
+      ]
+    }
   }
 }

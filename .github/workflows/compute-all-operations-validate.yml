@@ -48,6 +48,7 @@ jobs:
             compute-center/requirements-bayesian-network.txt
             compute-center/requirements-calibration.txt
             compute-center/requirements-constraints.txt
+            compute-center/requirements-sector-causal-econ.txt
 
       - name: Install complete isolated compute environment
         run: |
@@ -60,6 +61,7 @@ jobs:
           python -m pip install --disable-pip-version-check --no-input -r compute-center/requirements-bayesian-network.txt
           python -m pip install --disable-pip-version-check --no-input -r compute-center/requirements-calibration.txt
           python -m pip install --disable-pip-version-check --no-input -r compute-center/requirements-constraints.txt
+          python -m pip install --disable-pip-version-check --no-input -r compute-center/requirements-sector-causal-econ.txt
           python -m pip check
 
       - name: Compile production runtime and validators
@@ -99,7 +101,7 @@ jobs:
           set -o pipefail
           python -m unittest discover -s compute-center/tests -v 2>&1 | tee compute-test-console.log
 
-      - name: Execute all 26 production operations
+      - name: Execute all 27 production operations
         run: |
           set -o pipefail
           python compute-center/validate_all_operations.py --output-dir all-compute-operation-artifacts 2>&1 | tee all-compute-operations-console.log
@@ -129,11 +131,11 @@ jobs:
           operation_root = Path('all-compute-operation-artifacts')
           operation_summary = json.loads((operation_root / 'all-operations-validation-summary.json').read_text(encoding='utf-8'))
           assert operation_summary['status'] == 'PASS', operation_summary
-          assert operation_summary['operation_count_expected'] == 26, operation_summary
-          assert operation_summary['operation_count_executed'] == 26, operation_summary
-          assert operation_summary['passed'] == 26 and operation_summary['failed'] == 0, operation_summary
-          assert len(operation_summary['registry']) == 26
-          assert len(operation_summary['rows']) == 26
+          assert operation_summary['operation_count_expected'] == 27, operation_summary
+          assert operation_summary['operation_count_executed'] == 27, operation_summary
+          assert operation_summary['passed'] == 27 and operation_summary['failed'] == 0, operation_summary
+          assert len(operation_summary['registry']) == 27
+          assert len(operation_summary['rows']) == 27
           required = (
               'compute-result.json', 'compute-audit.json', 'compute-diagnostics.json',
               'compute-preflight.json', 'compute-data-gap-plan.json',
@@ -167,7 +169,7 @@ jobs:
               for name in ('compute-result.json', 'compute-audit.json', 'compute-diagnostics.json', 'compute-preflight.json', 'compute-data-gap-plan.json', 'compute-expert-review-request.json', 'artifact-manifest.json'):
                   assert (root / name).is_file(), (row['mode'], name)
 
-          print(json.dumps({'status': 'PASS', 'operations': 26, 'managed_modes': 69, 'institutional_libraries': 16, 'credibility_factors': 12, 'decision_intelligence_modes': 22, 'operation_summary_sha256': operation_summary['summary_sha256'], 'mode_summary_sha256': mode_summary['summary_sha256'], 'sole_relay': 'gpts-usage-center', 'compute_network_policy': 'deny'}))
+          print(json.dumps({'status': 'PASS', 'operations': 27, 'managed_modes': 80, 'institutional_libraries': 16, 'credibility_factors': 12, 'decision_intelligence_modes': 22, 'operation_summary_sha256': operation_summary['summary_sha256'], 'mode_summary_sha256': mode_summary['summary_sha256'], 'sole_relay': 'gpts-usage-center', 'compute_network_policy': 'deny'}))
           PY
 
       - name: Upload exhaustive compute evidence
