@@ -559,10 +559,10 @@ def pyshacl_graph_validation(inputs: Mapping[str, Any]) -> dict[str, Any]:
     from pyshacl import validate
     from rdflib import Graph
     data_turtle = _text(inputs.get("data_turtle"), "inputs.data_turtle", 100_000); shapes_turtle = _text(inputs.get("shapes_turtle"), "inputs.shapes_turtle", 100_000)
-    if any(token in data_turtle + shapes_turtle for token in ("http://", "https://", "file:")): raise ComputeError("remote or file IRIs are forbidden in graph validation")
+    if "file:" in data_turtle + shapes_turtle or "owl:imports" in data_turtle + shapes_turtle: raise ComputeError("file access and ontology imports are forbidden in graph validation")
     data_graph = Graph().parse(data=data_turtle, format="turtle"); shapes_graph = Graph().parse(data=shapes_turtle, format="turtle")
     if len(data_graph) > MAX_EDGES or len(shapes_graph) > MAX_EDGES: raise ComputeError("graphs exceed the governed triple limit")
-    conforms, report_graph, report_text = validate(data_graph=data_graph, shacl_graph=shapes_graph, inference="none", abort_on_first=False, allow_infos=False, allow_warnings=False, meta_shacl=False, advanced=False, js=False)
+    conforms, report_graph, report_text = validate(data_graph=data_graph, shacl_graph=shapes_graph, inference="none", abort_on_first=False, allow_infos=False, allow_warnings=False, meta_shacl=False, advanced=False, js=False, do_owl_imports=False)
     return {"mode": "pyshacl_graph_validation", "conforms": bool(conforms), "data_triples": len(data_graph), "shape_triples": len(shapes_graph), "report_triples": len(report_graph), "report": str(report_text)[:20_000], "engine": {"pyshacl": _package("pyshacl"), "rdflib": _package("rdflib")}, "remote_imports_allowed": False}
 
 
