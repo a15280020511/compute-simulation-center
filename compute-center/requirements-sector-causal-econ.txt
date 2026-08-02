@@ -1,0 +1,4 @@
+DoubleML==0.11.3
+quantecon==0.11.4
+nashpy==0.0.43
+ema-workbench==3.0.0
