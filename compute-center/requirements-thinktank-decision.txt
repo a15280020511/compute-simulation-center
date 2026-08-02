@@ -1,0 +1,4 @@
+pymoo==0.6.2
+optuna==4.9.0
+pyomo==6.10.1
+highspy==1.15.1
