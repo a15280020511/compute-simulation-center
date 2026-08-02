@@ -20,7 +20,7 @@ class GovernanceCatalogTests(unittest.TestCase):
         self.assertEqual(report["status"], "PASS")
         self.assertEqual(report["operation_count"], 26)
         self.assertEqual(report["managed_mode_count"], 69)
-        self.assertEqual(report["installed_method_pack_count"], 6)
+        self.assertEqual(report["installed_method_pack_count"], 12)
         self.assertEqual(report["benchmark_category_count"], 5)
         self.assertEqual(report["institutional_library_count"], 16)
         self.assertGreaterEqual(report["strategy_count"], 8)
