@@ -21,25 +21,36 @@ def robust_glm(inputs: Mapping[str, Any]) -> dict[str, Any]:
     if x.shape[0] != y.size:
         raise ComputeError("inputs.x and inputs.y row counts must match")
     family_name = str(inputs.get("family") or "gaussian")
-    families = {
-        "gaussian": sm.families.Gaussian(),
-        "binomial": sm.families.Binomial(),
-        "poisson": sm.families.Poisson(),
-        "negative_binomial": sm.families.NegativeBinomial(),
-        "gamma": sm.families.Gamma(),
+    family_factories = {
+        "gaussian": sm.families.Gaussian,
+        "binomial": sm.families.Binomial,
+        "poisson": sm.families.Poisson,
+        "gamma": sm.families.Gamma,
     }
-    family = families.get(family_name)
-    if family is None:
-        raise ComputeError("unsupported GLM family")
+    if family_name == "negative_binomial":
+        alpha = finite(inputs.get("dispersion", 1.0), "inputs.dispersion")
+        if alpha <= 0:
+            raise ComputeError("inputs.dispersion must be positive")
+        family = sm.families.NegativeBinomial(alpha=alpha)
+    else:
+        factory = family_factories.get(family_name)
+        if factory is None:
+            raise ComputeError("unsupported GLM family")
+        family = factory()
+    cov_type = str(inputs.get("cov_type") or "HC3")
+    if cov_type not in {"nonrobust", "HC0", "HC1", "HC2", "HC3", "HAC"}:
+        raise ComputeError("unsupported covariance type")
+    fit_kwargs: dict[str, Any] = {"cov_type": cov_type}
+    if cov_type == "HAC":
+        fit_kwargs["cov_kwds"] = {"maxlags": integer(inputs.get("max_lags", 1), "inputs.max_lags", 1, 20)}
     try:
-        fitted = sm.GLM(y, sm.add_constant(x, has_constant="add"), family=family).fit(
-            cov_type=str(inputs.get("cov_type") or "HC3")
-        )
+        fitted = sm.GLM(y, sm.add_constant(x, has_constant="add"), family=family).fit(**fit_kwargs)
     except Exception as exc:
         raise ComputeError(f"GLM fitting failed: {type(exc).__name__}: {exc}") from exc
     return {
         "mode": "robust_glm",
         "family": family_name,
+        "covariance_type": cov_type,
         "coefficients": [float(v) for v in fitted.params],
         "standard_errors": [float(v) for v in fitted.bse],
         "p_values": [float(v) for v in fitted.pvalues],
@@ -57,9 +68,12 @@ def panel_fixed_effects(inputs: Mapping[str, Any]) -> dict[str, Any]:
     x = matrix(inputs.get("x"), "inputs.x", min_rows=20)
     y = vector(inputs.get("y"), "inputs.y", minimum=20)
     entity = [str(v) for v in sequence(inputs.get("entity"), "inputs.entity")]
-    time = [str(v) for v in sequence(inputs.get("time"), "inputs.time")]
+    raw_time = sequence(inputs.get("time"), "inputs.time")
+    time = [finite(value, f"inputs.time[{index}]") for index, value in enumerate(raw_time)]
     if not (x.shape[0] == y.size == len(entity) == len(time)):
         raise ComputeError("panel arrays must have equal row counts")
+    if len(set(zip(entity, time, strict=True))) != len(entity):
+        raise ComputeError("panel entity-time observations must be unique")
     columns = [f"x{i + 1}" for i in range(x.shape[1])]
     index = pd.MultiIndex.from_arrays([entity, time], names=["entity", "time"])
     frame = pd.DataFrame(x, index=index, columns=columns)
@@ -116,18 +130,17 @@ def meta_analysis(inputs: Mapping[str, Any]) -> dict[str, Any]:
     variances = vector(inputs.get("variances"), "inputs.variances", minimum=2, maximum=500)
     if effects.size != variances.size or np.any(variances <= 0):
         raise ComputeError("effects and positive variances must have equal length")
+    method = str(inputs.get("method_re") or "iterated")
+    if method not in {"iterated", "chi2"}:
+        raise ComputeError("inputs.method_re must be iterated or chi2")
     try:
-        result = combine_effects(
-            effects,
-            variances,
-            method_re=str(inputs.get("method_re") or "iterated"),
-            use_t=False,
-        )
+        result = combine_effects(effects, variances, method_re=method, use_t=False)
     except Exception as exc:
         raise ComputeError(f"meta-analysis failed: {type(exc).__name__}: {exc}") from exc
     return {
         "mode": "meta_analysis",
         "studies": int(effects.size),
+        "method_re": method,
         "fixed_effect": float(result.mean_effect_fe),
         "random_effect": float(result.mean_effect_re),
         "tau_squared": float(result.tau2),
@@ -199,7 +212,7 @@ def mixed_effects_model(inputs: Mapping[str, Any]) -> dict[str, Any]:
         raise ComputeError("mixed-effects arrays must align and contain at least two groups")
     try:
         fit = sm.MixedLM(y, sm.add_constant(x, has_constant="add"), groups=groups).fit(
-            reml=True, method="lbfgs", maxiter=500, disp=False
+            reml=False, method="lbfgs", maxiter=500, disp=False
         )
     except Exception as exc:
         raise ComputeError(f"mixed-effects fitting failed: {type(exc).__name__}: {exc}") from exc
@@ -210,6 +223,7 @@ def mixed_effects_model(inputs: Mapping[str, Any]) -> dict[str, Any]:
         "residual_variance": float(fit.scale),
         "aic": float(fit.aic),
         "bic": float(fit.bic),
+        "converged": bool(fit.converged),
     }
 
 
