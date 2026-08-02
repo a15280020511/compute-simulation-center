@@ -1,0 +1,1 @@
+inferactively-pymdp==1.0.3
