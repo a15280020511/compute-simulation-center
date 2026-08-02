@@ -13,6 +13,7 @@ on:
 
 permissions:
   contents: read
+  issues: write
 
 concurrency:
   group: strategic-policy-mode-${{ github.ref }}-${{ matrix.mode }}
@@ -126,3 +127,25 @@ jobs:
           path: strategic-policy-artifacts/
           if-no-files-found: warn
           retention-days: 30
+
+  publish-receipt:
+    if: always()
+    needs: [validate-mode]
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Publish matrix receipt
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          RESULT: ${{ needs.validate-mode.result }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+        run: |
+          set -euo pipefail
+          if [[ "$RESULT" == "success" ]]; then
+            status='STRATEGIC_POLICY_MODE_MATRIX_PASS'
+          else
+            status='STRATEGIC_POLICY_MODE_MATRIX_FAIL'
+          fi
+          marker="<!-- strategic-policy-matrix-run:${GITHUB_RUN_ID} -->"
+          body=$(printf '%s\n## %s\n\n- Modes: `30`\n- Matrix result: `%s`\n- Run ID: `%s`\n- Network in fixtures: `denied / unused`\n- Arbitrary code: `false`\n- Model calls: `0`\n' "$marker" "$status" "$RESULT" "$GITHUB_RUN_ID")
+          gh api --method POST "repos/${GITHUB_REPOSITORY}/issues/${PR_NUMBER}/comments" -f body="$body"
+          [[ "$RESULT" == "success" ]]
