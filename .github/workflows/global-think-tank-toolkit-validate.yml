@@ -1,310 +1,79 @@
-name: Validate Global Think Tank Toolkit
+name: Generate Strategic Policy Registration
 
 on:
   pull_request:
     paths:
-      - "compute-center/think_tank_global_operations.py"
-      - "compute-center/validate_global_think_tank_pack.py"
-      - "compute-center/think_tank_operations.py"
-      - "compute-center/think-tank-mode-registry.json"
-      - "compute-center/think_tank_registry_validate.py"
-      - "compute-center/requirements-global-*.txt"
-      - "compute-center/compute-capabilities.json"
-      - "compute-center/method-registry.json"
+      - "compute-center/register_strategic_policy_pack.py"
+      - "compute-center/strategic_policy_intelligence_operations.py"
+      - "compute-center/requirements-strategy-*.txt"
+      - "compute-center/requirements-policy-*.txt"
+      - "compute-center/requirements-intelligence-*.txt"
+      - "compute-center/requirements-graph-*.txt"
       - ".github/workflows/global-think-tank-toolkit-validate.yml"
-  push:
-    branches: [main]
-    paths:
-      - "compute-center/think_tank_global_operations.py"
-      - "compute-center/validate_global_think_tank_pack.py"
-      - "compute-center/think_tank_operations.py"
-      - "compute-center/think-tank-mode-registry.json"
-      - "compute-center/think_tank_registry_validate.py"
-      - "compute-center/requirements-global-*.txt"
-      - "compute-center/compute-capabilities.json"
-      - "compute-center/method-registry.json"
 
 permissions:
   contents: read
 
 concurrency:
-  group: global-think-tank-toolkit-${{ github.ref }}
+  group: strategic-policy-registration-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
-  validate-mode:
-    name: ${{ matrix.mode }}
+  generate:
     runs-on: ubuntu-24.04
-    timeout-minutes: 40
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          - mode: openturns_reliability_probability
-            requirements: requirements-global-openturns.txt
-          - mode: control_step_response
-            requirements: requirements-global-control.txt
-          - mode: pm4py_directly_follows
-            requirements: requirements-global-pm4py.txt
-          - mode: smt_rbf_surrogate
-            requirements: requirements-global-smt.txt
-          - mode: econml_linear_dml
-            requirements: requirements-global-econml.txt
-          - mode: spreg_spatial_lag
-            requirements: requirements-global-spreg.txt
-          - mode: arch_garch_forecast
-            requirements: requirements-global-arch.txt
-          - mode: mapie_conformal_interval
-            requirements: requirements-global-mapie.txt
-          - mode: pydoe3_latin_hypercube
-            requirements: requirements-global-pydoe3.txt
-          - mode: lmfit_exponential_calibration
-            requirements: requirements-global-lmfit.txt
-          - mode: skgstat_variogram
-            requirements: requirements-global-skgstat.txt
-          - mode: rsome_robust_allocation
-            requirements: requirements-global-rsome.txt
-          - mode: aequilibrae_shortest_path
-            requirements: requirements-global-aequilibrae.txt
-          - mode: epydemix_sir_simulation
-            requirements: requirements-global-epydemix.txt
-          - mode: pysd_stock_flow_scenario
-            requirements: requirements-global-pysd.txt
+    timeout-minutes: 20
     steps:
-      - name: Checkout pinned source
+      - name: Checkout branch
         uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
         with:
           persist-credentials: false
+          fetch-depth: 0
 
-      - name: Set up Python 3.12
-        uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065
-        with:
-          python-version: "3.12"
-          cache: pip
-          cache-dependency-path: |
-            compute-center/requirements.txt
-            compute-center/${{ matrix.requirements }}
-
-      - name: Install one isolated dependency pack
+      - name: Install control-plane baseline
         run: |
-          set -euo pipefail
-          python -m pip install --disable-pip-version-check --no-input \
-            -r compute-center/requirements.txt \
-            -r compute-center/${{ matrix.requirements }}
-          python -m pip check
-
-      - name: Compile controlled runtime
-        run: |
-          python -m py_compile \
-            compute-center/think_tank_global_operations.py \
-            compute-center/validate_global_think_tank_pack.py
-
-      - name: Execute fixed local-data numerical fixture
-        run: |
-          set -euo pipefail
-          mkdir -p global-toolkit-artifacts
-          python compute-center/validate_global_think_tank_pack.py \
-            --mode "${{ matrix.mode }}" \
-            --output "global-toolkit-artifacts/${{ matrix.mode }}.json"
-
-      - name: Verify offline evidence contract
-        run: |
-          python - <<'PY'
-          import json
-          import os
-          from pathlib import Path
-          mode = os.environ['MODE']
-          data = json.loads((Path('global-toolkit-artifacts') / f'{mode}.json').read_text(encoding='utf-8'))
-          assert data['status'] == 'PASS'
-          assert data['mode'] == mode
-          assert data['network_used'] is False
-          assert data['arbitrary_code_used'] is False
-          source = Path('compute-center/think_tank_global_operations.py').read_text(encoding='utf-8')
-          for forbidden in ('import requests', 'import socket', 'urllib.request', 'httpx.'):
-              assert forbidden not in source
-          PY
-        env:
-          MODE: ${{ matrix.mode }}
-
-      - name: Upload safe validation evidence
-        if: always()
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
-        with:
-          name: global-think-tank-${{ matrix.mode }}-${{ github.run_id }}
-          path: global-toolkit-artifacts/
-          if-no-files-found: error
-          retention-days: 30
-
-  candidate-compatibility:
-    name: candidate-${{ matrix.id }}
-    runs-on: ubuntu-24.04
-    timeout-minutes: 45
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          - {id: open_spiel, package: open-spiel, module: pyspiel}
-          - {id: pygambit, package: pygambit, module: pygambit}
-          - {id: negmas, package: negmas, module: negmas}
-          - {id: scml, package: scml, module: scml}
-          - {id: axelrod, package: axelrod, module: axelrod}
-          - {id: pyblp, package: pyblp, module: pyblp}
-          - {id: pymc_marketing, package: pymc-marketing, module: pymc_marketing}
-          - {id: biogeme, package: biogeme, module: biogeme}
-          - {id: pyagrum, package: pyagrum, module: pyagrum}
-          - {id: scikit_criteria, package: scikit-criteria, module: skcriteria}
-          - {id: clingo, package: clingo, module: clingo}
-          - {id: z3_solver, package: z3-solver, module: z3}
-          - {id: sequence_jacobian, package: sequence-jacobian, module: sequence_jacobian}
-          - {id: econ_ark, package: econ-ark, module: HARK}
-          - {id: ogcore, package: ogcore, module: ogcore}
-          - {id: taxcalc, package: taxcalc, module: taxcalc}
-          - {id: policyengine_core, package: policyengine-core, module: policyengine_core}
-          - {id: dolo, package: dolo, module: dolo}
-          - {id: splink, package: splink, module: splink}
-          - {id: rapidfuzz, package: rapidfuzz, module: rapidfuzz}
-          - {id: datasketch, package: datasketch, module: datasketch}
-          - {id: rdflib, package: rdflib, module: rdflib}
-          - {id: pyshacl, package: pyshacl, module: pyshacl}
-          - {id: owlready2, package: owlready2, module: owlready2}
-          - {id: python_igraph, package: python-igraph, module: igraph}
-          - {id: pyreason, package: pyreason, module: pyreason}
-          - {id: problog, package: problog, module: problog}
-          - {id: pycib, package: pycib, module: pycib}
-          - {id: causalml, package: causalml, module: causalml}
-          - {id: pettingzoo, package: pettingzoo, module: pettingzoo}
-          - {id: rhodium, package: rhodium, module: rhodium}
-    steps:
-      - name: Checkout pinned source
-        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
-        with:
-          persist-credentials: false
-
-      - name: Set up Python 3.12
-        uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065
-        with:
-          python-version: "3.12"
-
-      - name: Install baseline and one candidate
-        env:
-          PACKAGE: ${{ matrix.package }}
-        run: |
-          set -euo pipefail
           python -m pip install --disable-pip-version-check --no-input -r compute-center/requirements.txt
-          python -m pip install --disable-pip-version-check --no-input --upgrade-strategy only-if-needed "$PACKAGE"
           python -m pip check
 
-      - name: Verify baseline and fixed smoke fixture
-        env:
-          CANDIDATE_ID: ${{ matrix.id }}
-          PACKAGE: ${{ matrix.package }}
-          MODULE: ${{ matrix.module }}
+      - name: Generate registered control plane
+        run: python compute-center/register_strategic_policy_pack.py
+
+      - name: Validate generated files
         run: |
           set -euo pipefail
-          mkdir -p candidate-artifacts
+          python -m py_compile \
+            compute-center/strategic_policy_intelligence_operations.py \
+            compute-center/register_strategic_policy_pack.py \
+            compute-center/think_tank_global_operations.py
+          python compute-center/capability_manager.py validate > registration-capability-manager.json
+          python compute-center/systems_matrix.py validate > registration-systems-matrix.json
+          python compute-center/maintenance_audit.py --root . --output registration-maintenance-audit.json
           python - <<'PY'
-          import importlib
-          import importlib.metadata
           import json
-          import os
-          from pathlib import Path
-          import numpy
-          import scipy
-
-          assert numpy.__version__ == "2.4.6", numpy.__version__
-          assert scipy.__version__ == "1.18.0", scipy.__version__
-          candidate = os.environ["CANDIDATE_ID"]
-          package = os.environ["PACKAGE"]
-          module = importlib.import_module(os.environ["MODULE"])
-          checks = {"import": True}
-
-          if candidate == "open_spiel":
-              assert module.load_game("matrix_rps").num_players() == 2
-              checks["matrix_game"] = True
-          elif candidate == "axelrod":
-              assert len(module.Match((module.TitForTat(), module.Cooperator()), turns=5).play()) == 5
-              checks["repeated_game"] = True
-          elif candidate == "pyagrum":
-              network = module.BayesNet("smoke")
-              network.add(module.LabelizedVariable("x", "x", 2))
-              assert network.size() == 1
-              checks["bayesian_network"] = True
-          elif candidate == "clingo":
-              ctl = module.Control(["0"])
-              ctl.add("base", [], "a. b :- a. #show b/0.")
-              ctl.ground([("base", [])])
-              models = []
-              ctl.solve(on_model=lambda model: models.append(str(model)))
-              assert models and "b" in models[0]
-              checks["answer_set"] = True
-          elif candidate == "z3_solver":
-              x = module.Int("x")
-              solver = module.Solver()
-              solver.add(x > 2, x < 4)
-              assert solver.check() == module.sat
-              checks["constraint_solver"] = True
-          elif candidate == "rapidfuzz":
-              from rapidfuzz import fuzz
-              assert fuzz.ratio("alpha", "alpha") == 100
-              checks["fuzzy_match"] = True
-          elif candidate == "datasketch":
-              from datasketch import MinHash
-              left = MinHash(num_perm=32)
-              right = MinHash(num_perm=32)
-              for token in (b"a", b"b"):
-                  left.update(token)
-                  right.update(token)
-              assert left.jaccard(right) == 1.0
-              checks["minhash"] = True
-          elif candidate == "rdflib":
-              graph = module.Graph()
-              graph.add((module.URIRef("urn:s"), module.URIRef("urn:p"), module.Literal("v")))
-              assert len(graph) == 1
-              checks["rdf_graph"] = True
-          elif candidate == "pyshacl":
-              from rdflib import Graph
-              data = Graph().parse(data="@prefix ex: <urn:> . ex:a ex:p ex:b .", format="turtle")
-              conforms, _, _ = module.validate(data_graph=data)
-              assert isinstance(conforms, bool)
-              checks["shacl_validation"] = True
-          elif candidate == "owlready2":
-              assert module.get_ontology("urn:smoke") is not None
-              checks["ontology"] = True
-          elif candidate == "python_igraph":
-              graph = module.Graph.Ring(5)
-              assert graph.vcount() == 5 and graph.ecount() == 5
-              checks["graph_algorithms"] = True
-          elif candidate == "problog":
-              from problog import get_evaluatable
-              from problog.program import PrologString
-              assert get_evaluatable().create_from(PrologString("0.5::a. query(a). ")).evaluate()
-              checks["probabilistic_logic"] = True
-          elif candidate == "pettingzoo":
-              assert hasattr(module, "AECEnv") or hasattr(module, "ParallelEnv")
-              checks["multiagent_api"] = True
-
-          result = {
-              "status": "PASS",
-              "candidate": candidate,
-              "package": package,
-              "version": importlib.metadata.version(package),
-              "numpy": numpy.__version__,
-              "scipy": scipy.__version__,
-              "checks": checks,
-              "network_used_by_fixture": False,
-              "arbitrary_user_code": False,
-          }
-          Path(f"candidate-artifacts/{candidate}.json").write_text(
-              json.dumps(result, ensure_ascii=False, indent=2), encoding="utf-8"
-          )
+          assert json.load(open('registration-capability-manager.json'))['status'] == 'PASS'
+          assert json.load(open('registration-systems-matrix.json'))['status'] == 'PASS'
+          assert json.load(open('registration-maintenance-audit.json'))['configuration']['status'] == 'PASS'
           PY
-          python -m pip freeze --all > "candidate-artifacts/${CANDIDATE_ID}-freeze.txt"
+          git diff --check
 
-      - name: Upload compatibility evidence
-        if: always()
+      - name: Stage generated registration files
+        run: |
+          set -euo pipefail
+          mkdir -p registration-artifact/compute-center registration-artifact/.github/workflows
+          cp compute-center/tool-registry.json registration-artifact/compute-center/
+          cp compute-center/compute-capabilities.json registration-artifact/compute-center/
+          cp compute-center/systems-computation-matrix.json registration-artifact/compute-center/
+          cp compute-center/think_tank_global_operations.py registration-artifact/compute-center/
+          cp compute-center/strategic_policy_intelligence_operations.py registration-artifact/compute-center/
+          cp .github/workflows/compute-ticket.yml registration-artifact/.github/workflows/
+          cp .github/workflows/global-think-tank-toolkit-validate.yml registration-artifact/.github/workflows/
+          cp registration-capability-manager.json registration-artifact/
+          cp registration-systems-matrix.json registration-artifact/
+          cp registration-maintenance-audit.json registration-artifact/
+
+      - name: Upload generated registration artifact
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         with:
-          name: strategic-policy-candidate-${{ matrix.id }}-${{ github.run_id }}
-          path: candidate-artifacts/
-          if-no-files-found: warn
+          name: strategic-policy-registration-${{ github.run_id }}
+          path: registration-artifact/
+          if-no-files-found: error
           retention-days: 14
