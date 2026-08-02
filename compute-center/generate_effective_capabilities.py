@@ -7,10 +7,27 @@ from pathlib import Path
 from typing import Any, Mapping
 
 HERE = Path(__file__).resolve().parent
+ROOT = HERE.parent
 CAPABILITIES = HERE / "compute-capabilities.json"
 BASE_REGISTRY = HERE / "tool-registry.json"
 THINK_TANK_REGISTRY = HERE / "think-tank-mode-registry.json"
 INSTITUTIONAL_REGISTRY = HERE / "institutional-toolkit-mode-registry.json"
+CACHE_WORKFLOWS = (
+    ROOT / ".github" / "workflows" / "compute-ticket.yml",
+    ROOT / ".github" / "workflows" / "compute-validate.yml",
+)
+INSTITUTIONAL_REQUIREMENTS = (
+    "requirements-institutional-economics.txt",
+    "requirements-institutional-forecasting.txt",
+    "requirements-institutional-decision.txt",
+    "requirements-institutional-spatial.txt",
+    "requirements-institutional-energy.txt",
+    "requirements-institutional-climate-health.txt",
+    "requirements-institutional-finance.txt",
+    "requirements-institutional-knowledge.txt",
+    "requirements-institutional-engineering.txt",
+    "requirements-institutional-assurance.txt",
+)
 
 
 def load(path: Path) -> dict[str, Any]:
@@ -26,6 +43,37 @@ def mode_map(registry: Mapping[str, Any], label: str) -> dict[str, Any]:
     if not isinstance(modes, dict) or not isinstance(requirements, dict) or set(modes) != set(requirements):
         raise RuntimeError(f"{label} registry is invalid")
     return modes
+
+
+def update_cache_contract(path: Path) -> None:
+    text = path.read_text(encoding="utf-8")
+    lines = text.splitlines()
+    required_paths = [f"compute-center/{name}" for name in INSTITUTIONAL_REQUIREMENTS]
+    if all(item in text for item in required_paths):
+        return
+    marker_index = None
+    marker_indent = None
+    for index, line in enumerate(lines):
+        if line.strip() == "cache-dependency-path: |":
+            marker_index = index
+            marker_indent = len(line) - len(line.lstrip())
+            break
+    if marker_index is None or marker_indent is None:
+        raise RuntimeError(f"{path.name} has no cache-dependency-path block")
+    end = marker_index + 1
+    child_indent = marker_indent + 2
+    while end < len(lines):
+        line = lines[end]
+        if not line.strip():
+            break
+        indent = len(line) - len(line.lstrip())
+        if indent <= marker_indent:
+            break
+        end += 1
+    present = {line.strip() for line in lines[marker_index + 1 : end]}
+    additions = [" " * child_indent + item for item in required_paths if item not in present]
+    lines[end:end] = additions
+    path.write_text("\n".join(lines) + "\n", encoding="utf-8")
 
 
 def main() -> int:
@@ -83,10 +131,10 @@ def main() -> int:
         "long-running shadow validation and realized-outcome feedback",
         "specialized multi-physics digital-twin and military-grade wargaming backends",
     ]
-    restrictions = assessment.setdefault("not_intended_for", [])
+    not_intended = assessment.setdefault("not_intended_for", [])
     native_restriction = "FMU or other ticket-supplied native binary execution"
-    if native_restriction not in restrictions:
-        restrictions.append(native_restriction)
+    if native_restriction not in not_intended:
+        not_intended.append(native_restriction)
 
     limits = capabilities.setdefault("limits", {})
     limits.update(
@@ -130,6 +178,8 @@ def main() -> int:
         json.dumps(capabilities, ensure_ascii=False, indent=2) + "\n",
         encoding="utf-8",
     )
+    for workflow in CACHE_WORKFLOWS:
+        update_cache_contract(workflow)
     print(
         json.dumps(
             {
@@ -139,6 +189,7 @@ def main() -> int:
                 "think_tank_modes": len(think_tank_modes),
                 "institutional_modes": len(institutional_modes),
                 "effective_modes": managed_mode_count + extension_mode_count,
+                "cache_workflows": [path.name for path in CACHE_WORKFLOWS],
             },
             ensure_ascii=False,
             sort_keys=True,
