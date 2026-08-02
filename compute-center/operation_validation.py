@@ -8,11 +8,12 @@ from typing import Any, Mapping
 
 from jsonschema import Draft202012Validator
 
+from capability_manager import load_registry
 from model_governance import GovernanceError, validate_ticket_governance
 
 HERE = Path(__file__).resolve().parent
 CATALOG = json.loads((HERE / "operation-input-schemas.json").read_text(encoding="utf-8"))
-REGISTRY = json.loads((HERE / "tool-registry.json").read_text(encoding="utf-8"))
+REGISTRY = load_registry()
 
 
 def _managed_schema(operation: str) -> Mapping[str, Any] | None:
