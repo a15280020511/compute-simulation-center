@@ -1,0 +1,9 @@
+pandas==2.3.3
+geopandas==1.1.4
+mgwr==2.2.1
+momepy==0.11.0
+spreg==1.9.0
+spopt==0.7.0
+movingpandas==0.22.4
+segregation==2.5.4
+pulp==3.3.0
