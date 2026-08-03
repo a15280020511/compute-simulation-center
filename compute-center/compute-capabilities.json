@@ -2,9 +2,9 @@
   "schema_version": "compute-capabilities-v9",
   "catalog_status": "production",
   "operation_count": 28,
-  "managed_mode_count": 110,
+  "managed_mode_count": 122,
   "extension_mode_count": 53,
-  "effective_managed_mode_count": 163,
+  "effective_managed_mode_count": 175,
   "capability_manager_version": 2,
   "selection_owner": "gpts-usage-center",
   "maintenance_owner": "ordinary-web-gpt-with-github-plugin",
@@ -97,7 +97,11 @@
     "PySHACL": "0.40.1",
     "Owlready2": "0.51",
     "python-igraph": "1.0.0",
-    "ProbLog": "2.2.10"
+    "ProbLog": "2.2.10",
+    "QuantLib": "1.43; fixed option and bond analytics",
+    "inferactively-pymdp": "1.0.3; bounded one-step active-inference policy evaluation",
+    "PyOD": "3.6.2; classic allowlisted ECOD, IForest and KNN anomaly screening only",
+    "mlxtend": "0.25.0; frequent-itemset and association-rule analysis"
   },
   "toolkit_assessment": {
     "current_scope_sufficient_for_existing_operations": true,
@@ -124,7 +128,8 @@
       "process mining, spatial lag econometrics and heterogeneous causal-effect estimation",
       "GARCH volatility, conformal intervals and scenario-robust allocation",
       "transport shortest paths, epidemic compartments and fixed-template system dynamics",
-      "strategic games, negotiation, policy counterfactuals, entity resolution, evidence graphs and structured intelligence analysis"
+      "strategic games, negotiation, policy counterfactuals, entity resolution, evidence graphs and structured intelligence analysis",
+      "fixed derivatives and bond analytics, active-inference choice, classic anomaly screening, market-basket rules, evolutionary strategy and bounded group-behavior scenarios"
     ],
     "not_intended_for": [
       "individual psychological diagnosis or deterministic individual prediction",
@@ -623,7 +628,7 @@
     },
     {
       "id": "strategic_policy_analysis",
-      "description": "断网执行博弈、谈判、市场竞争、营销配置、金融政策反事实、实体消歧、证据图谱、规则推理和公开结构化情报分析。",
+      "description": "断网执行博弈、谈判、市场竞争、营销配置、金融政策反事实、量化定价、异常筛查、实体消歧、证据图谱、群体行为机制和公开结构化情报分析。",
       "modes": [
         "open_spiel_policy_evaluation",
         "pygambit_pure_equilibria",
@@ -654,7 +659,19 @@
         "claim_evidence_contradiction",
         "event_timeline_collision",
         "red_team_challenge_matrix",
-        "net_assessment_balance"
+        "net_assessment_balance",
+        "quantlib_option_greeks",
+        "quantlib_bond_duration",
+        "active_inference_policy_choice",
+        "pyod_anomaly_screen",
+        "market_basket_association_rules",
+        "replicator_dynamics",
+        "finite_population_fixation",
+        "prospect_theory_choice",
+        "collective_action_threshold",
+        "rumor_correction_dynamics",
+        "trust_reputation_update",
+        "group_consensus_pressure"
       ],
       "dependency_policy": "每个包支持模式只安装仓库固定的精确版本依赖；纯方法模式仅使用核心数值栈。",
       "limits": {
@@ -674,5 +691,10 @@
         "高风险决策必须独立验证并由人类批准"
       ]
     }
+  ],
+  "safety_boundaries": [
+    "no live brokerage, order placement, personalized suitability or guaranteed-return claims",
+    "no autonomous behavioral agent loop, individual psychological diagnosis or real-group deterministic prediction",
+    "no persuasion targeting, information operations or automatic enforcement from anomaly scores"
   ]
 }

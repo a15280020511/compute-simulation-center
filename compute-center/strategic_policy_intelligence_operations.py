@@ -17,6 +17,7 @@ from typing import Any, Callable
 import numpy as np
 
 from compute_runner import ComputeError
+from behavior_finance_intelligence_operations import HANDLERS as BEHAVIOR_FINANCE_INTELLIGENCE_HANDLERS
 
 MAX_ROWS = 2_000
 MAX_FIELDS = 20
@@ -724,6 +725,8 @@ HANDLERS: dict[str, Callable[[Mapping[str, Any]], dict[str, Any]]] = {
     "red_team_challenge_matrix": red_team_challenge_matrix,
     "net_assessment_balance": net_assessment_balance,
 }
+
+HANDLERS.update(BEHAVIOR_FINANCE_INTELLIGENCE_HANDLERS)
 
 SUPPORTED_MODES = tuple(sorted(HANDLERS))
 

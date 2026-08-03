@@ -1,0 +1,158 @@
+name: Validate Behavior Finance Intelligence Toolkit
+
+on:
+  pull_request:
+    paths:
+      - "compute-center/behavior_finance_intelligence_operations.py"
+      - "compute-center/validate_behavior_finance_intelligence_pack.py"
+      - "compute-center/requirements-final-*.txt"
+      - "compute-center/tool-registry.json"
+      - "compute-center/compute-capabilities.json"
+      - ".github/workflows/behavior-finance-intelligence-validate.yml"
+  push:
+    branches: [main]
+    paths:
+      - "compute-center/behavior_finance_intelligence_operations.py"
+      - "compute-center/validate_behavior_finance_intelligence_pack.py"
+      - "compute-center/requirements-final-*.txt"
+      - "compute-center/tool-registry.json"
+      - "compute-center/compute-capabilities.json"
+      - ".github/workflows/behavior-finance-intelligence-validate.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: behavior-finance-intelligence-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  validate-mode:
+    name: ${{ matrix.mode }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - {mode: quantlib_option_greeks, requirements: requirements-final-quantlib.txt}
+          - {mode: quantlib_bond_duration, requirements: requirements-final-quantlib.txt}
+          - {mode: active_inference_policy_choice, requirements: requirements-final-pymdp.txt}
+          - {mode: pyod_anomaly_screen, requirements: requirements-final-pyod.txt}
+          - {mode: market_basket_association_rules, requirements: requirements-final-mlxtend.txt}
+          - {mode: replicator_dynamics, requirements: ""}
+          - {mode: finite_population_fixation, requirements: ""}
+          - {mode: prospect_theory_choice, requirements: ""}
+          - {mode: collective_action_threshold, requirements: ""}
+          - {mode: rumor_correction_dynamics, requirements: ""}
+          - {mode: trust_reputation_update, requirements: ""}
+          - {mode: group_consensus_pressure, requirements: ""}
+    steps:
+      - name: Checkout pinned source
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          persist-credentials: false
+
+      - name: Set up Python 3.12
+        uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065
+        with:
+          python-version: "3.12"
+
+      - name: Install isolated mode dependency pack
+        env:
+          REQUIREMENTS: ${{ matrix.requirements }}
+        run: |
+          set -euo pipefail
+          python -m pip install --disable-pip-version-check --no-input -r compute-center/requirements.txt
+          if [[ -n "$REQUIREMENTS" ]]; then
+            python -m pip install --disable-pip-version-check --no-input \
+              --upgrade-strategy only-if-needed -r "compute-center/$REQUIREMENTS"
+          fi
+          python -m pip check
+          python - <<'PY'
+          import numpy, scipy
+          assert numpy.__version__ == "2.4.6", numpy.__version__
+          assert scipy.__version__ == "1.18.0", scipy.__version__
+          PY
+
+      - name: Compile governed runtime
+        run: |
+          python -m py_compile \
+            compute-center/behavior_finance_intelligence_operations.py \
+            compute-center/validate_behavior_finance_intelligence_pack.py
+
+      - name: Execute fixed offline fixture
+        run: |
+          set -euo pipefail
+          mkdir -p behavior-finance-intelligence-artifacts
+          python compute-center/validate_behavior_finance_intelligence_pack.py \
+            --mode "${{ matrix.mode }}" \
+            --output "behavior-finance-intelligence-artifacts/${{ matrix.mode }}.json"
+
+      - name: Verify governance evidence
+        env:
+          MODE: ${{ matrix.mode }}
+        run: |
+          python - <<'PY'
+          import ast
+          import json
+          import os
+          from pathlib import Path
+
+          mode = os.environ["MODE"]
+          receipt = json.loads((Path("behavior-finance-intelligence-artifacts") / f"{mode}.json").read_text(encoding="utf-8"))
+          assert receipt["status"] == "PASS"
+          assert receipt["mode"] == mode
+          assert receipt["network_used"] is False
+          assert receipt["model_calls"] == 0
+          assert receipt["arbitrary_code_used"] is False
+          assert receipt["remote_data_used"] is False
+          assert receipt["brokerage_execution_used"] is False
+          assert receipt["individual_psychological_diagnosis_allowed"] is False
+          source = Path("compute-center/behavior_finance_intelligence_operations.py").read_text(encoding="utf-8")
+          for forbidden in (
+              "import requests", "import socket", "urllib.request", "subprocess.",
+              "pickle.loads", "sample_action(", "from pyod.models.adengine",
+              "from pyod.models.agent", "import mcp", "MCPServer",
+          ):
+              assert forbidden not in source
+          tree = ast.parse(source)
+          observed = {
+              node.func.id
+              for node in ast.walk(tree)
+              if isinstance(node, ast.Call) and isinstance(node.func, ast.Name)
+          }
+          assert {"eval", "exec", "compile"}.isdisjoint(observed)
+          PY
+
+      - name: Upload mode evidence
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: behavior-finance-intelligence-${{ matrix.mode }}-${{ github.run_id }}
+          path: behavior-finance-intelligence-artifacts/
+          if-no-files-found: warn
+          retention-days: 30
+
+  matrix-receipt:
+    if: always()
+    needs: [validate-mode]
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Write deterministic receipt
+        env:
+          RESULT: ${{ needs.validate-mode.result }}
+        run: |
+          set -euo pipefail
+          {
+            echo "## Behavior Finance Intelligence Matrix"
+            echo
+            echo "- Modes: 12"
+            echo "- Matrix result: ${RESULT}"
+            echo "- Runtime network: denied / unused"
+            echo "- Model calls: 0"
+            echo "- Brokerage execution: false"
+            echo "- Individual psychological diagnosis: false"
+          } >> "$GITHUB_STEP_SUMMARY"
+          [[ "$RESULT" == "success" ]]

@@ -1109,6 +1109,21 @@
         ],
         "problog_evidence_probability": [
           "requirements-intelligence-problog.txt"
+        ],
+        "quantlib_option_greeks": [
+          "requirements-final-quantlib.txt"
+        ],
+        "quantlib_bond_duration": [
+          "requirements-final-quantlib.txt"
+        ],
+        "active_inference_policy_choice": [
+          "requirements-final-pymdp.txt"
+        ],
+        "pyod_anomaly_screen": [
+          "requirements-final-pyod.txt"
+        ],
+        "market_basket_association_rules": [
+          "requirements-final-mlxtend.txt"
         ]
       },
       "network_policy": "deny",
@@ -1385,6 +1400,114 @@
           }
         },
         "net_assessment_balance": {
+          "maturity": "controlled-preview",
+          "network_policy": "deny",
+          "deterministic": true,
+          "limits": {
+            "max_seconds": 120,
+            "max_memory_mb": 4096
+          }
+        },
+        "quantlib_option_greeks": {
+          "maturity": "controlled-preview",
+          "network_policy": "deny",
+          "deterministic": true,
+          "limits": {
+            "max_seconds": 120,
+            "max_memory_mb": 4096
+          }
+        },
+        "quantlib_bond_duration": {
+          "maturity": "controlled-preview",
+          "network_policy": "deny",
+          "deterministic": true,
+          "limits": {
+            "max_seconds": 120,
+            "max_memory_mb": 4096
+          }
+        },
+        "active_inference_policy_choice": {
+          "maturity": "controlled-preview",
+          "network_policy": "deny",
+          "deterministic": true,
+          "limits": {
+            "max_seconds": 120,
+            "max_memory_mb": 4096
+          }
+        },
+        "pyod_anomaly_screen": {
+          "maturity": "controlled-preview",
+          "network_policy": "deny",
+          "deterministic": true,
+          "limits": {
+            "max_seconds": 120,
+            "max_memory_mb": 4096
+          }
+        },
+        "market_basket_association_rules": {
+          "maturity": "controlled-preview",
+          "network_policy": "deny",
+          "deterministic": true,
+          "limits": {
+            "max_seconds": 120,
+            "max_memory_mb": 4096
+          }
+        },
+        "replicator_dynamics": {
+          "maturity": "controlled-preview",
+          "network_policy": "deny",
+          "deterministic": true,
+          "limits": {
+            "max_seconds": 120,
+            "max_memory_mb": 4096
+          }
+        },
+        "finite_population_fixation": {
+          "maturity": "controlled-preview",
+          "network_policy": "deny",
+          "deterministic": true,
+          "limits": {
+            "max_seconds": 120,
+            "max_memory_mb": 4096
+          }
+        },
+        "prospect_theory_choice": {
+          "maturity": "controlled-preview",
+          "network_policy": "deny",
+          "deterministic": true,
+          "limits": {
+            "max_seconds": 120,
+            "max_memory_mb": 4096
+          }
+        },
+        "collective_action_threshold": {
+          "maturity": "controlled-preview",
+          "network_policy": "deny",
+          "deterministic": true,
+          "limits": {
+            "max_seconds": 120,
+            "max_memory_mb": 4096
+          }
+        },
+        "rumor_correction_dynamics": {
+          "maturity": "controlled-preview",
+          "network_policy": "deny",
+          "deterministic": true,
+          "limits": {
+            "max_seconds": 120,
+            "max_memory_mb": 4096
+          }
+        },
+        "trust_reputation_update": {
+          "maturity": "controlled-preview",
+          "network_policy": "deny",
+          "deterministic": true,
+          "limits": {
+            "max_seconds": 120,
+            "max_memory_mb": 4096
+          }
+        },
+        "group_consensus_pressure": {
           "maturity": "controlled-preview",
           "network_policy": "deny",
           "deterministic": true,
