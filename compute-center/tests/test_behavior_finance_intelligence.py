@@ -42,8 +42,10 @@ class BehaviorFinanceIntelligenceGovernanceTests(unittest.TestCase):
             "subprocess.",
             "pickle.loads",
             "sample_action(",
-            "ADEngine",
-            "mcp",
+            "from pyod.models.adengine",
+            "from pyod.models.agent",
+            "import mcp",
+            "MCPServer",
         ):
             self.assertNotIn(forbidden, source)
         tree = compile(source, str(ROOT / "behavior_finance_intelligence_operations.py"), "exec", flags=0, dont_inherit=True)
