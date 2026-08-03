@@ -1,0 +1,25 @@
+{
+  "schema_version": "compute-governed-domain-library-registry-v1",
+  "policy": {
+    "extends_core_institutional_libraries": true,
+    "core_institutional_library_count": 16,
+    "runtime_network_allowed": false,
+    "ticket_supplied_code_allowed": false,
+    "unverified_domain_truth_prepopulation_allowed": false,
+    "immutable_snapshot_and_hash_required": true,
+    "external_storage_owner": "intelligence-center",
+    "sole_selection_owner": "gpts-usage-center",
+    "sole_execution_owner": "github-compute-center",
+    "direct_center_connection_allowed": false
+  },
+  "libraries": [
+    {"id":"domain-factor-library","authority":"domain-factor-registry.json","purpose":"Versioned domain factors mapped to fixed audited implementations and leakage controls.","content_status":"generic-controlled-preview"},
+    {"id":"baseline-library","authority":"baseline-registry.json","purpose":"Fixed simple comparison methods required before complex-model promotion.","content_status":"generic-controlled-preview"},
+    {"id":"metric-threshold-library","authority":"metric-threshold-registry.json","purpose":"Global active thresholds and evidence-pending domain promotion thresholds.","content_status":"global-populated-domain-data-pending"},
+    {"id":"domain-rule-snapshot-library","authority":"domain-rule-snapshot-registry.json","purpose":"Effective-dated external policy, tax, trading, regulatory and operating parameters.","content_status":"structure-complete-data-pending"},
+    {"id":"ontology-crosswalk-library","authority":"ontology-crosswalk-registry.json","purpose":"Versioned administrative, industry, security, organization, unit, currency, calendar and variable mappings.","content_status":"structure-complete-data-pending"},
+    {"id":"regime-event-library","authority":"regime-event-registry.json","purpose":"Structural breaks, crises, policy changes, holidays, extreme weather and market regimes.","content_status":"structure-complete-data-pending"},
+    {"id":"outcome-feedback-library","authority":"outcome-feedback-registry.json","purpose":"Append-only realized outcomes linked to prior predictions and immutable model, input and rule hashes.","content_status":"structure-complete-data-pending"},
+    {"id":"external-domain-material-contract","authority":"external-domain-material-contract.json","purpose":"GPTs-mediated immutable transfer contract from Intelligence Center to offline Compute Center.","content_status":"populated"}
+  ]
+}
