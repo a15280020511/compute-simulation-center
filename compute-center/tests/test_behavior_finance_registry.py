@@ -8,6 +8,7 @@ ROOT = Path(__file__).resolve().parents[1]
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
+import strategic_policy_intelligence_operations  # noqa: E402
 import tool_registry  # noqa: E402
 
 
@@ -40,6 +41,20 @@ class BehaviorFinanceRegistryTests(unittest.TestCase):
                 {"operation": "strategic_policy_analysis", "inputs": {"mode": mode}}
             )
             self.assertEqual(observed, [])
+
+    def test_strategic_runtime_exposes_all_registered_modes(self) -> None:
+        handlers = strategic_policy_intelligence_operations.HANDLERS
+        self.assertEqual(len(handlers), 42)
+        for mode in (
+            "quantlib_option_greeks",
+            "active_inference_policy_choice",
+            "pyod_anomaly_screen",
+            "market_basket_association_rules",
+            "replicator_dynamics",
+            "prospect_theory_choice",
+            "group_consensus_pressure",
+        ):
+            self.assertIn(mode, handlers)
 
 
 if __name__ == "__main__":
