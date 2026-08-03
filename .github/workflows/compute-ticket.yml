@@ -88,6 +88,11 @@ jobs:
             compute-center/requirements-policy-taxcalc.txt
             compute-center/requirements-statsforecast.txt
             compute-center/requirements-sumo.txt
+            compute-center/requirements-institutional-causal.txt
+            compute-center/requirements-institutional-tigramite.txt
+            compute-center/requirements-institutional-evidently.txt
+            compute-center/requirements-institutional-river.txt
+            compute-center/requirements-institutional-skfolio.txt
             compute-center/requirements-strategy-axelrod.txt
             compute-center/requirements-strategy-biogeme.txt
             compute-center/requirements-strategy-clingo.txt

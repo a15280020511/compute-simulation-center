@@ -13,6 +13,7 @@ from decision_intelligence_gateway import (  # noqa: E402
     SUPPORTED_MODES,
     finance_decision_analysis,
 )
+from institutional_expansion_operations import HANDLERS as INSTITUTIONAL_EXPANSION_HANDLERS  # noqa: E402
 from operations_research_modes import assignment_optimization, mixed_integer_optimization, vehicle_routing  # noqa: E402
 from professional_forecasting_operations import (  # noqa: E402
     exponential_smoothing_forecast,
@@ -48,13 +49,21 @@ class StrategicIntelligenceTests(unittest.TestCase):
         self.assertTrue(expected <= set(SUPPORTED_MODES))
         self.assertTrue(set(THINK_TANK_MODES) <= set(ALL_SUPPORTED_MODES))
         self.assertTrue(set(ASSURANCE_HANDLERS) <= set(ALL_SUPPORTED_MODES))
-        self.assertTrue(set(SUPPORTED_MODES).isdisjoint(set(THINK_TANK_MODES)))
-        self.assertTrue(set(SUPPORTED_MODES).isdisjoint(set(ASSURANCE_HANDLERS)))
-        self.assertTrue(set(THINK_TANK_MODES).isdisjoint(set(ASSURANCE_HANDLERS)))
+        self.assertTrue(set(INSTITUTIONAL_EXPANSION_HANDLERS) <= set(ALL_SUPPORTED_MODES))
+        groups = [
+            set(SUPPORTED_MODES),
+            set(THINK_TANK_MODES),
+            set(ASSURANCE_HANDLERS),
+            set(INSTITUTIONAL_EXPANSION_HANDLERS),
+        ]
+        for left in range(len(groups)):
+            for right in range(left + 1, len(groups)):
+                self.assertTrue(groups[left].isdisjoint(groups[right]))
         self.assertEqual(len(SUPPORTED_MODES), 22)
         self.assertEqual(len(THINK_TANK_MODES), 53)
         self.assertEqual(len(ASSURANCE_HANDLERS), 8)
-        self.assertEqual(len(ALL_SUPPORTED_MODES), 83)
+        self.assertEqual(len(INSTITUTIONAL_EXPANSION_HANDLERS), 10)
+        self.assertEqual(len(ALL_SUPPORTED_MODES), 93)
 
     def test_weighted_mcda_ranks_alternatives(self):
         result = weighted_mcda({
