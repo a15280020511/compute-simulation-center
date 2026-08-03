@@ -1,0 +1,14 @@
+{
+  "schema_version": "compute-ontology-crosswalk-registry-v1",
+  "policy": {
+    "source_mapping_owner": "intelligence-center",
+    "compute_accepts_immutable_crosswalk_only": true,
+    "version_and_hash_required": true,
+    "ambiguous_mapping_must_be_reported": true,
+    "runtime_network_allowed": false
+  },
+  "supported_crosswalk_types": ["administrative_division","industry_classification","security_identifier","organization_identifier","unit","currency","calendar","geographic_code","variable_code"],
+  "required_fields": ["crosswalk_id","version","type","source_system","target_system","effective_from","effective_to","snapshot_sha256","mapping_count","ambiguity_policy","review_due_at"],
+  "crosswalks": [],
+  "status": "structure-complete-data-pending"
+}
