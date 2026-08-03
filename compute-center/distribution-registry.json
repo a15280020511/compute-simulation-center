@@ -1,15 +1,252 @@
 {
-  "schema_version":"compute-distribution-registry-v1",
-  "policy":{"ticket_defined_distribution_code_allowed":false,"parameter_validation_required":true,"truncation_must_be_explicit":true},
-  "distributions":[
-    {"id":"constant","uncertainty_use":"deterministic","required_parameters":["value"],"allowed_for":["fixed contractual value","validated invariant"]},
-    {"id":"uniform","uncertainty_use":"epistemic","required_parameters":["minimum","maximum"],"allowed_for":["bounded ignorance"],"warning":"Do not imply equal real-world frequency without justification."},
-    {"id":"triangular","uncertainty_use":"epistemic","required_parameters":["minimum","mode","maximum"],"allowed_for":["structured expert elicitation"]},
-    {"id":"normal","uncertainty_use":"aleatory_or_measurement","required_parameters":["mean","standard_deviation"],"allowed_for":["approximately symmetric variation"],"warning":"Use explicit clipping when the variable has physical bounds."},
-    {"id":"lognormal","uncertainty_use":"aleatory_or_epistemic","required_parameters":["mean","standard_deviation"],"allowed_for":["positive multiplicative quantities"]},
-    {"id":"beta","uncertainty_use":"aleatory_or_epistemic","required_parameters":["alpha","beta"],"allowed_for":["bounded proportions"]},
-    {"id":"categorical","uncertainty_use":"aleatory_or_scenario","required_parameters":["states","probabilities"],"allowed_for":["finite mutually exclusive outcomes"]},
-    {"id":"empirical","uncertainty_use":"aleatory","required_parameters":["snapshot_sha256","values"],"allowed_for":["frozen attributable observations"]},
-    {"id":"scenario_set","uncertainty_use":"epistemic","required_parameters":["scenario_ids"],"allowed_for":["deep uncertainty and structural alternatives"]}
+  "schema_version": "compute-distribution-registry-v2",
+  "policy": {
+    "ticket_defined_distribution_code_allowed": false,
+    "parameter_validation_required": true,
+    "truncation_must_be_explicit": true,
+    "dependence_must_be_explicit": true,
+    "correlation_matrix_psd_required": true,
+    "seed_required_for_reproducible_sampling": true
+  },
+  "dependence_models": [
+    {
+      "id": "independent",
+      "parameters": []
+    },
+    {
+      "id": "gaussian_copula",
+      "parameters": [
+        "correlation_matrix"
+      ]
+    },
+    {
+      "id": "t_copula",
+      "parameters": [
+        "correlation_matrix",
+        "degrees_of_freedom"
+      ]
+    }
+  ],
+  "distributions": [
+    {
+      "id": "constant",
+      "support": "point",
+      "uncertainty_use": "deterministic",
+      "required_parameters": [
+        "value"
+      ]
+    },
+    {
+      "id": "uniform",
+      "support": "bounded_continuous",
+      "uncertainty_use": "epistemic",
+      "required_parameters": [
+        "minimum",
+        "maximum"
+      ]
+    },
+    {
+      "id": "triangular",
+      "support": "bounded_continuous",
+      "uncertainty_use": "epistemic",
+      "required_parameters": [
+        "minimum",
+        "mode",
+        "maximum"
+      ]
+    },
+    {
+      "id": "normal",
+      "support": "continuous",
+      "uncertainty_use": "aleatory_or_measurement",
+      "required_parameters": [
+        "mean",
+        "standard_deviation"
+      ]
+    },
+    {
+      "id": "lognormal",
+      "support": "positive_continuous",
+      "uncertainty_use": "aleatory_or_epistemic",
+      "required_parameters": [
+        "mu",
+        "sigma"
+      ]
+    },
+    {
+      "id": "beta",
+      "support": "unit_interval",
+      "uncertainty_use": "aleatory_or_epistemic",
+      "required_parameters": [
+        "alpha",
+        "beta"
+      ]
+    },
+    {
+      "id": "bernoulli",
+      "support": "binary",
+      "uncertainty_use": "aleatory",
+      "required_parameters": [
+        "probability"
+      ]
+    },
+    {
+      "id": "binomial",
+      "support": "bounded_count",
+      "uncertainty_use": "aleatory",
+      "required_parameters": [
+        "trials",
+        "probability"
+      ]
+    },
+    {
+      "id": "poisson",
+      "support": "count",
+      "uncertainty_use": "aleatory",
+      "required_parameters": [
+        "rate"
+      ]
+    },
+    {
+      "id": "negative_binomial",
+      "support": "overdispersed_count",
+      "uncertainty_use": "aleatory",
+      "required_parameters": [
+        "mean",
+        "dispersion"
+      ]
+    },
+    {
+      "id": "gamma",
+      "support": "positive_continuous",
+      "uncertainty_use": "duration_or_size",
+      "required_parameters": [
+        "shape",
+        "scale"
+      ]
+    },
+    {
+      "id": "exponential",
+      "support": "positive_continuous",
+      "uncertainty_use": "duration",
+      "required_parameters": [
+        "scale"
+      ]
+    },
+    {
+      "id": "weibull",
+      "support": "positive_continuous",
+      "uncertainty_use": "duration_or_reliability",
+      "required_parameters": [
+        "shape",
+        "scale"
+      ]
+    },
+    {
+      "id": "student_t",
+      "support": "heavy_tailed_continuous",
+      "uncertainty_use": "robust_variation",
+      "required_parameters": [
+        "degrees_of_freedom",
+        "location",
+        "scale"
+      ]
+    },
+    {
+      "id": "pareto",
+      "support": "heavy_tailed_positive",
+      "uncertainty_use": "tail_size",
+      "required_parameters": [
+        "shape",
+        "scale"
+      ]
+    },
+    {
+      "id": "gev",
+      "support": "extreme_value",
+      "uncertainty_use": "block_extrema",
+      "required_parameters": [
+        "shape",
+        "location",
+        "scale"
+      ]
+    },
+    {
+      "id": "gpd",
+      "support": "extreme_value_tail",
+      "uncertainty_use": "threshold_exceedance",
+      "required_parameters": [
+        "shape",
+        "location",
+        "scale"
+      ]
+    },
+    {
+      "id": "truncated_normal",
+      "support": "bounded_continuous",
+      "uncertainty_use": "bounded_measurement",
+      "required_parameters": [
+        "mean",
+        "standard_deviation",
+        "minimum",
+        "maximum"
+      ]
+    },
+    {
+      "id": "zero_inflated_poisson",
+      "support": "zero_inflated_count",
+      "uncertainty_use": "structural_zero_count",
+      "required_parameters": [
+        "rate",
+        "zero_probability"
+      ]
+    },
+    {
+      "id": "hurdle_poisson",
+      "support": "hurdle_count",
+      "uncertainty_use": "participation_plus_count",
+      "required_parameters": [
+        "rate",
+        "zero_probability"
+      ]
+    },
+    {
+      "id": "gaussian_mixture",
+      "support": "mixture_continuous",
+      "uncertainty_use": "latent_regimes",
+      "required_parameters": [
+        "weights",
+        "means",
+        "standard_deviations"
+      ]
+    },
+    {
+      "id": "categorical",
+      "support": "finite_states",
+      "uncertainty_use": "scenario_or_aleatory",
+      "required_parameters": [
+        "states",
+        "probabilities"
+      ],
+      "sampling_mode": "existing_categorical_runtime"
+    },
+    {
+      "id": "empirical",
+      "support": "observed",
+      "uncertainty_use": "aleatory",
+      "required_parameters": [
+        "values"
+      ],
+      "snapshot_sha256_recommended": true
+    },
+    {
+      "id": "scenario_set",
+      "support": "structural_alternatives",
+      "uncertainty_use": "deep_uncertainty",
+      "required_parameters": [
+        "scenario_ids"
+      ],
+      "sampling_mode": "scenario_runtime"
+    }
   ]
 }
