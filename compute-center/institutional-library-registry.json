@@ -1,5 +1,5 @@
 {
-  "schema_version": "compute-institutional-library-registry-v2",
+  "schema_version": "compute-institutional-library-registry-v3",
   "policy": {
     "all_libraries_versioned": true,
     "runtime_network_allowed": false,
@@ -8,24 +8,34 @@
     "database_server_required": false,
     "immutable_snapshot_and_hash_required": true,
     "sole_selection_owner": "gpts-usage-center",
-    "sole_execution_owner": "github-compute-center"
+    "sole_execution_owner": "github-compute-center",
+    "external_storage_owner": "intelligence-center",
+    "direct_center_connection_allowed": false
   },
   "libraries": [
-    {"id": "model-library", "authority": "model-registry.json", "purpose": "model purpose, version, engineering maturity, evidence maturity, validity and retirement"},
-    {"id": "method-library", "authority": "method-registry.json", "purpose": "fixed numerical and simulation backends, dependency pins, applicability and rollback"},
-    {"id": "strategy-library", "authority": "strategy-registry.json", "purpose": "decision strategies such as robust decision making, minimax regret, adaptive pathways and value of information"},
-    {"id": "rule-library", "authority": "rule-registry.json", "purpose": "fail-closed institutional rules and their fixed implementations"},
-    {"id": "assumption-library", "authority": "assumption-library.json", "purpose": "versioned structural, parameter, boundary, data, numerical, causal and policy assumptions"},
-    {"id": "distribution-prior-library", "authority": "distribution-registry.json", "purpose": "allowlisted distributions, priors, parameter requirements and suitability boundaries"},
-    {"id": "parameter-calibration-library", "authority": "calibration-profile.schema.json", "purpose": "parameter definitions, observations, bounds, identifiability, multistart and validation controls"},
-    {"id": "constraint-library", "authority": "constraint-profile.schema.json", "purpose": "hard constraints, soft constraints and separately implemented post-solver checks"},
-    {"id": "scenario-library", "authority": "scenario-registry.json", "purpose": "baseline, stress, reverse-stress, counterfactual, adversarial and boundary scenarios"},
-    {"id": "mechanism-coverage-library", "authority": "mechanism-register.schema.json", "purpose": "important phenomena, mechanisms, omissions and alternative structures"},
-    {"id": "experiment-design-library", "authority": "experiment-design-registry.json", "purpose": "seeds, actual replications, stopping rules, holdout, multistart and step sensitivity"},
-    {"id": "data-evidence-library", "authority": "storage-architecture.json", "purpose": "immutable data snapshots, provenance, units, time, scope and SHA-256 evidence"},
-    {"id": "sample-library", "authority": "sample-registry.json", "purpose": "sample population, selection method, representativeness, known biases, license and immutable snapshot references"},
-    {"id": "benchmark-validation-library", "authority": "benchmark-registry.json", "purpose": "numerical truth, parameter recovery, frozen-real, adversarial, cross-implementation and shadow validation"},
-    {"id": "credibility-library", "authority": "credibility-factor-registry.json", "purpose": "risk-adjusted factor-by-factor credibility case for intended use"},
-    {"id": "feedback-results-library", "authority": "model-performance-ledger.schema.json", "purpose": "predictions, realized outcomes, calibration, drift, defects and lifecycle events"}
+    {"id":"model-library","authority":"model-registry.json","purpose":"model purpose, version, engineering maturity, evidence maturity, validity and retirement","content_status":"populated"},
+    {"id":"method-library","authority":"method-registry.json","purpose":"fixed numerical and simulation backends, dependency pins, applicability and rollback","content_status":"populated"},
+    {"id":"strategy-library","authority":"strategy-registry.json","purpose":"decision strategies such as robust decision making, minimax regret, adaptive pathways and value of information","content_status":"populated"},
+    {"id":"rule-library","authority":"rule-registry.json","purpose":"fail-closed institutional rules and their fixed implementations","content_status":"populated"},
+    {"id":"assumption-library","authority":"assumption-library.json","purpose":"versioned structural, parameter, boundary, data, numerical, causal and policy assumptions","content_status":"structure-complete-data-pending"},
+    {"id":"distribution-prior-library","authority":"distribution-registry.json","purpose":"allowlisted distributions, priors, parameter requirements and suitability boundaries","content_status":"populated"},
+    {"id":"parameter-calibration-library","authority":"calibration-profile.schema.json","purpose":"parameter definitions, observations, bounds, identifiability, multistart and validation controls","content_status":"populated"},
+    {"id":"constraint-library","authority":"constraint-profile.schema.json","purpose":"hard constraints, soft constraints and separately implemented post-solver checks","content_status":"populated"},
+    {"id":"scenario-library","authority":"scenario-registry.json","purpose":"baseline, stress, reverse-stress, counterfactual, adversarial and boundary scenarios","content_status":"taxonomy-populated-values-ticket-supplied"},
+    {"id":"mechanism-coverage-library","authority":"mechanism-register.schema.json","purpose":"important phenomena, mechanisms, omissions and alternative structures","content_status":"schema-populated"},
+    {"id":"experiment-design-library","authority":"experiment-design-registry.json","purpose":"seeds, actual replications, stopping rules, holdout, multistart and step sensitivity","content_status":"populated"},
+    {"id":"data-evidence-library","authority":"storage-architecture.json","purpose":"immutable data snapshots, provenance, units, time, scope and SHA-256 evidence","content_status":"architecture-populated"},
+    {"id":"sample-library","authority":"sample-registry.json","purpose":"sample population, selection method, representativeness, known biases, license and immutable snapshot references","content_status":"structure-complete-data-pending"},
+    {"id":"benchmark-validation-library","authority":"benchmark-registry.json","purpose":"numerical truth, parameter recovery, frozen-real, adversarial, cross-implementation and shadow validation","content_status":"generic-populated-domain-data-pending"},
+    {"id":"credibility-library","authority":"credibility-factor-registry.json","purpose":"risk-adjusted factor-by-factor credibility case for intended use","content_status":"populated"},
+    {"id":"feedback-results-library","authority":"model-performance-ledger.schema.json","purpose":"predictions, realized outcomes, calibration, drift, defects and lifecycle events","content_status":"schema-populated"},
+    {"id":"domain-factor-library","authority":"domain-factor-registry.json","purpose":"versioned domain factors mapped to fixed audited implementations and leakage controls","content_status":"generic-controlled-preview"},
+    {"id":"baseline-library","authority":"baseline-registry.json","purpose":"fixed simple comparison methods required before complex-model promotion","content_status":"generic-controlled-preview"},
+    {"id":"metric-threshold-library","authority":"metric-threshold-registry.json","purpose":"global active thresholds and evidence-pending domain promotion thresholds","content_status":"global-populated-domain-data-pending"},
+    {"id":"domain-rule-snapshot-library","authority":"domain-rule-snapshot-registry.json","purpose":"effective-dated external policy, tax, trading, regulatory and operating parameters","content_status":"structure-complete-data-pending"},
+    {"id":"ontology-crosswalk-library","authority":"ontology-crosswalk-registry.json","purpose":"versioned administrative, industry, security, organization, unit, currency, calendar and variable mappings","content_status":"structure-complete-data-pending"},
+    {"id":"regime-event-library","authority":"regime-event-registry.json","purpose":"structural breaks, crises, policy changes, holidays, extreme weather and market regimes","content_status":"structure-complete-data-pending"},
+    {"id":"outcome-feedback-library","authority":"outcome-feedback-registry.json","purpose":"append-only realized outcomes linked to prior predictions and immutable model, input and rule hashes","content_status":"structure-complete-data-pending"},
+    {"id":"external-domain-material-contract","authority":"external-domain-material-contract.json","purpose":"GPTs-mediated immutable transfer contract from intelligence-center to offline compute","content_status":"populated"}
   ]
 }
