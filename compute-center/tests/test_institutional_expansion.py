@@ -23,14 +23,14 @@ from personal_finance_operations import HANDLERS as PERSONAL_FINANCE_HANDLERS  #
 class InstitutionalExpansionRegistryTests(unittest.TestCase):
     def test_registry_is_complete_and_offline(self) -> None:
         registry = load_institutional_expansion()
-        governed_handlers = set(INSTITUTIONAL_HANDLERS) | set(PERSONAL_FINANCE_HANDLERS)
+        governed_handlers = set(INSTITUTIONAL_HANDLERS)
         self.assertEqual(set(registry["modes"]), governed_handlers)
         self.assertEqual(set(registry["mode_requirements"]), governed_handlers)
         self.assertEqual(registry["network_policy"], "deny")
         self.assertFalse(registry["arbitrary_code_allowed"])
-        self.assertEqual(len(INSTITUTIONAL_HANDLERS), 10)
+        self.assertEqual(len(INSTITUTIONAL_HANDLERS), 19)
         self.assertEqual(len(PERSONAL_FINANCE_HANDLERS), 9)
-        self.assertEqual(len(governed_handlers), 19)
+        self.assertTrue(set(PERSONAL_FINANCE_HANDLERS) <= governed_handlers)
 
     def test_mode_specific_requirements_and_runtime_plan(self) -> None:
         cases = {
