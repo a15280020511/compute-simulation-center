@@ -40,11 +40,20 @@ class DomainLibraryCompletionTests(unittest.TestCase):
         ratio = compute_registered_factor(
             "commercial-conversion-rate", {"transactions": 25, "footfall": 100}
         )
+        reversed_ratio = compute_registered_factor(
+            "commercial-conversion-rate", {"footfall": 100, "transactions": 25}
+        )
         self.assertAlmostEqual(ratio["value"], 0.25)
+        self.assertAlmostEqual(reversed_ratio["value"], 0.25)
+        self.assertEqual(ratio["result_sha256"], reversed_ratio["result_sha256"])
         growth = compute_registered_factor(
             "commercial-footfall-growth", {"previous_footfall": 100, "current_footfall": 120}
         )
+        reversed_growth = compute_registered_factor(
+            "commercial-footfall-growth", {"current_footfall": 120, "previous_footfall": 100}
+        )
         self.assertAlmostEqual(growth["value"], 0.2)
+        self.assertAlmostEqual(reversed_growth["value"], 0.2)
         concentration = compute_registered_factor(
             "commercial-tenant-concentration", {"tenant_shares": [0.5, 0.3, 0.2]}
         )
@@ -58,7 +67,12 @@ class DomainLibraryCompletionTests(unittest.TestCase):
         seasonal = compute_registered_baseline(
             "seasonal-naive", {"history": [10, 11, 12, 13], "season_length": 2}
         )
+        reversed_seasonal = compute_registered_baseline(
+            "seasonal-naive", {"season_length": 2, "history": [10, 11, 12, 13]}
+        )
         self.assertEqual(seasonal["value"], 12)
+        self.assertEqual(reversed_seasonal["value"], 12)
+        self.assertEqual(seasonal["result_sha256"], reversed_seasonal["result_sha256"])
         weights = compute_registered_baseline("equal-weight", {"item_count": 4})
         self.assertEqual(weights["value"], [0.25, 0.25, 0.25, 0.25])
 
