@@ -13,6 +13,7 @@
       "version":{"type":"string","pattern":"^[0-9]+\\.[0-9]+\\.[0-9]+$"},
       "status":{"enum":["proposed","reviewed","approved","calibrated","validated","invalidated","retired"]},
       "type":{"enum":["structural","behavioral","parameter","boundary","data","measurement","numerical","causal","scenario","policy"]},
+      "variable_role":{"enum":["target","outcome","exogenous","endogenous","control","decision","state","latent","nuisance","constraint","mediator","moderator","confounder","instrument","treatment","exposure"]},
       "uncertainty_type":{"enum":["epistemic","aleatory","mixed","deterministic"]},
       "statement":{"type":"string","minLength":1,"maxLength":4000},
       "intended_use":{"type":"string","maxLength":4000},
@@ -26,6 +27,7 @@
       "linked_scenario_ids":{"type":"array","maxItems":50,"uniqueItems":true,"items":{"type":"string","maxLength":200}},
       "dependencies":{"type":"array","maxItems":50,"uniqueItems":true,"items":{"type":"string","maxLength":128}},
       "correlation_group":{"type":"string","maxLength":200},
+      "dependence_model":{"enum":["independent","gaussian_copula","t_copula"]},
       "source_type":{"enum":["observation","public_source","historical","benchmark","expert_elicitation","user_assumption","proxy","gpts_assumption"]},
       "basis":{"type":"string","minLength":1,"maxLength":4000},
       "confidence":{"enum":["low","medium","high"]},
@@ -33,7 +35,8 @@
       "evidence_strength":{"enum":["none","weak","moderate","strong"]},
       "minimum":{"type":"number"},
       "maximum":{"type":"number"},
-      "distribution":{"enum":["constant","uniform","triangular","normal","lognormal","beta","categorical","empirical","scenario_set"]},
+      "distribution":{"enum":["constant","uniform","triangular","normal","lognormal","beta","bernoulli","binomial","poisson","negative_binomial","gamma","exponential","weibull","student_t","pareto","gev","gpd","truncated_normal","zero_inflated_poisson","hurdle_poisson","gaussian_mixture","categorical","empirical","scenario_set"]},
+      "distribution_parameters":{"type":"object","maxProperties":20,"additionalProperties":{"type":["number","integer","string","array"]}},
       "mode":{"type":"number"},
       "mean":{"type":"number"},
       "standard_deviation":{"type":"number","exclusiveMinimum":0},
@@ -54,7 +57,8 @@
     },
     "allOf":[
       {"if":{"properties":{"confidence":{"const":"low"}}},"then":{"required":["distribution"]}},
-      {"if":{"properties":{"uncertainty_type":{"enum":["epistemic","mixed"]},"criticality":{"enum":["high","critical"]}},"required":["uncertainty_type","criticality"]},"then":{"required":["falsification_test","invalid_when"]}}
+      {"if":{"properties":{"uncertainty_type":{"enum":["epistemic","mixed"]},"criticality":{"enum":["high","critical"]}},"required":["uncertainty_type","criticality"]},"then":{"required":["falsification_test","invalid_when"]}},
+      {"if":{"required":["dependence_model"],"properties":{"dependence_model":{"enum":["gaussian_copula","t_copula"]}}},"then":{"required":["correlation_group"]}}
     ]
   }
 }

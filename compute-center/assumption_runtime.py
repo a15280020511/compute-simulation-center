@@ -31,6 +31,12 @@ _RULES = [
 ]
 _APPROVED_STATES = {"user", "gpts_policy", "approved", "calibrated", "validated"}
 _ASSUMED_SOURCE_TYPES = {"proxy", "gpts_assumption", "expert_hypothesis"}
+_PARAMETRIC_DISTRIBUTIONS = {
+    "beta", "bernoulli", "binomial", "poisson", "negative_binomial", "gamma",
+    "exponential", "weibull", "student_t", "pareto", "gev", "gpd",
+    "truncated_normal", "zero_inflated_poisson", "hurdle_poisson",
+    "gaussian_mixture", "categorical", "empirical", "scenario_set",
+}
 
 
 def _sha(value: Any) -> str:
@@ -63,16 +69,47 @@ def _declared_range(variable: Mapping[str, Any]) -> dict[str, float] | None:
     return {"minimum": lower, "maximum": upper} if lower <= upper else None
 
 
+def _distribution_declared(existing: Mapping[str, Any]) -> bool:
+    distribution = str(existing.get("distribution") or "")
+    parameters = existing.get("distribution_parameters")
+    has_parameters = isinstance(parameters, Mapping) and bool(parameters)
+    if not distribution:
+        return False
+    if distribution == "constant":
+        return has_parameters or existing.get("mean") is not None or existing.get("mode") is not None
+    if distribution == "uniform":
+        return existing.get("minimum") is not None and existing.get("maximum") is not None
+    if distribution == "triangular":
+        return (
+            existing.get("minimum") is not None
+            and existing.get("mode") is not None
+            and existing.get("maximum") is not None
+        )
+    if distribution in {"normal", "lognormal"}:
+        return (
+            has_parameters
+            or (existing.get("mean") is not None and existing.get("standard_deviation") is not None)
+        )
+    return distribution in _PARAMETRIC_DISTRIBUTIONS and has_parameters
+
+
+def _dependence_declared(existing: Mapping[str, Any]) -> bool:
+    dependence = str(existing.get("dependence_model") or "independent")
+    if dependence == "independent":
+        return True
+    return dependence in {"gaussian_copula", "t_copula"} and bool(existing.get("correlation_group"))
+
+
 def _assumption_checks(existing: Mapping[str, Any]) -> dict[str, bool]:
     approved = str(existing.get("approved_by") or existing.get("status") or "") in _APPROVED_STATES
-    has_bounds = (
+    has_uncertainty = (
         isinstance(existing.get("sensitivity_range"), Mapping)
         or (existing.get("minimum") is not None and existing.get("maximum") is not None)
-        or existing.get("distribution") == "constant"
-    )
+        or _distribution_declared(existing)
+    ) and _dependence_declared(existing)
     return {
         "approved": approved,
-        "range_or_distribution_present": has_bounds,
+        "range_or_distribution_present": has_uncertainty,
         "basis_present": bool(existing.get("basis")),
         "invalidation_condition_present": bool(existing.get("invalid_when") or existing.get("falsification_test")),
     }
@@ -112,7 +149,7 @@ def _candidate(variable: Mapping[str, Any], existing: Mapping[str, Any] | None) 
         assumption_checks=checks,
     )
     if allowed:
-        candidate["reason"] = "An explicit approved assumption with uncertainty treatment and invalidation rule is available."
+        candidate["reason"] = "An explicit approved assumption with uncertainty treatment, dependence declaration and invalidation rule is available."
     return candidate
 
 

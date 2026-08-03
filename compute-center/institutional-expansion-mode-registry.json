@@ -6,14 +6,30 @@
   "network_policy": "deny",
   "arbitrary_code_allowed": false,
   "mode_requirements": {
-    "causal_pc_discovery": ["requirements-institutional-causal.txt"],
-    "causal_fci_discovery": ["requirements-institutional-causal.txt"],
-    "causal_graph_stability_bootstrap": ["requirements-institutional-causal.txt"],
-    "tigramite_pcmci_discovery": ["requirements-institutional-tigramite.txt"],
-    "evidently_data_drift": ["requirements-institutional-evidently.txt"],
-    "river_adwin_drift": ["requirements-institutional-river.txt"],
-    "skfolio_walk_forward_portfolio": ["requirements-institutional-skfolio.txt"],
-    "black_litterman_allocation": ["requirements-finance.txt"],
+    "causal_pc_discovery": [
+      "requirements-institutional-causal.txt"
+    ],
+    "causal_fci_discovery": [
+      "requirements-institutional-causal.txt"
+    ],
+    "causal_graph_stability_bootstrap": [
+      "requirements-institutional-causal.txt"
+    ],
+    "tigramite_pcmci_discovery": [
+      "requirements-institutional-tigramite.txt"
+    ],
+    "evidently_data_drift": [
+      "requirements-institutional-evidently.txt"
+    ],
+    "river_adwin_drift": [
+      "requirements-institutional-river.txt"
+    ],
+    "skfolio_walk_forward_portfolio": [
+      "requirements-institutional-skfolio.txt"
+    ],
+    "black_litterman_allocation": [
+      "requirements-finance.txt"
+    ],
     "deflated_sharpe_gate": [],
     "transaction_cost_capacity": [],
     "goal_based_financial_plan": [],
@@ -24,122 +40,286 @@
     "debt_repayment_optimization": [],
     "withdrawal_strategy": [],
     "insurance_protection_gap": [],
-    "household_cashflow_stress": []
+    "household_cashflow_stress": [],
+    "joint_random_sample": [],
+    "distribution_fit_select": [],
+    "variable_role_validate": [],
+    "probabilistic_accuracy": [],
+    "forecast_accuracy": [],
+    "bayesian_linear_calibration": [],
+    "reliability_analysis": [],
+    "factor_information_analysis": [],
+    "factor_selection_diagnostics": [],
+    "factor_overfit_diagnostics": [],
+    "cross_validation_plan": []
   },
   "modes": {
     "causal_pc_discovery": {
       "maturity": "controlled-preview",
       "network_policy": "deny",
       "deterministic": true,
-      "limits": {"max_rows": 5000, "max_columns": 30}
+      "limits": {
+        "max_rows": 5000,
+        "max_columns": 30
+      }
     },
     "causal_fci_discovery": {
       "maturity": "controlled-preview",
       "network_policy": "deny",
       "deterministic": true,
-      "limits": {"max_rows": 5000, "max_columns": 30}
+      "limits": {
+        "max_rows": 5000,
+        "max_columns": 30
+      }
     },
     "causal_graph_stability_bootstrap": {
       "maturity": "controlled-preview",
       "network_policy": "deny",
       "deterministic": true,
-      "limits": {"max_rows": 2000, "max_columns": 30, "max_bootstraps": 100}
+      "limits": {
+        "max_rows": 2000,
+        "max_columns": 30,
+        "max_bootstraps": 100
+      }
     },
     "tigramite_pcmci_discovery": {
       "maturity": "controlled-preview",
       "network_policy": "deny",
       "deterministic": true,
-      "limits": {"max_rows": 5000, "max_columns": 30, "max_lag": 20}
+      "limits": {
+        "max_rows": 5000,
+        "max_columns": 30,
+        "max_lag": 20
+      }
     },
     "evidently_data_drift": {
       "maturity": "controlled-preview",
       "network_policy": "deny",
       "deterministic": true,
-      "limits": {"max_rows": 5000, "max_columns": 30}
+      "limits": {
+        "max_rows": 5000,
+        "max_columns": 30
+      }
     },
     "river_adwin_drift": {
       "maturity": "controlled-preview",
       "network_policy": "deny",
       "deterministic": true,
-      "limits": {"max_observations": 50000}
+      "limits": {
+        "max_observations": 50000
+      }
     },
     "skfolio_walk_forward_portfolio": {
       "maturity": "controlled-preview",
       "network_policy": "deny",
       "deterministic": true,
-      "limits": {"max_rows": 5000, "max_assets": 30}
+      "limits": {
+        "max_rows": 5000,
+        "max_assets": 30
+      }
     },
     "black_litterman_allocation": {
       "maturity": "controlled-preview",
       "network_policy": "deny",
       "deterministic": true,
-      "limits": {"max_assets": 50, "max_views": 50}
+      "limits": {
+        "max_assets": 50,
+        "max_views": 50
+      }
     },
     "deflated_sharpe_gate": {
       "maturity": "controlled-preview",
       "network_policy": "deny",
       "deterministic": true,
-      "limits": {"max_observations": 100000, "max_trials": 10000}
+      "limits": {
+        "max_observations": 100000,
+        "max_trials": 10000
+      }
     },
     "transaction_cost_capacity": {
       "maturity": "controlled-preview",
       "network_policy": "deny",
       "deterministic": true,
-      "limits": {"max_rows": 5000, "max_assets": 30}
+      "limits": {
+        "max_rows": 5000,
+        "max_assets": 30
+      }
     },
     "goal_based_financial_plan": {
       "maturity": "controlled-preview",
       "network_policy": "deny",
       "deterministic": true,
-      "limits": {"max_goals": 20}
+      "limits": {
+        "max_goals": 20
+      }
     },
     "retirement_monte_carlo": {
       "maturity": "controlled-preview",
       "network_policy": "deny",
       "deterministic": true,
-      "limits": {"max_simulations": 10000, "max_years": 100}
+      "limits": {
+        "max_simulations": 10000,
+        "max_years": 100
+      }
     },
     "sequence_of_returns_risk": {
       "maturity": "controlled-preview",
       "network_policy": "deny",
       "deterministic": true,
-      "limits": {"max_years": 200}
+      "limits": {
+        "max_years": 200
+      }
     },
     "liability_aware_allocation": {
       "maturity": "controlled-preview",
       "network_policy": "deny",
       "deterministic": true,
-      "limits": {"max_assets": 30, "max_liabilities": 50}
+      "limits": {
+        "max_assets": 30,
+        "max_liabilities": 50
+      }
     },
     "emergency_fund_analysis": {
       "maturity": "controlled-preview",
       "network_policy": "deny",
       "deterministic": true,
-      "limits": {"max_target_months": 36}
+      "limits": {
+        "max_target_months": 36
+      }
     },
     "debt_repayment_optimization": {
       "maturity": "controlled-preview",
       "network_policy": "deny",
       "deterministic": true,
-      "limits": {"max_debts": 20, "max_months": 1200}
+      "limits": {
+        "max_debts": 20,
+        "max_months": 1200
+      }
     },
     "withdrawal_strategy": {
       "maturity": "controlled-preview",
       "network_policy": "deny",
       "deterministic": true,
-      "limits": {"max_years": 200}
+      "limits": {
+        "max_years": 200
+      }
     },
     "insurance_protection_gap": {
       "maturity": "controlled-preview",
       "network_policy": "deny",
       "deterministic": true,
-      "limits": {"max_support_years": 80}
+      "limits": {
+        "max_support_years": 80
+      }
     },
     "household_cashflow_stress": {
       "maturity": "controlled-preview",
       "network_policy": "deny",
       "deterministic": true,
-      "limits": {"max_scenarios": 20, "max_months": 120}
+      "limits": {
+        "max_scenarios": 20,
+        "max_months": 120
+      }
+    },
+    "joint_random_sample": {
+      "maturity": "controlled-preview",
+      "network_policy": "deny",
+      "deterministic": true,
+      "limits": {
+        "max_samples": 20000,
+        "max_variables": 50
+      }
+    },
+    "distribution_fit_select": {
+      "maturity": "controlled-preview",
+      "network_policy": "deny",
+      "deterministic": true,
+      "limits": {
+        "max_observations": 100000,
+        "max_candidates": 20
+      }
+    },
+    "variable_role_validate": {
+      "maturity": "controlled-preview",
+      "network_policy": "deny",
+      "deterministic": true,
+      "limits": {
+        "max_variables": 200
+      }
+    },
+    "probabilistic_accuracy": {
+      "maturity": "controlled-preview",
+      "network_policy": "deny",
+      "deterministic": true,
+      "limits": {
+        "max_observations": 100000,
+        "max_bins": 100
+      }
+    },
+    "forecast_accuracy": {
+      "maturity": "controlled-preview",
+      "network_policy": "deny",
+      "deterministic": true,
+      "limits": {
+        "max_observations": 100000,
+        "max_quantiles": 100
+      }
+    },
+    "bayesian_linear_calibration": {
+      "maturity": "controlled-preview",
+      "network_policy": "deny",
+      "deterministic": true,
+      "limits": {
+        "max_rows": 50000,
+        "max_features": 100
+      }
+    },
+    "reliability_analysis": {
+      "maturity": "controlled-preview",
+      "network_policy": "deny",
+      "deterministic": true,
+      "limits": {
+        "max_samples": 100000,
+        "max_factors": 100
+      }
+    },
+    "factor_information_analysis": {
+      "maturity": "controlled-preview",
+      "network_policy": "deny",
+      "deterministic": true,
+      "limits": {
+        "max_periods": 5000,
+        "max_assets": 1000,
+        "max_factors": 100
+      }
+    },
+    "factor_selection_diagnostics": {
+      "maturity": "controlled-preview",
+      "network_policy": "deny",
+      "deterministic": true,
+      "limits": {
+        "max_rows": 50000,
+        "max_factors": 100
+      }
+    },
+    "factor_overfit_diagnostics": {
+      "maturity": "controlled-preview",
+      "network_policy": "deny",
+      "deterministic": true,
+      "limits": {
+        "max_rows": 20000,
+        "max_strategies": 200,
+        "max_bootstraps": 2000
+      }
+    },
+    "cross_validation_plan": {
+      "maturity": "controlled-preview",
+      "network_policy": "deny",
+      "deterministic": true,
+      "limits": {
+        "max_rows": 100000,
+        "max_splits": 20
+      }
     }
   }
 }

@@ -36,6 +36,7 @@ from strategic_intelligence_operations import (  # noqa: E402
     weighted_mcda,
 )
 from think_tank_operations import SUPPORTED_MODES as THINK_TANK_MODES  # noqa: E402
+from uncertainty_factor_accuracy_operations import HANDLERS as COMPLETION_HANDLERS  # noqa: E402
 
 
 class StrategicIntelligenceTests(unittest.TestCase):
@@ -53,6 +54,7 @@ class StrategicIntelligenceTests(unittest.TestCase):
             set(THINK_TANK_MODES),
             set(ASSURANCE_HANDLERS),
             set(INSTITUTIONAL_EXPANSION_HANDLERS),
+            set(COMPLETION_HANDLERS),
         ]
         for group in groups[1:]:
             self.assertTrue(group <= set(ALL_SUPPORTED_MODES))
@@ -66,7 +68,8 @@ class StrategicIntelligenceTests(unittest.TestCase):
         self.assertEqual(len(ASSURANCE_HANDLERS), 8)
         self.assertEqual(len(INSTITUTIONAL_EXPANSION_HANDLERS), 19)
         self.assertEqual(len(PERSONAL_FINANCE_HANDLERS), 9)
-        self.assertEqual(len(ALL_SUPPORTED_MODES), 102)
+        self.assertEqual(len(COMPLETION_HANDLERS), 11)
+        self.assertEqual(len(ALL_SUPPORTED_MODES), 113)
 
     def test_weighted_mcda_ranks_alternatives(self):
         result = weighted_mcda({
@@ -110,7 +113,7 @@ class StrategicIntelligenceTests(unittest.TestCase):
         })
         self.assertEqual(warnings["critical_count"], 1)
 
-    def test_gateway_delegates_legacy_production_and_personal_modes(self):
+    def test_gateway_delegates_legacy_production_personal_and_completion_modes(self):
         legacy = finance_decision_analysis({"mode": "performance_metrics", "returns": [0.01, -0.01, 0.02]})
         self.assertEqual(legacy["mode"], "performance_metrics")
         production = finance_decision_analysis({
@@ -125,12 +128,19 @@ class StrategicIntelligenceTests(unittest.TestCase):
             "target_months": 6,
             "monthly_saving_capacity": 2000.0,
         })
-        for result in (legacy, production, personal):
+        completion = finance_decision_analysis({
+            "mode": "probabilistic_accuracy",
+            "actual": [0, 0, 1, 1, 1, 0],
+            "probabilities": [0.1, 0.2, 0.8, 0.7, 0.9, 0.3],
+        })
+        for result in (legacy, production, personal, completion):
             self.assertTrue(result["no_guaranteed_profit"])
             self.assertFalse(result["brokerage_execution"])
             self.assertFalse(result["arbitrary_code_allowed"])
         self.assertEqual(personal["funding_gap"], 20000.0)
         self.assertFalse(personal["account_access"])
+        self.assertAlmostEqual(completion["roc_auc"], 1.0)
+        self.assertEqual(completion["model_calls"], 0)
 
 
 class QuantitativeTests(unittest.TestCase):

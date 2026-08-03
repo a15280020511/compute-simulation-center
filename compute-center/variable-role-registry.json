@@ -1,0 +1,76 @@
+{
+  "schema_version": "compute-variable-role-registry-v1",
+  "policy": {
+    "role_required_for_formal_models": true,
+    "dependencies_must_reference_declared_variables": true,
+    "dependency_cycles_allowed": false,
+    "latent_observed_conflict_warns": true,
+    "ticket_supplied_role_code_allowed": false
+  },
+  "roles": [
+    {
+      "id": "target",
+      "meaning": "Quantity optimized, predicted, or ranked."
+    },
+    {
+      "id": "outcome",
+      "meaning": "Realized response used for evaluation."
+    },
+    {
+      "id": "exogenous",
+      "meaning": "External input not determined inside the modeled system."
+    },
+    {
+      "id": "endogenous",
+      "meaning": "Variable jointly determined inside the modeled system."
+    },
+    {
+      "id": "control",
+      "meaning": "Observed adjustment variable."
+    },
+    {
+      "id": "decision",
+      "meaning": "Manipulable choice variable."
+    },
+    {
+      "id": "state",
+      "meaning": "System state carried across time or transitions."
+    },
+    {
+      "id": "latent",
+      "meaning": "Unobserved construct inferred from observed evidence."
+    },
+    {
+      "id": "nuisance",
+      "meaning": "Parameter required for estimation but not the decision target."
+    },
+    {
+      "id": "constraint",
+      "meaning": "Variable entering a hard or soft feasibility boundary."
+    },
+    {
+      "id": "mediator",
+      "meaning": "Variable on a treatment-to-outcome pathway."
+    },
+    {
+      "id": "moderator",
+      "meaning": "Variable changing the magnitude or direction of an effect."
+    },
+    {
+      "id": "confounder",
+      "meaning": "Common cause of exposure or treatment and outcome."
+    },
+    {
+      "id": "instrument",
+      "meaning": "Variable affecting treatment but excluded from the outcome equation except through treatment."
+    },
+    {
+      "id": "treatment",
+      "meaning": "Intervention or assigned exposure under causal analysis."
+    },
+    {
+      "id": "exposure",
+      "meaning": "Observed condition whose effect is being assessed."
+    }
+  ]
+}
