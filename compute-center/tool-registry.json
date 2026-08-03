@@ -1517,6 +1517,59 @@
           }
         }
       }
+    },
+    {
+      "id": "transport-forecast",
+      "module": "transport_forecast_operations",
+      "operations": [
+        "transport_forecast_analysis"
+      ],
+      "input_validation": "mode_allowlist",
+      "default_requirements": [],
+      "mode_requirements": {
+        "sumo_micro_simulation": [
+          "requirements-sumo.txt"
+        ],
+        "statsforecast_batch": [
+          "requirements-statsforecast.txt"
+        ]
+      },
+      "network_policy": "deny",
+      "deterministic": true,
+      "maturity": "controlled-preview",
+      "resource_limits": {
+        "max_seconds": 120,
+        "max_memory_mb": 4096
+      },
+      "rollback": {
+        "stable_module": "transport_forecast_operations",
+        "strategy": "git-revert"
+      },
+      "modes": {
+        "sumo_micro_simulation": {
+          "maturity": "controlled-preview",
+          "network_policy": "deny",
+          "deterministic": true,
+          "limits": {
+            "max_nodes": 500,
+            "max_edges": 1000,
+            "max_routes": 200,
+            "max_flows": 500,
+            "max_seconds": 120
+          }
+        },
+        "statsforecast_batch": {
+          "maturity": "controlled-preview",
+          "network_policy": "deny",
+          "deterministic": true,
+          "limits": {
+            "max_series": 100,
+            "max_observations": 50000,
+            "max_horizon": 3650,
+            "max_models": 5
+          }
+        }
+      }
     }
   ]
 }

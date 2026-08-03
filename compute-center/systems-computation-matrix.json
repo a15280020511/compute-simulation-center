@@ -364,6 +364,20 @@
         "stress_test",
         "external_validation"
       ]
+    },
+    "transport_forecast_analysis": {
+      "problem_class": "transport-simulation-and-batch-forecasting",
+      "system_level": "state-evolution",
+      "feedback_structure": "traffic-flow-or-temporal-dependence",
+      "required_gates": [
+        "input_quality",
+        "assumption_register",
+        "calibration",
+        "uncertainty",
+        "stress_test",
+        "external_validation",
+        "feedback_monitoring"
+      ]
     }
   }
 }

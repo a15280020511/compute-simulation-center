@@ -51,7 +51,8 @@
         "sensitivity_analysis",
         "strategic_policy_analysis",
         "system_dynamics_simulation",
-        "time_series_forecast"
+        "time_series_forecast",
+        "transport_forecast_analysis"
       ]
     },
     "inputs": {

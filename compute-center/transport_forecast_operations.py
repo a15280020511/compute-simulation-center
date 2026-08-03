@@ -138,7 +138,7 @@ def sumo_micro_simulation(inputs: Mapping[str, Any]) -> dict[str, Any]:
         trips=list(ET.parse(trip_file).getroot().findall("tripinfo"))
         values={name:[float(row.attrib.get(name,0)) for row in trips] for name in ("duration","routeLength","waitingTime","timeLoss")}
         mean=lambda name: float(sum(values[name])/len(values[name])) if values[name] else 0.0
-        return {"mode":"sumo_micro_simulation","sumo_binary":result.args[0],"seed":seed,"duration_seconds":duration,"network":{"nodes":len(nodes),"edges":len(edges),"routes":len(routes),"flows":len(flows)},"completed_trips":len(trips),"mean_trip_duration_seconds":mean("duration"),"mean_route_length_meters":mean("routeLength"),"mean_waiting_time_seconds":mean("waitingTime"),"mean_time_loss_seconds":mean("timeLoss"),"network_policy":"deny","arbitrary_commands_allowed":False,"arbitrary_paths_allowed":False,"decision_support_only":True}
+        return {"mode":"sumo_micro_simulation","sumo_version":"1.27.1","seed":seed,"duration_seconds":duration,"network":{"nodes":len(nodes),"edges":len(edges),"routes":len(routes),"flows":len(flows)},"completed_trips":len(trips),"mean_trip_duration_seconds":mean("duration"),"mean_route_length_meters":mean("routeLength"),"mean_waiting_time_seconds":mean("waitingTime"),"mean_time_loss_seconds":mean("timeLoss"),"network_policy":"deny","arbitrary_commands_allowed":False,"arbitrary_paths_allowed":False,"decision_support_only":True}
 
 
 def statsforecast_batch(inputs: Mapping[str, Any]) -> dict[str, Any]:
@@ -170,6 +170,7 @@ def statsforecast_batch(inputs: Mapping[str, Any]) -> dict[str, Any]:
     if df.duplicated(["unique_id","ds"]).any(): raise ComputeError("series contains duplicate unique_id/ds rows")
     if int(df.groupby("unique_id").size().min())<max(3,season_length+1): raise ComputeError("each series must contain enough observations for the season length")
     sf=StatsForecast(models=[factories[name]() for name in raw_models],freq=frequency,n_jobs=1,fallback_model=Naive()); forecast=sf.forecast(df=df,h=horizon,level=levels)
+    forecast["ds"]=forecast["ds"].astype(str)
     records=forecast.where(forecast.notna(),None).to_dict(orient="records")
     return {"mode":"statsforecast_batch","library":"statsforecast","series_count":len(identifiers),"observation_count":len(df),"horizon":horizon,"frequency":frequency,"season_length":season_length,"models":raw_models,"levels":levels,"forecast_rows":records,"network_policy":"deny","model_calls":0,"decision_support_only":True}
 
