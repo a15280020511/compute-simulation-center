@@ -13,7 +13,7 @@ from strategic_policy_intelligence_operations import HANDLERS, strategic_policy_
 
 class StrategicPolicyGovernanceTests(unittest.TestCase):
     def test_fixed_mode_catalog(self) -> None:
-        self.assertEqual(len(HANDLERS), 30)
+        self.assertEqual(len(HANDLERS), 42)
         expected = {
             "open_spiel_policy_evaluation",
             "pygambit_pure_equilibria",
@@ -28,11 +28,26 @@ class StrategicPolicyGovernanceTests(unittest.TestCase):
             "igraph_link_analysis",
             "claim_evidence_contradiction",
             "red_team_challenge_matrix",
+            "quantlib_option_greeks",
+            "quantlib_bond_duration",
+            "active_inference_policy_choice",
+            "pyod_anomaly_screen",
+            "market_basket_association_rules",
+            "replicator_dynamics",
+            "finite_population_fixation",
+            "prospect_theory_choice",
+            "collective_action_threshold",
+            "rumor_correction_dynamics",
+            "trust_reputation_update",
+            "group_consensus_pressure",
         }
         self.assertTrue(expected <= set(HANDLERS))
 
     def test_source_has_no_network_or_dynamic_execution(self) -> None:
-        source = (ROOT / "strategic_policy_intelligence_operations.py").read_text(encoding="utf-8")
+        source = "\n".join((
+            (ROOT / "strategic_policy_intelligence_operations.py").read_text(encoding="utf-8"),
+            (ROOT / "behavior_finance_intelligence_operations.py").read_text(encoding="utf-8"),
+        ))
         for forbidden in (
             "import requests",
             "import socket",
