@@ -21,6 +21,7 @@ REQUIRED_FILES = [
     "outcome-feedback-registry.json",
     "external-domain-material-contract.json",
     "institutional-library-registry.json",
+    "governed-domain-library-registry.json",
 ]
 
 
@@ -35,13 +36,33 @@ def validate() -> dict[str, Any]:
     documents = {name: _load(name) for name in REQUIRED_FILES}
     factors = documents["domain-factor-registry.json"]["factors"]
     baselines = documents["baseline-registry.json"]["baselines"]
-    libraries = documents["institutional-library-registry.json"]["libraries"]
+    core_libraries = documents["institutional-library-registry.json"]["libraries"]
+    domain_libraries = documents["governed-domain-library-registry.json"]["libraries"]
     if len(factors) != 20:
         raise ValueError("factor registry must contain 20 controlled-preview factors")
     if len(baselines) < 10:
         raise ValueError("baseline registry is incomplete")
-    if len(libraries) < 24:
-        raise ValueError("institutional library registry is incomplete")
+    if len(core_libraries) != 16:
+        raise ValueError("core institutional library registry must remain exactly sixteen")
+    if len(domain_libraries) != 8:
+        raise ValueError("governed domain extension library registry must contain eight libraries")
+    core_ids = {str(row.get("id") or "") for row in core_libraries}
+    domain_ids = {str(row.get("id") or "") for row in domain_libraries}
+    if len(core_ids) != 16 or len(domain_ids) != 8 or core_ids & domain_ids:
+        raise ValueError("core and domain library IDs must be unique and disjoint")
+    for row in domain_libraries:
+        authority = HERE / str(row.get("authority") or "")
+        if not authority.is_file():
+            raise ValueError(f"domain library authority is missing: {row.get('id')}")
+    policy = documents["governed-domain-library-registry.json"].get("policy") or {}
+    if (
+        policy.get("core_institutional_library_count") != 16
+        or policy.get("runtime_network_allowed") is not False
+        or policy.get("ticket_supplied_code_allowed") is not False
+        or policy.get("unverified_domain_truth_prepopulation_allowed") is not False
+        or policy.get("direct_center_connection_allowed") is not False
+    ):
+        raise ValueError("governed domain library policy is invalid")
 
     for name, field in {
         "domain-rule-snapshot-registry.json": "snapshots",
@@ -86,9 +107,11 @@ def validate() -> dict[str, Any]:
             raise ValueError(f"dynamic code execution in {source_name}")
 
     return {
-        "schema_version": "compute-domain-library-completion-receipt-v1",
+        "schema_version": "compute-domain-library-completion-receipt-v2",
         "status": "PASS",
-        "registered_library_count": len(libraries),
+        "core_institutional_library_count": len(core_libraries),
+        "domain_extension_library_count": len(domain_libraries),
+        "registered_library_count": len(core_libraries) + len(domain_libraries),
         "generic_factor_count": len(factors),
         "generic_baseline_count": len(baselines),
         "external_material_registries": 4,
