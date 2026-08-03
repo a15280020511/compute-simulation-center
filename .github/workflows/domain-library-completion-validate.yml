@@ -14,6 +14,7 @@ on:
       - "compute-center/domain_library_runtime.py"
       - "compute-center/library_runtime.py"
       - "compute-center/institutional-library-registry.json"
+      - "compute-center/governed-domain-library-registry.json"
       - "compute-center/validate_domain_library_completion.py"
       - "compute-center/tests/test_domain_library_completion.py"
       - ".github/workflows/domain-library-completion-validate.yml"
@@ -31,6 +32,7 @@ on:
       - "compute-center/domain_library_runtime.py"
       - "compute-center/library_runtime.py"
       - "compute-center/institutional-library-registry.json"
+      - "compute-center/governed-domain-library-registry.json"
       - "compute-center/validate_domain_library_completion.py"
       - "compute-center/tests/test_domain_library_completion.py"
       - ".github/workflows/domain-library-completion-validate.yml"
@@ -73,7 +75,9 @@ jobs:
           from pathlib import Path
           receipt = json.loads(Path('domain-library-artifacts/receipt.json').read_text(encoding='utf-8'))
           assert receipt['status'] == 'PASS'
-          assert receipt['registered_library_count'] >= 24
+          assert receipt['core_institutional_library_count'] == 16
+          assert receipt['domain_extension_library_count'] == 8
+          assert receipt['registered_library_count'] == 24
           assert receipt['generic_factor_count'] == 20
           assert receipt['generic_baseline_count'] >= 10
           assert receipt['external_material_status'] == 'structure-complete-data-pending'
@@ -85,6 +89,7 @@ jobs:
         working-directory: compute-center
         run: |
           set -euo pipefail
+          python governance_catalog.py
           python capability_manager.py validate
           python tool_registry.py validate
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
