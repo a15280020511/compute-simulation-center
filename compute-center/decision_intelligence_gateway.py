@@ -10,6 +10,7 @@ from assurance_operations import HANDLERS as ASSURANCE_HANDLERS
 from finance_operations import finance_decision_analysis as legacy_finance_decision_analysis
 from institutional_expansion_operations import HANDLERS as INSTITUTIONAL_EXPANSION_HANDLERS
 from operations_research_modes import HANDLERS as OR_HANDLERS
+from personal_finance_operations import HANDLERS as PERSONAL_FINANCE_HANDLERS
 from professional_forecasting_operations import HANDLERS as FORECAST_HANDLERS
 from quantitative_operations import HANDLERS as QUANT_HANDLERS
 from strategic_intelligence_operations import HANDLERS as STRATEGIC_HANDLERS
@@ -35,6 +36,7 @@ PREVIEW_MODES = (
     set(THINK_TANK_HANDLERS)
     | set(ASSURANCE_HANDLERS)
     | set(INSTITUTIONAL_EXPANSION_HANDLERS)
+    | set(PERSONAL_FINANCE_HANDLERS)
 )
 
 MODE_HANDLERS: dict[str, Callable[[Mapping[str, Any]], dict[str, Any]]] = {
@@ -45,6 +47,7 @@ MODE_HANDLERS: dict[str, Callable[[Mapping[str, Any]], dict[str, Any]]] = {
     **THINK_TANK_HANDLERS,
     **ASSURANCE_HANDLERS,
     **INSTITUTIONAL_EXPANSION_HANDLERS,
+    **PERSONAL_FINANCE_HANDLERS,
 }
 
 if PRODUCTION_MODES & PREVIEW_MODES:
@@ -59,6 +62,7 @@ if len(MODE_HANDLERS) != sum(
         THINK_TANK_HANDLERS,
         ASSURANCE_HANDLERS,
         INSTITUTIONAL_EXPANSION_HANDLERS,
+        PERSONAL_FINANCE_HANDLERS,
     )
 ):
     raise RuntimeError("duplicate decision-intelligence mode registration")
