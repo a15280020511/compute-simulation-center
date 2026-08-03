@@ -1,10 +1,10 @@
 {
   "schema_version": "compute-capabilities-v9",
   "catalog_status": "production",
-  "operation_count": 28,
-  "managed_mode_count": 122,
+  "operation_count": 29,
+  "managed_mode_count": 124,
   "extension_mode_count": 61,
-  "effective_managed_mode_count": 183,
+  "effective_managed_mode_count": 185,
   "capability_manager_version": 2,
   "selection_owner": "gpts-usage-center",
   "maintenance_owner": "ordinary-web-gpt-with-github-plugin",
@@ -102,7 +102,9 @@
     "inferactively-pymdp": "1.0.3; bounded one-step active-inference policy evaluation",
     "PyOD": "3.6.2; classic allowlisted ECOD, IForest and KNN anomaly screening only",
     "mlxtend": "0.25.0; frequent-itemset and association-rule analysis",
-    "repository-native-assurance": "forecast scoring, calibration, interval validation, realized-outcome feedback, cross-model agreement, VV&A and bounded linear state estimation"
+    "repository-native-assurance": "forecast scoring, calibration, interval validation, realized-outcome feedback, cross-model agreement, VV&A and bounded linear state estimation",
+    "Eclipse SUMO": "1.27.1; isolated bounded road, transit and logistics micro-simulation",
+    "StatsForecast": "2.1.1; bounded high-throughput statistical forecasting"
   },
   "toolkit_assessment": {
     "current_scope_sufficient_for_existing_operations": true,
@@ -700,6 +702,36 @@
         "假设、适用边界和反例",
         "涉及个人数据时必须具备合法来源、用途限制和最小化证明",
         "高风险决策必须独立验证并由人类批准"
+      ]
+    },
+    {
+      "id": "transport_forecast_analysis",
+      "description": "断网执行SUMO结构化交通微观仿真与StatsForecast批量统计预测。",
+      "engine": "eclipse-sumo-statsforecast",
+      "availability": "optional-isolated-managed",
+      "requirements_by_mode": {
+        "sumo_micro_simulation": "compute-center/requirements-sumo.txt",
+        "statsforecast_batch": "compute-center/requirements-statsforecast.txt"
+      },
+      "modes": [
+        "sumo_micro_simulation",
+        "statsforecast_batch"
+      ],
+      "dependency_policy": "按模式安装仓库固定精确版本；禁止票据指定包、命令、脚本或文件路径。",
+      "limits": {
+        "maximum_runtime_seconds": 120,
+        "maximum_memory_mb": 4096,
+        "runtime_network_policy": "deny",
+        "arbitrary_code_allowed": false,
+        "arbitrary_paths_allowed": false,
+        "external_control_allowed": false
+      },
+      "maturity": "controlled-preview",
+      "required_evidence": [
+        "输入结构、单位、时间范围与频率",
+        "依赖引擎版本回执",
+        "固定随机种子或预测基准",
+        "独立验证或冻结基准后方可用于正式决策"
       ]
     }
   ],

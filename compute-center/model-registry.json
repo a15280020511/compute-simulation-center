@@ -356,6 +356,28 @@
         "differential_evolution",
         "likelihood"
       ]
+    },
+    {
+      "model_id": "transport_forecast_analysis-registered-v1",
+      "operation": "transport_forecast_analysis",
+      "maturity": "controlled-preview",
+      "engineering_maturity": "controlled-preview",
+      "evidence_maturity": "experimental",
+      "risk_tier": "high",
+      "calibration_supported": true,
+      "allowed_backends": [
+        "least_squares",
+        "slsqp",
+        "differential_evolution",
+        "likelihood"
+      ],
+      "theoretical_basis": "Microscopic traffic-flow simulation through Eclipse SUMO and univariate panel forecasting through fixed StatsForecast statistical models.",
+      "prohibited_use": [
+        "Ticket-supplied commands, scripts or paths",
+        "Real-time person or vehicle tracking",
+        "External network access",
+        "Formal decisions without frozen benchmark or realized-outcome validation"
+      ]
     }
   ]
 }
