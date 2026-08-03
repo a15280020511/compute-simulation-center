@@ -1,17 +1,17 @@
 name: One-shot Compute Cache Inventory Repair
 
 on:
-  push:
-    branches:
-      - feat/causal-drift-finance-expansion-20260804
+  pull_request:
     paths:
       - .github/workflows/one-shot-cache-fix.yml
+  workflow_dispatch:
 
 permissions:
   contents: write
 
 jobs:
   repair:
+    if: github.event.pull_request.head.repo.full_name == github.repository
     runs-on: ubuntu-24.04
     steps:
       - name: Checkout repair branch
