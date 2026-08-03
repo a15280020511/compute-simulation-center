@@ -1,0 +1,46 @@
+name: Assemble Assurance Boundary Branch
+
+on:
+  push:
+    branches:
+      - feat/assurance-boundary-classification-20260803
+    paths:
+      - ".assemble-assurance-trigger"
+
+permissions:
+  contents: write
+
+concurrency:
+  group: assemble-assurance-boundary
+  cancel-in-progress: false
+
+jobs:
+  assemble:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: feat/assurance-boundary-classification-20260803
+          persist-credentials: true
+          fetch-depth: 0
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065
+        with:
+          python-version: "3.12"
+      - name: Register modes and patch generated contracts
+        run: python compute-center/assemble_assurance_boundary.py
+      - name: Remove one-shot assembly entrypoints
+        run: |
+          rm -f \
+            compute-center/assemble_assurance_boundary.py \
+            .github/workflows/assurance-boundary-assembly.yml \
+            .assemble-assurance-trigger
+      - name: Commit deterministic result
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git diff --cached --check
+          git commit -m "feat: register forecast assurance and center boundaries"
+          git push origin HEAD:feat/assurance-boundary-classification-20260803
