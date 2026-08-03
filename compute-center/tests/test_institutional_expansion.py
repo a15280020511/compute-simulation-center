@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import json
 import sys
 import unittest
 from pathlib import Path
@@ -18,19 +17,23 @@ from institutional_expansion_operations import (  # noqa: E402
     transaction_cost_capacity,
 )
 from personal_finance_operations import HANDLERS as PERSONAL_FINANCE_HANDLERS  # noqa: E402
+from uncertainty_factor_accuracy_operations import HANDLERS as COMPLETION_HANDLERS  # noqa: E402
 
 
 class InstitutionalExpansionRegistryTests(unittest.TestCase):
     def test_registry_is_complete_and_offline(self) -> None:
         registry = load_institutional_expansion()
-        governed_handlers = set(INSTITUTIONAL_HANDLERS)
+        governed_handlers = set(INSTITUTIONAL_HANDLERS) | set(COMPLETION_HANDLERS)
         self.assertEqual(set(registry["modes"]), governed_handlers)
         self.assertEqual(set(registry["mode_requirements"]), governed_handlers)
         self.assertEqual(registry["network_policy"], "deny")
         self.assertFalse(registry["arbitrary_code_allowed"])
         self.assertEqual(len(INSTITUTIONAL_HANDLERS), 19)
         self.assertEqual(len(PERSONAL_FINANCE_HANDLERS), 9)
-        self.assertTrue(set(PERSONAL_FINANCE_HANDLERS) <= governed_handlers)
+        self.assertEqual(len(COMPLETION_HANDLERS), 11)
+        self.assertEqual(len(governed_handlers), 30)
+        self.assertTrue(set(PERSONAL_FINANCE_HANDLERS) <= set(INSTITUTIONAL_HANDLERS))
+        self.assertTrue(set(INSTITUTIONAL_HANDLERS).isdisjoint(COMPLETION_HANDLERS))
 
     def test_mode_specific_requirements_and_runtime_plan(self) -> None:
         cases = {
@@ -55,6 +58,7 @@ class InstitutionalExpansionRegistryTests(unittest.TestCase):
             "deflated_sharpe_gate",
             "transaction_cost_capacity",
             *PERSONAL_FINANCE_HANDLERS.keys(),
+            *COMPLETION_HANDLERS.keys(),
         }
         for mode in native_modes:
             ticket = {"operation": "finance_decision_analysis", "inputs": {"mode": mode}}
@@ -62,6 +66,7 @@ class InstitutionalExpansionRegistryTests(unittest.TestCase):
             plan = runtime_plan(ticket)
             self.assertEqual(plan["maturity"], "controlled-preview")
             self.assertEqual(plan["network_policy"], "deny")
+            self.assertFalse(plan["arbitrary_code_allowed"])
 
 
 class NativeRobustFinanceTests(unittest.TestCase):
