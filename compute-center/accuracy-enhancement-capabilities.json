@@ -1,5 +1,5 @@
 {
-  "schema_version": "accuracy-enhancement-capabilities-v1",
+  "schema_version": "accuracy-enhancement-capabilities-v2",
   "catalog_status": "controlled-preview",
   "network_default": "deny",
   "ticket_supplied_code_allowed": false,
@@ -109,6 +109,44 @@
         "active_learning"
       ],
       "remaining_modes_fail_closed": true
+    },
+    {
+      "id": "native-uncertainty-factor-accuracy",
+      "requirements": "requirements.txt",
+      "network_policy": "deny",
+      "fixed_numeric_inputs_only": true,
+      "modes": [
+        "joint_random_sample",
+        "distribution_fit_select",
+        "variable_role_validate",
+        "probabilistic_accuracy",
+        "forecast_accuracy",
+        "bayesian_linear_calibration",
+        "reliability_analysis",
+        "factor_information_analysis",
+        "factor_selection_diagnostics",
+        "factor_overfit_diagnostics",
+        "cross_validation_plan"
+      ],
+      "implemented_now": [
+        "joint_random_sample",
+        "distribution_fit_select",
+        "variable_role_validate",
+        "probabilistic_accuracy",
+        "forecast_accuracy",
+        "bayesian_linear_calibration",
+        "reliability_analysis",
+        "factor_information_analysis",
+        "factor_selection_diagnostics",
+        "factor_overfit_diagnostics",
+        "cross_validation_plan"
+      ],
+      "scope_notes": {
+        "bayesian_calibration": "Fixed conjugate Bayesian linear calibration; arbitrary probabilistic programs remain prohibited.",
+        "reliability": "Linear FORM and Monte Carlo failure-probability evaluation; arbitrary limit-state code remains prohibited.",
+        "copulas": "Gaussian and Student-t copulas with explicit positive-semidefinite correlation matrices.",
+        "factor_research": "IC, rank IC, quantiles, turnover, regime stability, neutralization, VIF, PCA, ridge, lasso, FDR, PBO and block-bootstrap reality check."
+      }
     }
   ],
   "literature_plane": {
