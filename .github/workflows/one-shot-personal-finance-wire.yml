@@ -1,0 +1,38 @@
+name: One-shot Personal Finance Wiring
+
+on:
+  push:
+    branches:
+      - feat/personal-finance-native-pack-20260804
+    paths:
+      - .github/workflows/one-shot-personal-finance-wire.yml
+
+permissions:
+  contents: write
+
+jobs:
+  wire:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: feat/personal-finance-native-pack-20260804
+          fetch-depth: 0
+      - name: Wire personal finance handlers into governed gateway
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          from pathlib import Path
+
+          path = Path('compute-center/institutional_expansion_operations.py')
+          text = path.read_text(encoding='utf-8')
+          block = '''\n\nfrom personal_finance_operations import HANDLERS as PERSONAL_FINANCE_HANDLERS\n\nif set(HANDLERS) & set(PERSONAL_FINANCE_HANDLERS):\n    raise RuntimeError("personal-finance modes conflict with institutional expansion modes")\nHANDLERS.update(PERSONAL_FINANCE_HANDLERS)\n'''
+          if 'PERSONAL_FINANCE_HANDLERS' not in text:
+              path.write_text(text.rstrip() + block, encoding='utf-8')
+          PY
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add compute-center/institutional_expansion_operations.py
+          git diff --cached --check
+          git commit -m 'feat: wire personal finance handlers into preview gateway'
+          git push origin HEAD:feat/personal-finance-native-pack-20260804
