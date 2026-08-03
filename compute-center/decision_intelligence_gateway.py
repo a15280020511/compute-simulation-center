@@ -14,6 +14,7 @@ from professional_forecasting_operations import HANDLERS as FORECAST_HANDLERS
 from quantitative_operations import HANDLERS as QUANT_HANDLERS
 from strategic_intelligence_operations import HANDLERS as STRATEGIC_HANDLERS
 from think_tank_operations import HANDLERS as THINK_TANK_HANDLERS
+from uncertainty_factor_accuracy_operations import HANDLERS as UNCERTAINTY_FACTOR_ACCURACY_HANDLERS
 
 LEGACY_MODES = {
     "performance_metrics",
@@ -35,6 +36,7 @@ PREVIEW_MODES = (
     set(THINK_TANK_HANDLERS)
     | set(ASSURANCE_HANDLERS)
     | set(INSTITUTIONAL_EXPANSION_HANDLERS)
+    | set(UNCERTAINTY_FACTOR_ACCURACY_HANDLERS)
 )
 
 MODE_HANDLERS: dict[str, Callable[[Mapping[str, Any]], dict[str, Any]]] = {
@@ -45,6 +47,7 @@ MODE_HANDLERS: dict[str, Callable[[Mapping[str, Any]], dict[str, Any]]] = {
     **THINK_TANK_HANDLERS,
     **ASSURANCE_HANDLERS,
     **INSTITUTIONAL_EXPANSION_HANDLERS,
+    **UNCERTAINTY_FACTOR_ACCURACY_HANDLERS,
 }
 
 if PRODUCTION_MODES & PREVIEW_MODES:
@@ -59,13 +62,12 @@ if len(MODE_HANDLERS) != sum(
         THINK_TANK_HANDLERS,
         ASSURANCE_HANDLERS,
         INSTITUTIONAL_EXPANSION_HANDLERS,
+        UNCERTAINTY_FACTOR_ACCURACY_HANDLERS,
     )
 ):
     raise RuntimeError("duplicate decision-intelligence mode registration")
 
-# Backward-compatible production set used by the established 22-mode gate.
 SUPPORTED_MODES = tuple(sorted(PRODUCTION_MODES))
-# Complete executable allowlist, including separately governed preview extensions.
 ALL_SUPPORTED_MODES = tuple(sorted(PRODUCTION_MODES | PREVIEW_MODES))
 
 
