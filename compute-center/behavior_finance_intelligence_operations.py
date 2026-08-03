@@ -264,23 +264,26 @@ def active_inference_policy_choice(inputs: Mapping[str, Any]) -> dict[str, Any]:
         likelihood.shape[0] - 1,
     )
 
-    A = utils.obj_array(1)
-    B = utils.obj_array(1)
-    C = utils.obj_array(1)
-    D = utils.obj_array(1)
-    A[0] = likelihood
-    B[0] = np.stack(transitions, axis=2)
-    C[0] = preferences
-    D[0] = prior
-    agent = Agent(A=A, B=B, C=C, D=D, policy_len=1)
-    posterior_states = agent.infer_states([observation])
-    policy_probabilities, negative_expected_free_energy = agent.infer_policies()
-    q_pi = np.asarray(policy_probabilities, dtype=float).reshape(-1)
+    from jax import numpy as jnp
+
+    A = [jnp.asarray(likelihood, dtype=jnp.float32)]
+    B = [jnp.asarray(np.stack(transitions, axis=2), dtype=jnp.float32)]
+    C = [jnp.asarray(preferences, dtype=jnp.float32)]
+    D = [jnp.asarray(prior, dtype=jnp.float32)]
+    agent = Agent(A=A, B=B, C=C, D=D, policy_len=1, batch_size=1)
+    posterior_states, inference_info = agent.infer_states(
+        [jnp.asarray([observation], dtype=jnp.int32)],
+        empirical_prior=agent.D,
+        return_info=True,
+    )
+    policy_probabilities, negative_expected_free_energy = agent.infer_policies(posterior_states)
+    q_pi = np.asarray(policy_probabilities, dtype=float).reshape(agent.batch_size, -1)[0]
     chosen_policy = int(np.argmax(q_pi))
-    policy = np.asarray(agent.policies[chosen_policy], dtype=int).reshape(-1)
-    chosen_action = int(policy[0])
-    posterior = np.asarray(posterior_states[0], dtype=float).reshape(-1)
-    negative_efe = np.asarray(negative_expected_free_energy, dtype=float).reshape(-1)
+    policy_array = np.asarray(agent.policies.policy_arr, dtype=int)
+    chosen_action = int(policy_array[chosen_policy, 0, 0])
+    posterior = np.asarray(posterior_states[0], dtype=float)[0, -1]
+    negative_efe = np.asarray(negative_expected_free_energy, dtype=float).reshape(agent.batch_size, -1)[0]
+    vfe = np.asarray(inference_info["vfe"], dtype=float).reshape(-1)
     return {
         "mode": "active_inference_policy_choice",
         "observation": observation,
@@ -289,6 +292,7 @@ def active_inference_policy_choice(inputs: Mapping[str, Any]) -> dict[str, Any]:
         "posterior_states": posterior.tolist(),
         "policy_probabilities": q_pi.tolist(),
         "negative_expected_free_energy": negative_efe.tolist(),
+        "variational_free_energy": vfe.tolist(),
         "engine": {"inferactively-pymdp": _package("inferactively-pymdp")},
         "policy_horizon": 1,
         "autonomous_loop_used": False,
