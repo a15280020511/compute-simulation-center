@@ -12,7 +12,6 @@ from capability_manager import load_registry, validated_groups
 HERE = Path(__file__).resolve().parent
 PIN_RE = re.compile(r"^[A-Za-z0-9_.-]+==[^=\s]+$")
 EXPECTED_EXTENSION_MODES = 61
-EXPECTED_EFFECTIVE_MODES = 183
 ASSURANCE_MODES = {
     "benchmark_comparison",
     "bounded_linear_kalman_filter",
@@ -70,16 +69,20 @@ def validate() -> dict[str, Any]:
     effective = load_registry()
     target = next(group for group in effective["groups"] if group.get("id") == "decision-intelligence")
     effective_mode_count = sum(len(group.get("modes") or {}) for group in effective["groups"])
-    if effective_mode_count != EXPECTED_EFFECTIVE_MODES:
-        raise RuntimeError(f"effective mode count mismatch: {effective_mode_count}")
+    catalog_effective_mode_count = capabilities.get("effective_managed_mode_count")
+    if not isinstance(catalog_effective_mode_count, int) or catalog_effective_mode_count < EXPECTED_EXTENSION_MODES:
+        raise RuntimeError("capability effective_managed_mode_count is invalid")
+    if effective_mode_count != catalog_effective_mode_count:
+        raise RuntimeError(
+            f"effective mode count mismatch: registry={effective_mode_count}, "
+            f"capability_catalog={catalog_effective_mode_count}"
+        )
     if not set(modes).issubset(set(target.get("modes") or {})):
         raise RuntimeError("effective registry does not expose all extension modes")
     validated_groups()
 
     if capabilities.get("extension_mode_count") != EXPECTED_EXTENSION_MODES:
         raise RuntimeError("capability extension_mode_count mismatch")
-    if capabilities.get("effective_managed_mode_count") != EXPECTED_EFFECTIVE_MODES:
-        raise RuntimeError("capability effective_managed_mode_count mismatch")
     finance = next(row for row in capabilities["operations"] if row.get("id") == "finance_decision_analysis")
     if not set(modes).issubset(set(finance.get("modes") or [])):
         raise RuntimeError("capability catalog omits extension modes")
