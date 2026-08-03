@@ -11,8 +11,18 @@ from capability_manager import load_registry, validated_groups
 
 HERE = Path(__file__).resolve().parent
 PIN_RE = re.compile(r"^[A-Za-z0-9_.-]+==[^=\s]+$")
-EXPECTED_EXTENSION_MODES = 53
-EXPECTED_EFFECTIVE_MODES = 175
+EXPECTED_EXTENSION_MODES = 61
+EXPECTED_EFFECTIVE_MODES = 183
+ASSURANCE_MODES = {
+    "benchmark_comparison",
+    "bounded_linear_kalman_filter",
+    "calibration_diagnostics",
+    "cross_model_agreement",
+    "prediction_interval_validation",
+    "probabilistic_forecast_scoring",
+    "realized_outcome_feedback",
+    "vva_acceptance_gate",
+}
 
 
 def _load(name: str) -> dict[str, Any]:
@@ -32,6 +42,8 @@ def validate() -> dict[str, Any]:
         raise RuntimeError("think-tank extension maps are invalid")
     if len(modes) != EXPECTED_EXTENSION_MODES or set(modes) != set(requirements):
         raise RuntimeError("think-tank extension count or key parity is invalid")
+    if not ASSURANCE_MODES.issubset(set(modes)):
+        raise RuntimeError("forecast assurance modes are missing from the extension registry")
     for mode, metadata in modes.items():
         if not isinstance(metadata, Mapping):
             raise RuntimeError(f"invalid metadata for {mode}")
@@ -40,8 +52,14 @@ def validate() -> dict[str, Any]:
         if metadata.get("deterministic") is not True:
             raise RuntimeError(f"new think-tank mode must be deterministic: {mode}")
         rows = requirements[mode]
-        if not isinstance(rows, list) or len(rows) != 1:
-            raise RuntimeError(f"mode must resolve exactly one dependency pack: {mode}")
+        if not isinstance(rows, list):
+            raise RuntimeError(f"dependency map must be an array: {mode}")
+        if mode in ASSURANCE_MODES:
+            if rows:
+                raise RuntimeError(f"repository-native assurance mode must not install an extra dependency pack: {mode}")
+            continue
+        if len(rows) != 1:
+            raise RuntimeError(f"package-backed mode must resolve exactly one dependency pack: {mode}")
         path = HERE / str(rows[0])
         if not path.is_file():
             raise RuntimeError(f"missing dependency pack for {mode}: {path.name}")
@@ -82,11 +100,13 @@ def validate() -> dict[str, Any]:
     if not required_packs.issubset(pack_ids):
         raise RuntimeError("method registry omits think-tank packs")
 
+    dependency_files = {rows[0] for rows in requirements.values() if rows}
     return {
         "status": "PASS",
         "extension_modes": len(modes),
+        "repository_native_assurance_modes": len(ASSURANCE_MODES),
         "effective_managed_modes": effective_mode_count,
-        "dependency_packs": len({rows[0] for rows in requirements.values()}),
+        "dependency_packs": len(dependency_files),
         "network_policy": "deny",
         "arbitrary_code_allowed": False,
     }

@@ -6,6 +6,7 @@ from collections.abc import Mapping
 from typing import Any, Callable
 
 from compute_runner import ComputeError
+from assurance_operations import HANDLERS as ASSURANCE_HANDLERS
 from finance_operations import finance_decision_analysis as legacy_finance_decision_analysis
 from operations_research_modes import HANDLERS as OR_HANDLERS
 from professional_forecasting_operations import HANDLERS as FORECAST_HANDLERS
@@ -29,7 +30,7 @@ PRODUCTION_HANDLER_MODES = (
     | set(STRATEGIC_HANDLERS)
 )
 PRODUCTION_MODES = LEGACY_MODES | PRODUCTION_HANDLER_MODES
-PREVIEW_MODES = set(THINK_TANK_HANDLERS)
+PREVIEW_MODES = set(THINK_TANK_HANDLERS) | set(ASSURANCE_HANDLERS)
 
 MODE_HANDLERS: dict[str, Callable[[Mapping[str, Any]], dict[str, Any]]] = {
     **QUANT_HANDLERS,
@@ -37,6 +38,7 @@ MODE_HANDLERS: dict[str, Callable[[Mapping[str, Any]], dict[str, Any]]] = {
     **OR_HANDLERS,
     **STRATEGIC_HANDLERS,
     **THINK_TANK_HANDLERS,
+    **ASSURANCE_HANDLERS,
 }
 
 if PRODUCTION_MODES & PREVIEW_MODES:

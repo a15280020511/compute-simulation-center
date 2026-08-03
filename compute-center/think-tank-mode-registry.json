@@ -14,15 +14,18 @@
     "arch_garch_forecast": [
       "requirements-global-arch.txt"
     ],
+    "benchmark_comparison": [],
     "bounded_hyperparameter_search": [
       "requirements-thinktank-decision.txt"
     ],
+    "bounded_linear_kalman_filter": [],
     "bounded_table_join": [
       "requirements-thinktank-data.txt"
     ],
     "bounded_table_profile": [
       "requirements-thinktank-data.txt"
     ],
+    "calibration_diagnostics": [],
     "change_point_detection": [
       "requirements-thinktank-econometrics.txt"
     ],
@@ -35,6 +38,7 @@
     "control_step_response": [
       "requirements-global-control.txt"
     ],
+    "cross_model_agreement": [],
     "customer_lifetime_value": [
       "requirements-thinktank-econometrics.txt"
     ],
@@ -110,9 +114,11 @@
     "power_analysis": [
       "requirements-thinktank-econometrics.txt"
     ],
+    "prediction_interval_validation": [],
     "price_elasticity": [
       "requirements-thinktank-econometrics.txt"
     ],
+    "probabilistic_forecast_scoring": [],
     "process_capability": [
       "requirements-thinktank-econometrics.txt"
     ],
@@ -131,6 +137,7 @@
     "raster_zonal_statistics": [
       "requirements-thinktank-geospatial.txt"
     ],
+    "realized_outcome_feedback": [],
     "robust_glm": [
       "requirements-thinktank-econometrics.txt"
     ],
@@ -163,7 +170,8 @@
     ],
     "unobserved_components_forecast": [
       "requirements-thinktank-econometrics.txt"
-    ]
+    ],
+    "vva_acceptance_gate": []
   },
   "modes": {
     "aequilibrae_shortest_path": {
@@ -193,6 +201,14 @@
         "max_horizon": 30
       }
     },
+    "benchmark_comparison": {
+      "maturity": "controlled-preview",
+      "network_policy": "deny",
+      "deterministic": true,
+      "limits": {
+        "max_candidates": 200
+      }
+    },
     "bounded_hyperparameter_search": {
       "maturity": "controlled-preview",
       "network_policy": "deny",
@@ -200,6 +216,15 @@
       "limits": {
         "max_parameters": 20,
         "max_trials": 1000
+      }
+    },
+    "bounded_linear_kalman_filter": {
+      "maturity": "controlled-preview",
+      "network_policy": "deny",
+      "deterministic": true,
+      "limits": {
+        "max_dimension": 20,
+        "max_steps": 10000
       }
     },
     "bounded_table_join": {
@@ -218,6 +243,15 @@
       "limits": {
         "max_rows": 50000,
         "max_columns": 100
+      }
+    },
+    "calibration_diagnostics": {
+      "maturity": "controlled-preview",
+      "network_policy": "deny",
+      "deterministic": true,
+      "limits": {
+        "max_observations": 20000,
+        "max_bins": 50
       }
     },
     "change_point_detection": {
@@ -253,6 +287,15 @@
       "limits": {
         "max_coefficients": 20,
         "max_points": 1000
+      }
+    },
+    "cross_model_agreement": {
+      "maturity": "controlled-preview",
+      "network_policy": "deny",
+      "deterministic": true,
+      "limits": {
+        "max_models": 50,
+        "max_observations": 20000
       }
     },
     "customer_lifetime_value": {
@@ -478,12 +521,29 @@
         "max_groups": 2
       }
     },
+    "prediction_interval_validation": {
+      "maturity": "controlled-preview",
+      "network_policy": "deny",
+      "deterministic": true,
+      "limits": {
+        "max_observations": 20000
+      }
+    },
     "price_elasticity": {
       "maturity": "controlled-preview",
       "network_policy": "deny",
       "deterministic": true,
       "limits": {
         "max_observations": 50000
+      }
+    },
+    "probabilistic_forecast_scoring": {
+      "maturity": "controlled-preview",
+      "network_policy": "deny",
+      "deterministic": true,
+      "limits": {
+        "max_observations": 20000,
+        "max_classes": 50
       }
     },
     "process_capability": {
@@ -536,6 +596,14 @@
       "limits": {
         "max_cells": 1000000,
         "max_zones": 10000
+      }
+    },
+    "realized_outcome_feedback": {
+      "maturity": "controlled-preview",
+      "network_policy": "deny",
+      "deterministic": true,
+      "limits": {
+        "max_observations": 20000
       }
     },
     "robust_glm": {
@@ -637,6 +705,14 @@
       "limits": {
         "max_observations": 50000,
         "max_horizon": 365
+      }
+    },
+    "vva_acceptance_gate": {
+      "maturity": "controlled-preview",
+      "network_policy": "deny",
+      "deterministic": true,
+      "limits": {
+        "max_checks": 20
       }
     }
   }

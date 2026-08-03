@@ -1,0 +1,78 @@
+{
+  "schema_version": "center-capability-ownership-v1",
+  "contract_version": "2026-08-03",
+  "status": "authoritative-boundary-contract",
+  "sole_cross_center_relay": "gpts-usage-center",
+  "direct_center_to_center_calls_allowed": false,
+  "principles": [
+    "collection and source interaction belong to the Intelligence Center",
+    "bounded deterministic algorithms belong to the Compute Center",
+    "raw evidence is transferred only by GPTs with provenance and integrity metadata",
+    "a Python package may exist in both repositories only when its runtime role is explicitly different",
+    "no arbitrary code, runtime dependency selection, hidden model calls or autonomous loops"
+  ],
+  "compute_center": {
+    "owns": [
+      "statistics, probability, econometrics and causal estimation on supplied data",
+      "optimization, simulation, forecasting, uncertainty analysis and sensitivity analysis",
+      "game theory, negotiation, agent-based models and bounded strategic sandboxes",
+      "graph metrics, link analysis, ontology constraint checks and evidence-graph computation",
+      "entity-resolution scoring, fuzzy comparison and set-similarity algorithms after record preparation",
+      "financial mathematics, portfolio risk, business analytics and policy microsimulation",
+      "forecast scoring, calibration, interval validation, realized-outcome feedback and VV&A",
+      "generic offline state estimation with no live feed, identity, target or weapons integration"
+    ],
+    "tool_families": {
+      "numerical_and_statistics": ["NumPy", "SciPy", "pandas", "statsmodels", "arch", "linearmodels", "lifelines", "ruptures"],
+      "optimization_and_decision": ["OR-Tools", "CVXPY", "Pyomo", "HiGHS", "pymoo", "RSOME", "SALib", "OpenTURNS"],
+      "simulation_and_systems": ["SimPy", "Mesa", "PySD", "EMA Workbench", "python-control", "QuantEcon"],
+      "game_and_strategy": ["OpenSpiel", "PyGambit", "Nashpy", "Axelrod", "NegMAS", "SCML", "clingo", "Z3"],
+      "finance_and_business": ["QuantLib", "PyPortfolioOpt", "Riskfolio-Lib", "vectorbt", "FinanceToolkit", "PyMC-Marketing", "PyBLP", "Biogeme"],
+      "policy_and_causal": ["DoWhy", "DoubleML", "EconML", "HARK", "Tax-Calculator", "PolicyEngine", "pymrio"],
+      "graph_and_matching_algorithms": ["NetworkX", "igraph", "RDFLib", "PySHACL", "Owlready2", "ProbLog", "Splink", "RapidFuzz", "datasketch", "PyOD"],
+      "spatial_and_infrastructure_models": ["Shapely", "PyProj", "Rasterio", "rioxarray", "libpysal", "spreg", "AequilibraE", "PyPSA", "pandapower", "WNTR", "Pywr"]
+    }
+  },
+  "intelligence_center": {
+    "owns": [
+      "external API, web, browser, feed, document and public-dataset collection",
+      "provider authentication, rate limits, host allowlists and read-only request execution",
+      "HTML, PDF, OCR and structured-document extraction",
+      "source registration, immutable snapshots, provenance, hashes and evidence packaging",
+      "raw record normalization, schema mapping, deduplication preparation and data minimization",
+      "STIX or TAXII exchange, public cyber-threat feeds and source-level temporal versioning",
+      "evidence archives, public-data lineage and transfer packages for GPTs"
+    ],
+    "tool_families": {
+      "search_and_web_collection": ["Exa", "Tavily", "Firecrawl", "SERP API", "Cloudflare Browser Rendering", "Browserless"],
+      "document_processing": ["LlamaParse", "PyPDF", "HTML parsers", "OCR adapters"],
+      "public_data_providers": ["BigQuery", "Earth Engine", "World Bank", "FRED", "BIS", "WHO GHO", "OECD", "official government APIs"],
+      "evidence_and_provenance": ["SHA-256 manifests", "immutable snapshots", "source comparison", "lineage DAG", "Hugging Face private Dataset archive"],
+      "threat_intelligence_exchange": ["STIX 2.1", "TAXII 2.x", "public non-targeting threat feeds"],
+      "preparation_only": ["record canonicalization", "exact hashing", "SimHash fingerprints", "field mapping", "declared PII minimization"]
+    }
+  },
+  "split_role_packages": {
+    "RDFLib": {
+      "intelligence_center": "construct and serialize provenance or evidence records",
+      "compute_center": "run graph queries, constraints, inference summaries and link metrics"
+    },
+    "RapidFuzz_and_datasketch": {
+      "intelligence_center": "prepare normalized records and candidate blocks",
+      "compute_center": "calculate bounded similarity and collision scores"
+    },
+    "pandas_and_Polars": {
+      "intelligence_center": "normalize collected records into transfer schemas",
+      "compute_center": "perform bounded analysis on supplied transfer tables"
+    }
+  },
+  "prohibited_everywhere": [
+    "credential theft or secret collection",
+    "unlawful surveillance or covert personal targeting",
+    "real-time person or military target tracking",
+    "persuasion targeting, influence operations or automated enforcement",
+    "offensive cyber exploitation or malware deployment",
+    "weapons-effects modeling, autonomous engagement or operational command",
+    "live brokerage execution, automated trading or guaranteed-profit claims"
+  ]
+}

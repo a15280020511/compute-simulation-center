@@ -7,6 +7,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
+from assurance_operations import HANDLERS as ASSURANCE_HANDLERS  # noqa: E402
 from decision_intelligence_gateway import (  # noqa: E402
     ALL_SUPPORTED_MODES,
     SUPPORTED_MODES,
@@ -46,10 +47,14 @@ class StrategicIntelligenceTests(unittest.TestCase):
         }
         self.assertTrue(expected <= set(SUPPORTED_MODES))
         self.assertTrue(set(THINK_TANK_MODES) <= set(ALL_SUPPORTED_MODES))
+        self.assertTrue(set(ASSURANCE_HANDLERS) <= set(ALL_SUPPORTED_MODES))
         self.assertTrue(set(SUPPORTED_MODES).isdisjoint(set(THINK_TANK_MODES)))
+        self.assertTrue(set(SUPPORTED_MODES).isdisjoint(set(ASSURANCE_HANDLERS)))
+        self.assertTrue(set(THINK_TANK_MODES).isdisjoint(set(ASSURANCE_HANDLERS)))
         self.assertEqual(len(SUPPORTED_MODES), 22)
         self.assertEqual(len(THINK_TANK_MODES), 53)
-        self.assertEqual(len(ALL_SUPPORTED_MODES), 75)
+        self.assertEqual(len(ASSURANCE_HANDLERS), 8)
+        self.assertEqual(len(ALL_SUPPORTED_MODES), 83)
 
     def test_weighted_mcda_ranks_alternatives(self):
         result = weighted_mcda({

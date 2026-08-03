@@ -1,0 +1,127 @@
+name: Validate Forecast Assurance and VVA
+
+on:
+  pull_request:
+    paths:
+      - "compute-center/assurance_operations.py"
+      - "compute-center/validate_assurance_pack.py"
+      - "compute-center/decision_intelligence_gateway.py"
+      - "compute-center/think-tank-mode-registry.json"
+      - "compute-center/compute-capabilities.json"
+      - "CENTER_CAPABILITY_OWNERSHIP.json"
+      - ".github/workflows/assurance-capabilities-validate.yml"
+  push:
+    branches: [main]
+    paths:
+      - "compute-center/assurance_operations.py"
+      - "compute-center/validate_assurance_pack.py"
+      - "compute-center/decision_intelligence_gateway.py"
+      - "compute-center/think-tank-mode-registry.json"
+      - "compute-center/compute-capabilities.json"
+      - "CENTER_CAPABILITY_OWNERSHIP.json"
+      - ".github/workflows/assurance-capabilities-validate.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: forecast-assurance-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  validate-mode:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        mode:
+          - probabilistic_forecast_scoring
+          - calibration_diagnostics
+          - prediction_interval_validation
+          - realized_outcome_feedback
+          - benchmark_comparison
+          - cross_model_agreement
+          - vva_acceptance_gate
+          - bounded_linear_kalman_filter
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: compute-center/requirements.txt
+      - name: Install core pinned dependencies
+        run: |
+          python -m pip install --disable-pip-version-check --no-input -r compute-center/requirements.txt
+          python -m pip check
+      - name: Compile governed runtime
+        run: |
+          python -m py_compile \
+            compute-center/assurance_operations.py \
+            compute-center/validate_assurance_pack.py \
+            compute-center/decision_intelligence_gateway.py
+      - name: Execute fixed numerical fixture
+        run: |
+          mkdir -p assurance-artifacts
+          PYTHONPATH=compute-center python compute-center/validate_assurance_pack.py \
+            --mode "${{ matrix.mode }}" \
+            --output "assurance-artifacts/${{ matrix.mode }}.json"
+      - name: Verify governance receipt
+        env:
+          MODE: ${{ matrix.mode }}
+        run: |
+          python - <<'PY'
+          import json, os
+          from pathlib import Path
+          mode = os.environ['MODE']
+          row = json.loads((Path('assurance-artifacts') / f'{mode}.json').read_text(encoding='utf-8'))
+          assert row['status'] == 'PASS'
+          assert row['mode'] == mode
+          assert row['network_used'] is False
+          assert row['model_calls'] == 0
+          assert row['arbitrary_code_used'] is False
+          assert row['live_feed_used'] is False
+          assert row['individual_or_target_tracking_allowed'] is False
+          PY
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        if: always()
+        with:
+          name: assurance-${{ matrix.mode }}-${{ github.run_id }}
+          path: assurance-artifacts/
+          if-no-files-found: warn
+          retention-days: 30
+
+  registry-boundary:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065
+        with:
+          python-version: "3.12"
+      - run: python -m pip install --disable-pip-version-check --no-input -r compute-center/requirements.txt
+      - name: Validate capability manager and ownership contract
+        run: |
+          PYTHONPATH=compute-center python compute-center/capability_manager.py validate
+          PYTHONPATH=compute-center python - <<'PY'
+          import json
+          from pathlib import Path
+          from assurance_operations import HANDLERS
+          from decision_intelligence_gateway import ALL_SUPPORTED_MODES
+          registry = json.loads(Path('compute-center/think-tank-mode-registry.json').read_text(encoding='utf-8'))
+          catalog = json.loads(Path('compute-center/compute-capabilities.json').read_text(encoding='utf-8'))
+          ownership = json.loads(Path('CENTER_CAPABILITY_OWNERSHIP.json').read_text(encoding='utf-8'))
+          assert set(HANDLERS) <= set(ALL_SUPPORTED_MODES)
+          assert set(HANDLERS) <= set(registry['modes'])
+          assert catalog['extension_mode_count'] == 61
+          assert catalog['effective_managed_mode_count'] == 183
+          assert ownership['direct_center_to_center_calls_allowed'] is False
+          assert 'real-time person or military target tracking' in ownership['prohibited_everywhere']
+          PY
+          git diff --check

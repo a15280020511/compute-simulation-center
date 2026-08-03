@@ -9,6 +9,7 @@ ROOT = Path(__file__).resolve().parents[1]
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
+from assurance_operations import HANDLERS as ASSURANCE_HANDLERS
 from capability_manager import requirements_for_ticket, runtime_plan
 from think_tank_business_operations import customer_lifetime_value, inventory_policy, process_capability
 from think_tank_decision_operations import influence_diagram, policy_microsimulation, strategic_sandbox
@@ -22,7 +23,8 @@ class ThinkTankRegistryTests(unittest.TestCase):
         self.assertEqual(result["status"], "PASS")
         self.assertEqual(result["extension_modes"], EXPECTED_EXTENSION_MODES)
         self.assertEqual(result["effective_managed_modes"], EXPECTED_EFFECTIVE_MODES)
-        self.assertEqual(len(SUPPORTED_MODES), EXPECTED_EXTENSION_MODES)
+        self.assertTrue(set(SUPPORTED_MODES).isdisjoint(set(ASSURANCE_HANDLERS)))
+        self.assertEqual(len(set(SUPPORTED_MODES) | set(ASSURANCE_HANDLERS)), EXPECTED_EXTENSION_MODES)
 
     def test_mode_specific_dependency_resolution(self) -> None:
         cases = {

@@ -3,8 +3,8 @@
   "catalog_status": "production",
   "operation_count": 28,
   "managed_mode_count": 122,
-  "extension_mode_count": 53,
-  "effective_managed_mode_count": 175,
+  "extension_mode_count": 61,
+  "effective_managed_mode_count": 183,
   "capability_manager_version": 2,
   "selection_owner": "gpts-usage-center",
   "maintenance_owner": "ordinary-web-gpt-with-github-plugin",
@@ -101,7 +101,8 @@
     "QuantLib": "1.43; fixed option and bond analytics",
     "inferactively-pymdp": "1.0.3; bounded one-step active-inference policy evaluation",
     "PyOD": "3.6.2; classic allowlisted ECOD, IForest and KNN anomaly screening only",
-    "mlxtend": "0.25.0; frequent-itemset and association-rule analysis"
+    "mlxtend": "0.25.0; frequent-itemset and association-rule analysis",
+    "repository-native-assurance": "forecast scoring, calibration, interval validation, realized-outcome feedback, cross-model agreement, VV&A and bounded linear state estimation"
   },
   "toolkit_assessment": {
     "current_scope_sufficient_for_existing_operations": true,
@@ -129,7 +130,8 @@
       "GARCH volatility, conformal intervals and scenario-robust allocation",
       "transport shortest paths, epidemic compartments and fixed-template system dynamics",
       "strategic games, negotiation, policy counterfactuals, entity resolution, evidence graphs and structured intelligence analysis",
-      "fixed derivatives and bond analytics, active-inference choice, classic anomaly screening, market-basket rules, evolutionary strategy and bounded group-behavior scenarios"
+      "fixed derivatives and bond analytics, active-inference choice, classic anomaly screening, market-basket rules, evolutionary strategy and bounded group-behavior scenarios",
+      "forecast scoring, calibration diagnostics, prediction-interval validation, realized-outcome feedback, benchmark comparison, cross-model agreement, VV&A and bounded generic state estimation"
     ],
     "not_intended_for": [
       "individual psychological diagnosis or deterministic individual prediction",
@@ -140,7 +142,8 @@
       "large or real-time vehicle routing and fleet dispatch",
       "deep learning or high-frequency online optimization",
       "unrestricted probabilistic programming, arbitrary model code or runtime package installation",
-      "live market-data collection, personalized suitability advice, guaranteed returns, brokerage execution or automated trading"
+      "live market-data collection, personalized suitability advice, guaranteed returns, brokerage execution or automated trading",
+      "live person or military target tracking, weapons integration or autonomous operational control"
     ],
     "dependency_policy": "Compute Capability Manager V2 resolves only repository-pinned dependency bundles. Production workflow writes a runtime plan before installation and execution.",
     "extension_policy": "Register fixed allowlisted operations or modes with bounded inputs, pinned dependencies, maturity, determinism, network policy, resource limits, tests, benchmarks and rollback metadata."
@@ -357,16 +360,20 @@
         "algebraic_resource_optimization",
         "arch_garch_forecast",
         "assignment_optimization",
+        "benchmark_comparison",
         "bounded_hyperparameter_search",
+        "bounded_linear_kalman_filter",
         "bounded_table_join",
         "bounded_table_profile",
         "business_unit_economics",
+        "calibration_diagnostics",
         "capital_budgeting",
         "change_point_detection",
         "churn_probability",
         "competing_hypotheses",
         "consumer_choice_logit",
         "control_step_response",
+        "cross_model_agreement",
         "customer_lifetime_value",
         "customer_segmentation",
         "cvar_portfolio",
@@ -401,13 +408,16 @@
         "portfolio_optimization",
         "portfolio_stress_test",
         "power_analysis",
+        "prediction_interval_validation",
         "price_elasticity",
+        "probabilistic_forecast_scoring",
         "process_capability",
         "pydoe3_latin_hypercube",
         "pysd_stock_flow_scenario",
         "quantile_regression",
         "raster_change_detection",
         "raster_zonal_statistics",
+        "realized_outcome_feedback",
         "risk_parity_allocation",
         "robust_glm",
         "rsome_robust_allocation",
@@ -426,6 +436,7 @@
         "value_of_information",
         "vector_autoregression_forecast",
         "vehicle_routing",
+        "vva_acceptance_gate",
         "walk_forward_backtest",
         "weighted_mcda"
       ],

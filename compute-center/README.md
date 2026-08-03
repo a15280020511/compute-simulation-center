@@ -197,3 +197,10 @@ Recovery, rebuild and external-configuration backup instructions are maintained 
 ## Global Think-Tank Toolkit
 
 Exa and Tavily global discovery produced 16 candidates. Fifteen passed isolated Python 3.12 compatibility and numerical smoke tests; CausalPy was excluded because it requires NumPy below the production baseline. The accepted modes remain fixed, bounded, repository-pinned, network-denied and controlled-preview.
+
+
+## Forecast assurance and VV&A
+
+Eight controlled-preview modes are exposed through `finance_decision_analysis`: probability scoring, calibration diagnostics, prediction-interval validation, realized-outcome feedback, benchmark comparison, cross-model agreement, a verification/validation/accreditation gate, and a bounded linear Kalman filter. They run offline on supplied structured data, make zero model calls, accept no ticket code, and do not support live feeds, person identification, target designation, weapons integration or autonomous control.
+
+The authoritative allocation between the Compute Center and Intelligence Center is recorded in repository-root `CENTER_CAPABILITY_OWNERSHIP.json`.
