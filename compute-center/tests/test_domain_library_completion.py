@@ -110,10 +110,12 @@ class DomainLibraryCompletionTests(unittest.TestCase):
         self.assertEqual(report["domain_libraries"]["factors"][0]["factor_id"], "finance-book-to-market")
         self.assertFalse(report["runtime_network_used"])
 
-    def test_institutional_registry_lists_complete_library_set(self) -> None:
-        registry = json.loads((HERE / "institutional-library-registry.json").read_text(encoding="utf-8"))
-        identifiers = {row["id"] for row in registry["libraries"]}
-        required = {
+    def test_core_and_extension_library_registries_are_complete(self) -> None:
+        core = json.loads((HERE / "institutional-library-registry.json").read_text(encoding="utf-8"))
+        extension = json.loads((HERE / "governed-domain-library-registry.json").read_text(encoding="utf-8"))
+        core_ids = {row["id"] for row in core["libraries"]}
+        extension_ids = {row["id"] for row in extension["libraries"]}
+        required_extensions = {
             "domain-factor-library",
             "baseline-library",
             "metric-threshold-library",
@@ -123,8 +125,14 @@ class DomainLibraryCompletionTests(unittest.TestCase):
             "outcome-feedback-library",
             "external-domain-material-contract",
         }
-        self.assertTrue(required.issubset(identifiers))
-        self.assertFalse(registry["policy"]["direct_center_connection_allowed"])
+        self.assertEqual(len(core_ids), 16)
+        self.assertEqual(extension_ids, required_extensions)
+        self.assertFalse(core_ids & extension_ids)
+        self.assertEqual(len(core_ids | extension_ids), 24)
+        self.assertEqual(extension["policy"]["core_institutional_library_count"], 16)
+        self.assertFalse(extension["policy"]["direct_center_connection_allowed"])
+        for row in extension["libraries"]:
+            self.assertTrue((HERE / row["authority"]).is_file())
 
 
 if __name__ == "__main__":
