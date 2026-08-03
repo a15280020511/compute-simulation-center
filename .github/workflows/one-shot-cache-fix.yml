@@ -1,0 +1,52 @@
+name: One-shot Compute Cache Inventory Repair
+
+on:
+  push:
+    branches:
+      - feat/causal-drift-finance-expansion-20260804
+    paths:
+      - .github/workflows/one-shot-cache-fix.yml
+
+permissions:
+  contents: write
+
+jobs:
+  repair:
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout repair branch
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: feat/causal-drift-finance-expansion-20260804
+          fetch-depth: 0
+
+      - name: Insert supplemental requirement cache paths and self-remove
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          from pathlib import Path
+
+          path = Path('.github/workflows/compute-ticket.yml')
+          text = path.read_text(encoding='utf-8')
+          anchor = '            compute-center/requirements-sumo.txt\n'
+          additions = ''.join([
+              '            compute-center/requirements-institutional-causal.txt\n',
+              '            compute-center/requirements-institutional-tigramite.txt\n',
+              '            compute-center/requirements-institutional-evidently.txt\n',
+              '            compute-center/requirements-institutional-river.txt\n',
+              '            compute-center/requirements-institutional-skfolio.txt\n',
+          ])
+          if additions not in text:
+              if anchor not in text:
+                  raise SystemExit('requirements-sumo cache anchor not found')
+              text = text.replace(anchor, anchor + additions, 1)
+              path.write_text(text, encoding='utf-8')
+          PY
+          rm -f .github/workflows/one-shot-cache-fix.yml
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add -A
+          git diff --cached --check
+          git commit -m 'fix: include institutional packs in production cache key'
+          git push origin HEAD:feat/causal-drift-finance-expansion-20260804
