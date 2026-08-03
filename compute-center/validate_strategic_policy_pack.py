@@ -9,6 +9,7 @@ from pathlib import Path
 from typing import Any
 
 from strategic_policy_intelligence_operations import HANDLERS
+from validate_behavior_finance_intelligence_pack import FIXTURES as BEHAVIOR_FINANCE_FIXTURES
 
 FIXTURES = {'axelrod_strategy_tournament': {'seed': 7,
                                  'strategies': ['Cooperator', 'Defector', 'Tit For Tat'],
@@ -154,13 +155,24 @@ def finite_tree(value: Any) -> bool:
 
 def main() -> int:
     parser = argparse.ArgumentParser()
-    parser.add_argument("--mode", choices=sorted(HANDLERS), required=True)
+    parser.add_argument("--mode", choices=sorted(FIXTURES), required=True)
     parser.add_argument("--output")
     args = parser.parse_args()
-    if set(FIXTURES) != set(HANDLERS):
+    strategic_modes = set(FIXTURES)
+    behavior_modes = set(BEHAVIOR_FINANCE_FIXTURES)
+    runtime_modes = set(HANDLERS)
+    overlap = strategic_modes & behavior_modes
+    if overlap:
+        raise AssertionError(f"fixture suites overlap: {sorted(overlap)}")
+    if strategic_modes | behavior_modes != runtime_modes:
         raise AssertionError(
-            f"fixture mismatch missing={sorted(set(HANDLERS)-set(FIXTURES))} "
-            f"extra={sorted(set(FIXTURES)-set(HANDLERS))}"
+            f"combined fixture mismatch missing={sorted(runtime_modes-(strategic_modes | behavior_modes))} "
+            f"extra={sorted((strategic_modes | behavior_modes)-runtime_modes)}"
+        )
+    if len(strategic_modes) != 30 or len(behavior_modes) != 12 or len(runtime_modes) != 42:
+        raise AssertionError(
+            f"unexpected mode counts strategic={len(strategic_modes)} "
+            f"behavior={len(behavior_modes)} runtime={len(runtime_modes)}"
         )
     result = HANDLERS[args.mode](FIXTURES[args.mode])
     if result.get("mode") != args.mode or not finite_tree(result):
