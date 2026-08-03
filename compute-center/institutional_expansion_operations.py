@@ -499,3 +499,9 @@ HANDLERS: dict[str, Callable[[Mapping[str, Any]], dict[str, Any]]] = {
     "deflated_sharpe_gate": deflated_sharpe_gate,
     "transaction_cost_capacity": transaction_cost_capacity,
 }
+
+from personal_finance_operations import HANDLERS as PERSONAL_FINANCE_HANDLERS
+
+if set(HANDLERS) & set(PERSONAL_FINANCE_HANDLERS):
+    raise RuntimeError("personal-finance modes conflict with institutional expansion modes")
+HANDLERS.update(PERSONAL_FINANCE_HANDLERS)

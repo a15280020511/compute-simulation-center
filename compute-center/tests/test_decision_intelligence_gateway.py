@@ -15,6 +15,7 @@ from decision_intelligence_gateway import (  # noqa: E402
 )
 from institutional_expansion_operations import HANDLERS as INSTITUTIONAL_EXPANSION_HANDLERS  # noqa: E402
 from operations_research_modes import assignment_optimization, mixed_integer_optimization, vehicle_routing  # noqa: E402
+from personal_finance_operations import HANDLERS as PERSONAL_FINANCE_HANDLERS  # noqa: E402
 from professional_forecasting_operations import (  # noqa: E402
     exponential_smoothing_forecast,
     sarimax_forecast,
@@ -38,7 +39,7 @@ from think_tank_operations import SUPPORTED_MODES as THINK_TANK_MODES  # noqa: E
 
 
 class StrategicIntelligenceTests(unittest.TestCase):
-    def test_all_new_modes_are_allowlisted(self):
+    def test_all_modes_are_allowlisted_and_disjoint(self):
         expected = {
             "factor_regression", "walk_forward_backtest", "risk_parity_allocation",
             "portfolio_stress_test", "sarimax_forecast", "exponential_smoothing_forecast",
@@ -47,23 +48,25 @@ class StrategicIntelligenceTests(unittest.TestCase):
             "value_of_information", "competing_hypotheses", "indicators_and_warnings",
         }
         self.assertTrue(expected <= set(SUPPORTED_MODES))
-        self.assertTrue(set(THINK_TANK_MODES) <= set(ALL_SUPPORTED_MODES))
-        self.assertTrue(set(ASSURANCE_HANDLERS) <= set(ALL_SUPPORTED_MODES))
-        self.assertTrue(set(INSTITUTIONAL_EXPANSION_HANDLERS) <= set(ALL_SUPPORTED_MODES))
         groups = [
             set(SUPPORTED_MODES),
             set(THINK_TANK_MODES),
             set(ASSURANCE_HANDLERS),
             set(INSTITUTIONAL_EXPANSION_HANDLERS),
         ]
+        for group in groups[1:]:
+            self.assertTrue(group <= set(ALL_SUPPORTED_MODES))
         for left in range(len(groups)):
             for right in range(left + 1, len(groups)):
                 self.assertTrue(groups[left].isdisjoint(groups[right]))
+        self.assertTrue(set(PERSONAL_FINANCE_HANDLERS) <= set(INSTITUTIONAL_EXPANSION_HANDLERS))
+        self.assertTrue(set(PERSONAL_FINANCE_HANDLERS) <= set(ALL_SUPPORTED_MODES))
         self.assertEqual(len(SUPPORTED_MODES), 22)
         self.assertEqual(len(THINK_TANK_MODES), 53)
         self.assertEqual(len(ASSURANCE_HANDLERS), 8)
-        self.assertEqual(len(INSTITUTIONAL_EXPANSION_HANDLERS), 10)
-        self.assertEqual(len(ALL_SUPPORTED_MODES), 93)
+        self.assertEqual(len(INSTITUTIONAL_EXPANSION_HANDLERS), 19)
+        self.assertEqual(len(PERSONAL_FINANCE_HANDLERS), 9)
+        self.assertEqual(len(ALL_SUPPORTED_MODES), 102)
 
     def test_weighted_mcda_ranks_alternatives(self):
         result = weighted_mcda({
@@ -107,18 +110,27 @@ class StrategicIntelligenceTests(unittest.TestCase):
         })
         self.assertEqual(warnings["critical_count"], 1)
 
-    def test_gateway_delegates_legacy_and_new_modes(self):
+    def test_gateway_delegates_legacy_production_and_personal_modes(self):
         legacy = finance_decision_analysis({"mode": "performance_metrics", "returns": [0.01, -0.01, 0.02]})
         self.assertEqual(legacy["mode"], "performance_metrics")
-        self.assertTrue(legacy["no_guaranteed_profit"])
-        new = finance_decision_analysis({
+        production = finance_decision_analysis({
             "mode": "portfolio_stress_test",
             "weights": {"equity": 0.6, "bond": 0.4},
             "scenarios": [{"name": "shock", "asset_shocks": {"equity": -0.3, "bond": 0.05}}],
         })
-        self.assertTrue(new["no_guaranteed_profit"])
-        self.assertFalse(new["brokerage_execution"])
-        self.assertFalse(new["arbitrary_code_allowed"])
+        personal = finance_decision_analysis({
+            "mode": "emergency_fund_analysis",
+            "monthly_essential_expenses": 5000.0,
+            "current_liquid_reserve": 10000.0,
+            "target_months": 6,
+            "monthly_saving_capacity": 2000.0,
+        })
+        for result in (legacy, production, personal):
+            self.assertTrue(result["no_guaranteed_profit"])
+            self.assertFalse(result["brokerage_execution"])
+            self.assertFalse(result["arbitrary_code_allowed"])
+        self.assertEqual(personal["funding_gap"], 20000.0)
+        self.assertFalse(personal["account_access"])
 
 
 class QuantitativeTests(unittest.TestCase):
@@ -156,16 +168,13 @@ class OptionalEngineIntegrationTests(unittest.TestCase):
         })
         self.assertAlmostEqual(regression["parameters"]["market"]["coefficient"], 1.5, places=5)
         data = [10 + 0.4 * index + (1.5 if index % 12 < 6 else -1.5) for index in range(60)]
-        smoothing = exponential_smoothing_forecast({"data": data, "horizon": 4, "holdout": 6, "trend": "add"})
-        self.assertEqual(len(smoothing["forecast"]), 4)
-        sarimax = sarimax_forecast({"data": data, "horizon": 3, "holdout": 5, "order": [1, 1, 0]})
-        self.assertEqual(len(sarimax["forecast"]), 3)
+        self.assertEqual(len(exponential_smoothing_forecast({"data": data, "horizon": 4, "holdout": 6, "trend": "add"})["forecast"]), 4)
+        self.assertEqual(len(sarimax_forecast({"data": data, "horizon": 3, "holdout": 5, "order": [1, 1, 0]})["forecast"]), 3)
         series = {
             "demand": [50 + index * 0.3 + (index % 4) for index in range(50)],
             "price": [20 + index * 0.1 + ((index + 1) % 3) for index in range(50)],
         }
-        var = vector_autoregression_forecast({"series": series, "horizon": 3, "holdout": 4, "max_lags": 2})
-        self.assertEqual(len(var["forecast"]), 3)
+        self.assertEqual(len(vector_autoregression_forecast({"series": series, "horizon": 3, "holdout": 4, "max_lags": 2})["forecast"]), 3)
 
     def test_salib_sobol_mode(self):
         result = sobol_sensitivity({

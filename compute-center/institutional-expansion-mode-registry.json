@@ -15,7 +15,16 @@
     "skfolio_walk_forward_portfolio": ["requirements-institutional-skfolio.txt"],
     "black_litterman_allocation": ["requirements-finance.txt"],
     "deflated_sharpe_gate": [],
-    "transaction_cost_capacity": []
+    "transaction_cost_capacity": [],
+    "goal_based_financial_plan": [],
+    "retirement_monte_carlo": [],
+    "sequence_of_returns_risk": [],
+    "liability_aware_allocation": [],
+    "emergency_fund_analysis": [],
+    "debt_repayment_optimization": [],
+    "withdrawal_strategy": [],
+    "insurance_protection_gap": [],
+    "household_cashflow_stress": []
   },
   "modes": {
     "causal_pc_discovery": {
@@ -77,6 +86,60 @@
       "network_policy": "deny",
       "deterministic": true,
       "limits": {"max_rows": 5000, "max_assets": 30}
+    },
+    "goal_based_financial_plan": {
+      "maturity": "controlled-preview",
+      "network_policy": "deny",
+      "deterministic": true,
+      "limits": {"max_goals": 20}
+    },
+    "retirement_monte_carlo": {
+      "maturity": "controlled-preview",
+      "network_policy": "deny",
+      "deterministic": true,
+      "limits": {"max_simulations": 10000, "max_years": 100}
+    },
+    "sequence_of_returns_risk": {
+      "maturity": "controlled-preview",
+      "network_policy": "deny",
+      "deterministic": true,
+      "limits": {"max_years": 200}
+    },
+    "liability_aware_allocation": {
+      "maturity": "controlled-preview",
+      "network_policy": "deny",
+      "deterministic": true,
+      "limits": {"max_assets": 30, "max_liabilities": 50}
+    },
+    "emergency_fund_analysis": {
+      "maturity": "controlled-preview",
+      "network_policy": "deny",
+      "deterministic": true,
+      "limits": {"max_target_months": 36}
+    },
+    "debt_repayment_optimization": {
+      "maturity": "controlled-preview",
+      "network_policy": "deny",
+      "deterministic": true,
+      "limits": {"max_debts": 20, "max_months": 1200}
+    },
+    "withdrawal_strategy": {
+      "maturity": "controlled-preview",
+      "network_policy": "deny",
+      "deterministic": true,
+      "limits": {"max_years": 200}
+    },
+    "insurance_protection_gap": {
+      "maturity": "controlled-preview",
+      "network_policy": "deny",
+      "deterministic": true,
+      "limits": {"max_support_years": 80}
+    },
+    "household_cashflow_stress": {
+      "maturity": "controlled-preview",
+      "network_policy": "deny",
+      "deterministic": true,
+      "limits": {"max_scenarios": 20, "max_months": 120}
     }
   }
 }
