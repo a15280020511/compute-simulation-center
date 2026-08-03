@@ -124,7 +124,8 @@ def compute_registered_factor(factor_id: str, inputs: Mapping[str, Any]) -> dict
     required = [str(item) for item in factor.get("required_inputs", [])]
     if set(inputs) != set(required):
         raise DomainLibraryError(f"factor {factor_id} requires inputs: {', '.join(required)}")
-    value = _compute_factor_implementation(str(factor["implementation_id"]), inputs)
+    ordered_inputs = {name: inputs[name] for name in required}
+    value = _compute_factor_implementation(str(factor["implementation_id"]), ordered_inputs)
     result = {
         "schema_version": "compute-registered-factor-result-v1",
         "factor_id": factor_id,
@@ -179,7 +180,8 @@ def compute_registered_baseline(baseline_id: str, inputs: Mapping[str, Any]) -> 
     required = [str(item) for item in baseline.get("required_inputs", [])]
     if set(inputs) != set(required):
         raise DomainLibraryError(f"baseline {baseline_id} requires inputs: {', '.join(required)}")
-    value = _compute_baseline_implementation(str(baseline["implementation_id"]), inputs)
+    ordered_inputs = {name: inputs[name] for name in required}
+    value = _compute_baseline_implementation(str(baseline["implementation_id"]), ordered_inputs)
     result = {
         "schema_version": "compute-registered-baseline-result-v1",
         "baseline_id": baseline_id,
