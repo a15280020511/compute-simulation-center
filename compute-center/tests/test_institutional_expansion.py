@@ -13,20 +13,24 @@ if str(ROOT) not in sys.path:
 
 from capability_manager import load_institutional_expansion, requirements_for_ticket, runtime_plan  # noqa: E402
 from institutional_expansion_operations import (  # noqa: E402
-    HANDLERS,
+    HANDLERS as INSTITUTIONAL_HANDLERS,
     deflated_sharpe_gate,
     transaction_cost_capacity,
 )
+from personal_finance_operations import HANDLERS as PERSONAL_FINANCE_HANDLERS  # noqa: E402
 
 
 class InstitutionalExpansionRegistryTests(unittest.TestCase):
     def test_registry_is_complete_and_offline(self) -> None:
         registry = load_institutional_expansion()
-        self.assertEqual(set(registry["modes"]), set(HANDLERS))
-        self.assertEqual(set(registry["mode_requirements"]), set(HANDLERS))
+        governed_handlers = set(INSTITUTIONAL_HANDLERS) | set(PERSONAL_FINANCE_HANDLERS)
+        self.assertEqual(set(registry["modes"]), governed_handlers)
+        self.assertEqual(set(registry["mode_requirements"]), governed_handlers)
         self.assertEqual(registry["network_policy"], "deny")
         self.assertFalse(registry["arbitrary_code_allowed"])
-        self.assertEqual(len(HANDLERS), 10)
+        self.assertEqual(len(INSTITUTIONAL_HANDLERS), 10)
+        self.assertEqual(len(PERSONAL_FINANCE_HANDLERS), 9)
+        self.assertEqual(len(governed_handlers), 19)
 
     def test_mode_specific_requirements_and_runtime_plan(self) -> None:
         cases = {
@@ -47,9 +51,17 @@ class InstitutionalExpansionRegistryTests(unittest.TestCase):
             self.assertEqual(plan["network_policy"], "deny")
             self.assertEqual(plan["maturity"], "controlled-preview")
             self.assertFalse(plan["arbitrary_code_allowed"])
-        for mode in ("deflated_sharpe_gate", "transaction_cost_capacity"):
+        native_modes = {
+            "deflated_sharpe_gate",
+            "transaction_cost_capacity",
+            *PERSONAL_FINANCE_HANDLERS.keys(),
+        }
+        for mode in native_modes:
             ticket = {"operation": "finance_decision_analysis", "inputs": {"mode": mode}}
             self.assertEqual(requirements_for_ticket(ticket), [])
+            plan = runtime_plan(ticket)
+            self.assertEqual(plan["maturity"], "controlled-preview")
+            self.assertEqual(plan["network_policy"], "deny")
 
 
 class NativeRobustFinanceTests(unittest.TestCase):
