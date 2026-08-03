@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import importlib.util
 import sys
 import unittest
 from pathlib import Path
@@ -13,6 +14,9 @@ from transport_forecast_operations import (  # noqa: E402
     sumo_micro_simulation,
 )
 
+STATSFORECAST_AVAILABLE = importlib.util.find_spec("statsforecast") is not None
+SUMO_AVAILABLE = importlib.util.find_spec("sumo") is not None
+
 
 def daily_series() -> list[dict[str, object]]:
     return [
@@ -22,6 +26,10 @@ def daily_series() -> list[dict[str, object]]:
 
 
 class TransportForecastTests(unittest.TestCase):
+    @unittest.skipUnless(
+        STATSFORECAST_AVAILABLE,
+        "StatsForecast optional engine is validated in its isolated dependency workflow",
+    )
     def test_statsforecast_naive_forecast_is_bounded(self) -> None:
         result = statsforecast_batch(
             {
@@ -40,6 +48,10 @@ class TransportForecastTests(unittest.TestCase):
         self.assertEqual(result["network_policy"], "deny")
         self.assertEqual(result["model_calls"], 0)
 
+    @unittest.skipUnless(
+        STATSFORECAST_AVAILABLE,
+        "StatsForecast optional engine is validated in its isolated dependency workflow",
+    )
     def test_statsforecast_rejects_unknown_models(self) -> None:
         with self.assertRaises(ComputeError):
             statsforecast_batch(
@@ -53,6 +65,10 @@ class TransportForecastTests(unittest.TestCase):
                 }
             )
 
+    @unittest.skipUnless(
+        SUMO_AVAILABLE,
+        "Eclipse SUMO optional engine is validated in its isolated dependency workflow",
+    )
     def test_sumo_tiny_corridor_runs_without_external_paths(self) -> None:
         result = sumo_micro_simulation(
             {
