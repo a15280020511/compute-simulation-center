@@ -1,0 +1,34 @@
+{
+  "schema_version": "compute-domain-factor-registry-v1",
+  "maturity": "controlled-preview",
+  "policy": {
+    "ticket_supplied_factor_code_allowed": false,
+    "fixed_implementation_required": true,
+    "point_in_time_required_when_applicable": true,
+    "publication_lag_required_when_applicable": true,
+    "factor_truth_claims_without_domain_evidence_allowed": false,
+    "runtime_network_allowed": false
+  },
+  "factors": [
+    {"factor_id":"finance-log-market-cap","domain":"finance-investment","category":"size","implementation_id":"log_positive","required_inputs":["market_cap"],"expected_direction":"unspecified","point_in_time_required":true,"status":"controlled-preview"},
+    {"factor_id":"finance-book-to-market","domain":"finance-investment","category":"value","implementation_id":"safe_ratio","required_inputs":["book_value","market_cap"],"expected_direction":"positive","point_in_time_required":true,"publication_lag_required":true,"status":"controlled-preview"},
+    {"factor_id":"finance-period-momentum","domain":"finance-investment","category":"momentum","implementation_id":"period_return","required_inputs":["start_price","end_price"],"expected_direction":"positive","point_in_time_required":true,"status":"controlled-preview"},
+    {"factor_id":"finance-realized-volatility","domain":"finance-investment","category":"risk","implementation_id":"sample_std","required_inputs":["returns"],"expected_direction":"negative","point_in_time_required":true,"status":"controlled-preview"},
+    {"factor_id":"commercial-conversion-rate","domain":"commercial-footfall","category":"conversion","implementation_id":"safe_ratio","required_inputs":["transactions","footfall"],"expected_direction":"positive","status":"controlled-preview"},
+    {"factor_id":"commercial-sales-per-area","domain":"commercial-footfall","category":"productivity","implementation_id":"safe_ratio","required_inputs":["sales","operating_area"],"expected_direction":"positive","status":"controlled-preview"},
+    {"factor_id":"commercial-footfall-growth","domain":"commercial-footfall","category":"growth","implementation_id":"growth_rate","required_inputs":["previous_footfall","current_footfall"],"expected_direction":"positive","status":"controlled-preview"},
+    {"factor_id":"commercial-tenant-concentration","domain":"commercial-footfall","category":"concentration","implementation_id":"hhi","required_inputs":["tenant_shares"],"expected_direction":"context_dependent","status":"controlled-preview"},
+    {"factor_id":"policy-coverage-rate","domain":"public-policy","category":"coverage","implementation_id":"safe_ratio","required_inputs":["covered_population","eligible_population"],"expected_direction":"context_dependent","status":"controlled-preview"},
+    {"factor_id":"policy-compliance-rate","domain":"public-policy","category":"implementation","implementation_id":"safe_ratio","required_inputs":["compliant_units","inspected_units"],"expected_direction":"positive","status":"controlled-preview"},
+    {"factor_id":"social-adoption-rate","domain":"social-behavior","category":"adoption","implementation_id":"safe_ratio","required_inputs":["adopters","exposed_population"],"expected_direction":"context_dependent","status":"controlled-preview"},
+    {"factor_id":"social-transition-rate","domain":"social-behavior","category":"transition","implementation_id":"safe_ratio","required_inputs":["transitions","population_at_risk"],"expected_direction":"context_dependent","status":"controlled-preview"},
+    {"factor_id":"diffusion-reach-rate","domain":"information-diffusion","category":"reach","implementation_id":"safe_ratio","required_inputs":["reached_nodes","eligible_nodes"],"expected_direction":"context_dependent","status":"controlled-preview"},
+    {"factor_id":"diffusion-cascade-growth","domain":"information-diffusion","category":"growth","implementation_id":"growth_rate","required_inputs":["previous_reach","current_reach"],"expected_direction":"context_dependent","status":"controlled-preview"},
+    {"factor_id":"crisis-signal-zscore","domain":"crisis-warning","category":"anomaly","implementation_id":"zscore_latest","required_inputs":["history","current_value"],"expected_direction":"risk_increasing","status":"controlled-preview"},
+    {"factor_id":"crisis-alert-rate","domain":"crisis-warning","category":"alerting","implementation_id":"safe_ratio","required_inputs":["alerts","observation_periods"],"expected_direction":"context_dependent","status":"controlled-preview"},
+    {"factor_id":"resource-utilization","domain":"resource-optimization","category":"utilization","implementation_id":"safe_ratio","required_inputs":["used_capacity","available_capacity"],"expected_direction":"target_range","status":"controlled-preview"},
+    {"factor_id":"resource-service-level","domain":"resource-optimization","category":"service","implementation_id":"safe_ratio","required_inputs":["served_demand","total_demand"],"expected_direction":"positive","status":"controlled-preview"},
+    {"factor_id":"china-source-consistency","domain":"china-real-world","category":"evidence_consistency","implementation_id":"safe_ratio","required_inputs":["consistent_records","compared_records"],"expected_direction":"positive","status":"controlled-preview"},
+    {"factor_id":"china-revision-rate","domain":"china-real-world","category":"revision","implementation_id":"safe_ratio","required_inputs":["revised_records","published_records"],"expected_direction":"negative","status":"controlled-preview"}
+  ]
+}
