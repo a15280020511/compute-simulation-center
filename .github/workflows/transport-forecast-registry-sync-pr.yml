@@ -50,13 +50,26 @@ jobs:
           python governance_catalog.py
           python -m unittest tests.test_capability_manager_v2 tests.test_tool_registry tests.test_governance_catalogs tests.test_governance_v2
           git -C .. diff --check
-      - name: Remove temporary synchronization controls and commit
+      - name: Commit non-workflow governance files
         run: |
-          rm .github/workflows/transport-forecast-registry-sync.yml
-          rm .github/workflows/transport-forecast-registry-sync-pr.yml
-          rm -f compute-center/transport-forecast-sync.trigger
+          git checkout -- .github/workflows/compute-all-operations-validate.yml
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git add -A
+          git add \
+            compute-center/tool-registry.json \
+            compute-center/compute-capabilities.json \
+            compute-center/systems-computation-matrix.json \
+            compute-center/compute-ticket.schema.json \
+            compute-center/model-registry.json \
+            compute-center/transport_forecast_operations.py \
+            compute-center/tests/test_tool_registry.py \
+            compute-center/tests/test_capability_manager_v2.py \
+            compute-center/tests/test_governance_catalogs.py \
+            compute-center/tests/test_governance_v2.py \
+            compute-center/validate_all_operations.py
+          if git diff --cached --quiet; then
+            echo 'Compute governance files already synchronized'
+            exit 0
+          fi
           git commit -m 'feat: register SUMO and StatsForecast compute capability'
           git push origin HEAD:feat/sumo-statsforecast-20260803
