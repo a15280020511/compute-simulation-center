@@ -53,17 +53,18 @@ class StrategicIntelligenceTests(unittest.TestCase):
             set(THINK_TANK_MODES),
             set(ASSURANCE_HANDLERS),
             set(INSTITUTIONAL_EXPANSION_HANDLERS),
-            set(PERSONAL_FINANCE_HANDLERS),
         ]
         for group in groups[1:]:
             self.assertTrue(group <= set(ALL_SUPPORTED_MODES))
         for left in range(len(groups)):
             for right in range(left + 1, len(groups)):
                 self.assertTrue(groups[left].isdisjoint(groups[right]))
+        self.assertTrue(set(PERSONAL_FINANCE_HANDLERS) <= set(INSTITUTIONAL_EXPANSION_HANDLERS))
+        self.assertTrue(set(PERSONAL_FINANCE_HANDLERS) <= set(ALL_SUPPORTED_MODES))
         self.assertEqual(len(SUPPORTED_MODES), 22)
         self.assertEqual(len(THINK_TANK_MODES), 53)
         self.assertEqual(len(ASSURANCE_HANDLERS), 8)
-        self.assertEqual(len(INSTITUTIONAL_EXPANSION_HANDLERS), 10)
+        self.assertEqual(len(INSTITUTIONAL_EXPANSION_HANDLERS), 19)
         self.assertEqual(len(PERSONAL_FINANCE_HANDLERS), 9)
         self.assertEqual(len(ALL_SUPPORTED_MODES), 102)
 
