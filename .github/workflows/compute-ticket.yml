@@ -77,6 +77,10 @@ jobs:
             compute-center/requirements-graph-rdflib.txt
             compute-center/requirements-intelligence-datasketch.txt
             compute-center/requirements-intelligence-problog.txt
+            compute-center/requirements-final-mlxtend.txt
+            compute-center/requirements-final-pymdp.txt
+            compute-center/requirements-final-pyod.txt
+            compute-center/requirements-final-quantlib.txt
             compute-center/requirements-intelligence-rapidfuzz.txt
             compute-center/requirements-intelligence-splink.txt
             compute-center/requirements-policy-econ-ark.txt
