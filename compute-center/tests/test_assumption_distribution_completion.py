@@ -64,7 +64,6 @@ class AssumptionDistributionCompletionTests(unittest.TestCase):
             "dependence_model": "t_copula",
         }))
         self.assertEqual(incomplete["status"], "BLOCKED")
-        complete_assumption = dict(incomplete={})
         complete_assumption = {
             "assumption_id": "tail_loss",
             "linked_parameter": "tail_loss",
