@@ -8,10 +8,12 @@ on:
       - "compute-center/distribution-registry.json"
       - "compute-center/variable-role-registry.json"
       - "compute-center/assumption-register.schema.json"
+      - "compute-center/assumption_runtime.py"
       - "compute-center/accuracy-enhancement-capabilities.json"
       - "compute-center/institutional-expansion-mode-registry.json"
       - "compute-center/decision_intelligence_gateway.py"
       - "compute-center/tests/test_uncertainty_factor_accuracy.py"
+      - "compute-center/tests/test_assumption_distribution_completion.py"
       - "compute-center/tests/test_institutional_expansion.py"
       - "compute-center/tests/test_decision_intelligence_gateway.py"
       - ".github/workflows/uncertainty-factor-accuracy-validate.yml"
@@ -23,10 +25,12 @@ on:
       - "compute-center/distribution-registry.json"
       - "compute-center/variable-role-registry.json"
       - "compute-center/assumption-register.schema.json"
+      - "compute-center/assumption_runtime.py"
       - "compute-center/accuracy-enhancement-capabilities.json"
       - "compute-center/institutional-expansion-mode-registry.json"
       - "compute-center/decision_intelligence_gateway.py"
       - "compute-center/tests/test_uncertainty_factor_accuracy.py"
+      - "compute-center/tests/test_assumption_distribution_completion.py"
       - "compute-center/tests/test_institutional_expansion.py"
       - "compute-center/tests/test_decision_intelligence_gateway.py"
       - ".github/workflows/uncertainty-factor-accuracy-validate.yml"
@@ -59,10 +63,10 @@ jobs:
       - name: Compile and validate governance
         working-directory: compute-center
         run: |
-          python -m py_compile uncertainty_factor_accuracy_operations.py validate_uncertainty_factor_accuracy.py decision_intelligence_gateway.py
+          python -m py_compile uncertainty_factor_accuracy_operations.py validate_uncertainty_factor_accuracy.py decision_intelligence_gateway.py assumption_runtime.py
           python capability_manager.py validate
           python tool_registry.py validate
-          python -m unittest tests.test_uncertainty_factor_accuracy tests.test_institutional_expansion -v
+          python -m unittest tests.test_uncertainty_factor_accuracy tests.test_assumption_distribution_completion tests.test_institutional_expansion -v
           python - <<'PY'
           import ast
           import json
