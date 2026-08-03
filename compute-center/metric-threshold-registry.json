@@ -1,0 +1,26 @@
+{
+  "schema_version": "compute-metric-threshold-registry-v1",
+  "policy": {
+    "ticket_may_not_relax_blocking_thresholds": true,
+    "domain_thresholds_require_evidence": true,
+    "missing_required_threshold_blocks_promotion": true,
+    "runtime_network_allowed": false
+  },
+  "global_thresholds": [
+    {"metric_id":"Brier","direction":"lower_is_better","warning_threshold":0.25,"blocking_threshold":0.35,"source":"INSTITUTIONAL_QUALITY.md","status":"active"},
+    {"metric_id":"ECE","direction":"lower_is_better","warning_threshold":0.10,"blocking_threshold":0.20,"source":"INSTITUTIONAL_QUALITY.md","status":"active"},
+    {"metric_id":"PSI","direction":"lower_is_better","warning_threshold":0.10,"blocking_threshold":0.25,"source":"INSTITUTIONAL_QUALITY.md","status":"active"},
+    {"metric_id":"KS_drift","direction":"lower_is_better","warning_threshold":0.15,"blocking_threshold":0.30,"source":"INSTITUTIONAL_QUALITY.md","status":"active"},
+    {"metric_id":"standardized_mean_shift","direction":"lower_is_better","warning_threshold":0.50,"blocking_threshold":1.00,"source":"INSTITUTIONAL_QUALITY.md","status":"active"}
+  ],
+  "domain_profiles": [
+    {"domain":"commercial-footfall","required_metrics":["MAE","MASE","sMAPE","prediction_interval_coverage","break_even_error","direction_accuracy"],"status":"evidence-pending"},
+    {"domain":"finance-investment","required_metrics":["net_return_after_costs","Sharpe","Sortino","maximum_drawdown","IC","rank_IC","turnover","PBO","capacity_and_liquidity"],"status":"evidence-pending"},
+    {"domain":"public-policy","required_metrics":["pretrend","placebo","effect_recovery","sensitivity","heterogeneity","spillover"],"status":"evidence-pending"},
+    {"domain":"social-behavior","required_metrics":["parameter_recovery","population_share_error","mechanism_sensitivity","multi_seed_stability","non_identifiability"],"status":"evidence-pending"},
+    {"domain":"information-diffusion","required_metrics":["reach_error","time_to_reach","network_sensitivity","multi_seed_stability"],"status":"evidence-pending"},
+    {"domain":"crisis-warning","required_metrics":["Brier","ECE","PR_AUC","false_positive","false_negative","lead_time","threshold_loss","drift"],"status":"evidence-pending"},
+    {"domain":"resource-optimization","required_metrics":["feasibility","constraint_residual","objective_improvement","optimality_gap","infeasibility_diagnosis","stress_robustness"],"status":"evidence-pending"},
+    {"domain":"china-real-world","required_metrics":["source_consistency","coverage","timeliness","revision_stability","geographic_consistency","decision_loss"],"status":"evidence-pending"}
+  ]
+}

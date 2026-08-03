@@ -1,0 +1,15 @@
+{
+  "schema_version": "compute-outcome-feedback-registry-v1",
+  "policy": {
+    "append_only": true,
+    "prediction_hash_required": true,
+    "model_hash_required": true,
+    "input_snapshot_hash_required": true,
+    "realized_outcome_source_hash_required": true,
+    "historical_records_may_not_be_overwritten": true,
+    "runtime_network_allowed": false
+  },
+  "required_fields": ["feedback_id","prediction_id","predicted_at","outcome_observed_at","model_version","model_sha256","input_snapshot_sha256","rule_snapshot_ids","predicted_value","realized_value","loss_metrics","outcome_source_sha256"],
+  "records": [],
+  "status": "structure-complete-data-pending"
+}

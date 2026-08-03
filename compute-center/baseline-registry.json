@@ -1,0 +1,22 @@
+{
+  "schema_version": "compute-baseline-registry-v1",
+  "maturity": "controlled-preview",
+  "policy": {
+    "formal_complex_models_require_baseline": true,
+    "ticket_supplied_baseline_code_allowed": false,
+    "fixed_implementation_required": true,
+    "runtime_network_allowed": false
+  },
+  "baselines": [
+    {"baseline_id":"last-observation","implementation_id":"last_value","applicable_domains":["commercial-footfall","finance-investment","crisis-warning","china-real-world"],"required_inputs":["history"],"status":"controlled-preview"},
+    {"baseline_id":"historical-mean","implementation_id":"mean","applicable_domains":["commercial-footfall","finance-investment","social-behavior","crisis-warning","china-real-world"],"required_inputs":["history"],"status":"controlled-preview"},
+    {"baseline_id":"seasonal-naive","implementation_id":"seasonal_naive","applicable_domains":["commercial-footfall","finance-investment","china-real-world"],"required_inputs":["history","season_length"],"status":"controlled-preview"},
+    {"baseline_id":"historical-base-rate","implementation_id":"historical_rate","applicable_domains":["public-policy","social-behavior","information-diffusion","crisis-warning"],"required_inputs":["outcomes"],"status":"controlled-preview"},
+    {"baseline_id":"equal-weight","implementation_id":"equal_weight","applicable_domains":["finance-investment","resource-optimization"],"required_inputs":["item_count"],"status":"controlled-preview"},
+    {"baseline_id":"no-change","implementation_id":"no_change","applicable_domains":["public-policy","commercial-footfall","china-real-world"],"required_inputs":["current_value"],"status":"controlled-preview"},
+    {"baseline_id":"fixed-threshold","implementation_id":"fixed_threshold","applicable_domains":["crisis-warning","public-policy"],"required_inputs":["score","threshold"],"status":"controlled-preview"},
+    {"baseline_id":"independent-agent-share","implementation_id":"historical_rate","applicable_domains":["social-behavior","information-diffusion"],"required_inputs":["outcomes"],"status":"controlled-preview"},
+    {"baseline_id":"current-manual-plan","implementation_id":"passthrough","applicable_domains":["resource-optimization"],"required_inputs":["current_plan_objective"],"status":"controlled-preview"},
+    {"baseline_id":"official-published-aggregate","implementation_id":"passthrough","applicable_domains":["china-real-world","public-policy"],"required_inputs":["official_value"],"status":"controlled-preview"}
+  ]
+}

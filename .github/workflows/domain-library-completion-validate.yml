@@ -1,0 +1,101 @@
+name: Validate Governed Domain Libraries
+
+on:
+  pull_request:
+    paths:
+      - "compute-center/domain-factor-registry.json"
+      - "compute-center/baseline-registry.json"
+      - "compute-center/metric-threshold-registry.json"
+      - "compute-center/domain-rule-snapshot-registry.json"
+      - "compute-center/ontology-crosswalk-registry.json"
+      - "compute-center/regime-event-registry.json"
+      - "compute-center/outcome-feedback-registry.json"
+      - "compute-center/external-domain-material-contract.json"
+      - "compute-center/domain_library_runtime.py"
+      - "compute-center/library_runtime.py"
+      - "compute-center/institutional-library-registry.json"
+      - "compute-center/governed-domain-library-registry.json"
+      - "compute-center/validate_domain_library_completion.py"
+      - "compute-center/tests/test_domain_library_completion.py"
+      - ".github/workflows/domain-library-completion-validate.yml"
+  push:
+    branches: [main]
+    paths:
+      - "compute-center/domain-factor-registry.json"
+      - "compute-center/baseline-registry.json"
+      - "compute-center/metric-threshold-registry.json"
+      - "compute-center/domain-rule-snapshot-registry.json"
+      - "compute-center/ontology-crosswalk-registry.json"
+      - "compute-center/regime-event-registry.json"
+      - "compute-center/outcome-feedback-registry.json"
+      - "compute-center/external-domain-material-contract.json"
+      - "compute-center/domain_library_runtime.py"
+      - "compute-center/library_runtime.py"
+      - "compute-center/institutional-library-registry.json"
+      - "compute-center/governed-domain-library-registry.json"
+      - "compute-center/validate_domain_library_completion.py"
+      - "compute-center/tests/test_domain_library_completion.py"
+      - ".github/workflows/domain-library-completion-validate.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: governed-domain-libraries-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  validate-domain-libraries:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: compute-center/requirements.txt
+      - name: Install pinned core dependencies
+        run: |
+          set -euo pipefail
+          python -m pip install --disable-pip-version-check --no-input -r compute-center/requirements.txt
+          python -m pip check
+      - name: Compile, test, and validate offline libraries
+        working-directory: compute-center
+        run: |
+          set -euo pipefail
+          python -m py_compile domain_library_runtime.py library_runtime.py validate_domain_library_completion.py
+          python -m unittest tests.test_domain_library_completion -v
+          python validate_domain_library_completion.py --output domain-library-artifacts/receipt.json
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          receipt = json.loads(Path('domain-library-artifacts/receipt.json').read_text(encoding='utf-8'))
+          assert receipt['status'] == 'PASS'
+          assert receipt['core_institutional_library_count'] == 16
+          assert receipt['domain_extension_library_count'] == 8
+          assert receipt['registered_library_count'] == 24
+          assert receipt['generic_factor_count'] == 20
+          assert receipt['generic_baseline_count'] >= 10
+          assert receipt['external_material_status'] == 'structure-complete-data-pending'
+          assert receipt['compute_runtime_network_used'] is False
+          assert receipt['direct_center_connection'] is False
+          assert receipt['model_calls'] == 0
+          PY
+      - name: Validate core governance remains intact
+        working-directory: compute-center
+        run: |
+          set -euo pipefail
+          python governance_catalog.py
+          python capability_manager.py validate
+          python tool_registry.py validate
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        if: always()
+        with:
+          name: governed-domain-libraries-${{ github.run_id }}
+          path: compute-center/domain-library-artifacts/
+          if-no-files-found: warn
+          retention-days: 90

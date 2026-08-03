@@ -1,0 +1,47 @@
+{
+  "schema_version": "compute-external-domain-material-contract-v1",
+  "transport_owner": "gpts-usage-center",
+  "source_storage_owner": "intelligence-center",
+  "execution_owner": "github-compute-center",
+  "direct_center_connection_allowed": false,
+  "compute_runtime_network_allowed": false,
+  "database_credentials_allowed": false,
+  "accepted_material_types": [
+    "sample_snapshot",
+    "factor_definition_snapshot",
+    "domain_rule_snapshot",
+    "baseline_evidence_snapshot",
+    "metric_threshold_snapshot",
+    "ontology_crosswalk_snapshot",
+    "regime_event_snapshot",
+    "outcome_feedback_snapshot",
+    "benchmark_manifest"
+  ],
+  "required_envelope_fields": [
+    "transfer_id",
+    "material_type",
+    "source_center",
+    "source_repository_reference",
+    "version",
+    "created_at",
+    "valid_from",
+    "valid_to",
+    "files",
+    "manifest_sha256",
+    "license",
+    "geographic_scope",
+    "time_range",
+    "contains_personal_data",
+    "gpts_validation"
+  ],
+  "file_fields": ["path","sha256","bytes","media_type"],
+  "blocking_conditions": [
+    "source_center is not intelligence-center",
+    "manifest or file hash mismatch",
+    "missing license or scope",
+    "expired material",
+    "contains_personal_data is not false",
+    "unknown material type",
+    "runtime URL, credential, query or executable content present"
+  ]
+}

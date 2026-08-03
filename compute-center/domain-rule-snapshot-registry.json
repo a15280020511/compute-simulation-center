@@ -1,0 +1,15 @@
+{
+  "schema_version": "compute-domain-rule-snapshot-registry-v1",
+  "policy": {
+    "external_rule_text_storage_owner": "intelligence-center",
+    "compute_accepts_snapshot_only": true,
+    "source_hash_required": true,
+    "effective_date_required": true,
+    "expired_rule_use_allowed": false,
+    "ticket_supplied_rule_code_allowed": false,
+    "runtime_network_allowed": false
+  },
+  "required_fields": ["rule_snapshot_id","version","domain","jurisdiction","effective_from","effective_to","source_document_sha256","parameters","implementation_id","review_due_at"],
+  "snapshots": [],
+  "status": "structure-complete-data-pending"
+}

@@ -1,0 +1,15 @@
+{
+  "schema_version": "compute-regime-event-registry-v1",
+  "policy": {
+    "event_evidence_owner": "intelligence-center",
+    "compute_accepts_snapshot_only": true,
+    "start_and_end_or_open_interval_required": true,
+    "source_hash_required": true,
+    "retrospective_labeling_must_be_declared": true,
+    "runtime_network_allowed": false
+  },
+  "event_types": ["market_regime","policy_change","crisis","holiday","extreme_weather","commercial_event","accounting_change","structural_break","infrastructure_disruption","public_health_event"],
+  "required_fields": ["event_id","version","type","start_at","end_at","geographic_scope","affected_domains","source_snapshot_sha256","labeling_time","review_due_at"],
+  "events": [],
+  "status": "structure-complete-data-pending"
+}

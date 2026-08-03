@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Resolve selected institutional library entries and fail closed on unknown IDs."""
+"""Resolve selected institutional and domain library entries and fail closed on unknown IDs."""
 from __future__ import annotations
 
 import hashlib
@@ -7,6 +7,8 @@ import json
 from collections.abc import Mapping
 from pathlib import Path
 from typing import Any
+
+from domain_library_runtime import resolve_domain_library_selection
 
 HERE = Path(__file__).resolve().parent
 
@@ -42,6 +44,8 @@ def _index(rows: Any, key: str, label: str) -> dict[str, Mapping[str, Any]]:
 
 
 def _resolve(ids: list[str], index: Mapping[str, Mapping[str, Any]], label: str) -> list[dict[str, Any]]:
+    if len(set(ids)) != len(ids):
+        raise LibrarySelectionError(f"duplicate {label} IDs")
     unknown = sorted(set(ids) - set(index))
     if unknown:
         raise LibrarySelectionError(f"unknown {label} IDs: {', '.join(unknown)}")
@@ -66,14 +70,18 @@ def resolve_library_selection(ticket: Mapping[str, Any]) -> dict[str, Any]:
     methods = _resolve(method_ids, method_index, "method")
     samples = _resolve(sample_ids, sample_index, "sample")
     rules = _resolve(rule_ids, rule_index, "rule")
+    domain_libraries = resolve_domain_library_selection(quality)
+
     warnings = []
     if decision_class in {"formal", "high_stakes"} and not strategy:
         warnings.append("NO_EXPLICIT_DECISION_STRATEGY")
     if sample_ids and not samples:
         warnings.append("NO_RESOLVED_SAMPLE")
+    if decision_class in {"formal", "high_stakes"} and quality.get("factor_ids") and not quality.get("baseline_ids"):
+        warnings.append("FACTOR_WITHOUT_EXPLICIT_BASELINE")
 
     report: dict[str, Any] = {
-        "schema_version": "compute-library-selection-v1",
+        "schema_version": "compute-library-selection-v2",
         "status": "WARN" if warnings else "PASS",
         "decision_class": decision_class,
         "selection_owner": "gpts-usage-center",
@@ -81,6 +89,7 @@ def resolve_library_selection(ticket: Mapping[str, Any]) -> dict[str, Any]:
         "methods": methods,
         "samples": samples,
         "rules": rules,
+        "domain_libraries": domain_libraries,
         "benchmark_ids": benchmark_ids,
         "warnings": warnings,
         "runtime_network_used": False,
