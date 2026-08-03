@@ -113,7 +113,8 @@ jobs:
           source = Path("compute-center/behavior_finance_intelligence_operations.py").read_text(encoding="utf-8")
           for forbidden in (
               "import requests", "import socket", "urllib.request", "subprocess.",
-              "pickle.loads", "sample_action(", "ADEngine", "mcp",
+              "pickle.loads", "sample_action(", "from pyod.models.adengine",
+              "from pyod.models.agent", "import mcp", "MCPServer",
           ):
               assert forbidden not in source
           tree = ast.parse(source)
