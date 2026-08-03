@@ -1,0 +1,46 @@
+name: Synchronize Assurance Test Contracts
+
+on:
+  push:
+    branches:
+      - feat/assurance-boundary-classification-20260803
+    paths:
+      - ".sync-assurance-test-contracts"
+
+permissions:
+  contents: write
+
+concurrency:
+  group: sync-assurance-test-contracts
+  cancel-in-progress: false
+
+jobs:
+  synchronize:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: feat/assurance-boundary-classification-20260803
+          persist-credentials: true
+          fetch-depth: 0
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065
+        with:
+          python-version: "3.12"
+      - name: Synchronize aggregate tests
+        run: python compute-center/patch_assurance_test_contracts.py
+      - name: Remove one-shot patch entrypoints
+        run: |
+          rm -f \
+            compute-center/patch_assurance_test_contracts.py \
+            .github/workflows/assurance-test-contract-fix.yml \
+            .sync-assurance-test-contracts
+      - name: Commit synchronized contracts
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git diff --cached --check
+          git commit -m "fix: synchronize assurance aggregate test contracts"
+          git push origin HEAD:feat/assurance-boundary-classification-20260803
