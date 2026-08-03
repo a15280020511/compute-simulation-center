@@ -49,7 +49,7 @@ jobs:
             compute-center/requirements-calibration.txt
             compute-center/requirements-constraints.txt
             compute-center/requirements-sector-causal-econ.txt
-            compute-center/requirements-statsforecast.txt
+            compute-center/requirements-sumo.txt
 
       - name: Install complete isolated compute environment
         run: |
@@ -63,7 +63,7 @@ jobs:
           python -m pip install --disable-pip-version-check --no-input -r compute-center/requirements-calibration.txt
           python -m pip install --disable-pip-version-check --no-input -r compute-center/requirements-constraints.txt
           python -m pip install --disable-pip-version-check --no-input -r compute-center/requirements-sector-causal-econ.txt
-          python -m pip install --disable-pip-version-check --no-input -r compute-center/requirements-statsforecast.txt
+          python -m pip install --disable-pip-version-check --no-input -r compute-center/requirements-sumo.txt
           python -m pip check
 
       - name: Compile production runtime and validators
