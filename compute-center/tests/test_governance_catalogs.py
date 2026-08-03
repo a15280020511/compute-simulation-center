@@ -19,7 +19,7 @@ class GovernanceCatalogTests(unittest.TestCase):
         report = validate_catalogs()
         self.assertEqual(report["status"], "PASS")
         self.assertEqual(report["operation_count"], 28)
-        self.assertEqual(report["managed_mode_count"], 110)
+        self.assertEqual(report["managed_mode_count"], 122)
         self.assertEqual(report["installed_method_pack_count"], 19)
         self.assertEqual(report["benchmark_category_count"], 5)
         self.assertEqual(report["institutional_library_count"], 16)
