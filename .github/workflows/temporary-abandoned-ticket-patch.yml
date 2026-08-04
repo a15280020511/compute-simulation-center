@@ -1,4 +1,5 @@
 name: Temporary Abandoned Ticket Patch
+# One-shot owner-controlled branch patch; removed before merge.
 
 on:
   pull_request:
