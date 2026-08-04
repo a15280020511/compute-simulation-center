@@ -1,0 +1,61 @@
+stage=resolve-image
+10.9: Pulling from sagemath/sagemath
+b40150c1c271: Pulling fs layer
+69b39b8eac99: Pulling fs layer
+5ce8a764fad7: Pulling fs layer
+29601274f8cf: Pulling fs layer
+cbb85fd2d3b7: Pulling fs layer
+4f4fb700ef54: Pulling fs layer
+834905ae3193: Pulling fs layer
+a0064b7fff11: Pulling fs layer
+aadd16a2161b: Pulling fs layer
+29601274f8cf: Waiting
+cbb85fd2d3b7: Waiting
+aadd16a2161b: Waiting
+834905ae3193: Waiting
+a0064b7fff11: Waiting
+69b39b8eac99: Download complete
+5ce8a764fad7: Verifying Checksum
+5ce8a764fad7: Download complete
+b40150c1c271: Verifying Checksum
+b40150c1c271: Download complete
+cbb85fd2d3b7: Verifying Checksum
+cbb85fd2d3b7: Download complete
+4f4fb700ef54: Verifying Checksum
+4f4fb700ef54: Download complete
+a0064b7fff11: Verifying Checksum
+a0064b7fff11: Download complete
+aadd16a2161b: Verifying Checksum
+aadd16a2161b: Download complete
+29601274f8cf: Verifying Checksum
+29601274f8cf: Download complete
+b40150c1c271: Pull complete
+834905ae3193: Verifying Checksum
+834905ae3193: Download complete
+69b39b8eac99: Pull complete
+5ce8a764fad7: Pull complete
+29601274f8cf: Pull complete
+cbb85fd2d3b7: Pull complete
+4f4fb700ef54: Pull complete
+834905ae3193: Pull complete
+a0064b7fff11: Pull complete
+aadd16a2161b: Pull complete
+Digest: sha256:e068670ae5863b54b2550e72437ec637b0283acb0dc712c8584c124dbf44e667
+Status: Downloaded newer image for sagemath/sagemath:10.9
+docker.io/sagemath/sagemath:10.9
+docker_pull_exit=0
+digest_exit=0
+digest=sagemath/sagemath@sha256:e068670ae5863b54b2550e72437ec637b0283acb0dc712c8584c124dbf44e667
+version_exit=0
+version=SageMath version 10.9, Release Date: 2026-05-04
+stage=generate
+Traceback (most recent call last):
+  File "/home/runner/work/compute-simulation-center/compute-simulation-center/maintenance/repair_and_apply_sagemath.py", line 15, in <module>
+    runpy.run_path(str(fixed), run_name="__main__")
+  File "<frozen runpy>", line 286, in run_path
+  File "<frozen runpy>", line 259, in _get_code_from_file
+  File "/home/runner/work/compute-simulation-center/compute-simulation-center/maintenance/apply_sagemath_capability.fixed.py", line 22
+    """Bounded SageMath operations executed in an exact-digest offline container."""
+       ^^^^^^^
+SyntaxError: invalid syntax
+generator_exit=1
