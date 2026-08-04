@@ -37,6 +37,15 @@ WEAK_SOURCE_TYPES = {
     "expert_elicitation",
     "user_assumption",
 }
+LIGHTWEIGHT_SOURCE_MAP = {
+    "gpts_assumption": "gpts_assumption",
+    "user_assumption": "user_assumption",
+    "expert_hypothesis": "expert_elicitation",
+    "benchmark": "benchmark",
+    "proxy": "proxy",
+    "historical": "historical",
+}
+APPROVED_LIGHTWEIGHT_STATES = {"user", "gpts_policy"}
 
 
 class AssumptionGovernanceError(ValueError):
@@ -196,6 +205,95 @@ def _resolve_assumptions(
     return resolved, issues
 
 
+def _lightweight_statement(row: Mapping[str, Any]) -> str:
+    name = str(row.get("name") or "declared assumption")
+    if "value" in row:
+        value = json.dumps(row.get("value"), ensure_ascii=False, sort_keys=True)
+        statement = f"{name}: {value}"
+    elif row.get("minimum") is not None or row.get("maximum") is not None:
+        statement = f"{name}: range [{row.get('minimum')}, {row.get('maximum')}]"
+    elif isinstance(row.get("sensitivity_range"), Mapping):
+        span = row["sensitivity_range"]
+        statement = f"{name}: sensitivity range [{span.get('minimum')}, {span.get('maximum')}]"
+    else:
+        statement = name
+    return statement[:4000]
+
+
+def _lightweight_type(row: Mapping[str, Any]) -> str:
+    if str(row.get("distribution") or "") == "scenario_set":
+        return "scenario"
+    if any(
+        row.get(key) is not None
+        for key in ("minimum", "mode", "maximum", "distribution")
+    ) or isinstance(row.get("value"), (int, float)) and not isinstance(row.get("value"), bool):
+        return "parameter"
+    return "structural"
+
+
+def _normalize_lightweight_assumptions(ticket: Mapping[str, Any]) -> list[dict[str, Any]]:
+    raw_rows = ticket.get("assumptions")
+    if not isinstance(raw_rows, list):
+        return []
+    objective = str(ticket.get("objective") or "Declared compute-ticket assumption")[:4000]
+    operation = str(ticket.get("operation") or "")
+    normalized: list[dict[str, Any]] = []
+    for index, raw in enumerate(raw_rows):
+        if not isinstance(raw, Mapping):
+            continue
+        confidence = str(raw.get("confidence") or "low")
+        approved_by = str(raw.get("approved_by") or "not_approved")
+        source_type = LIGHTWEIGHT_SOURCE_MAP.get(
+            str(raw.get("source_type") or "gpts_assumption"),
+            "gpts_assumption",
+        )
+        sensitivity = raw.get("sensitivity_range")
+        has_range = isinstance(sensitivity, Mapping) or (
+            raw.get("minimum") is not None and raw.get("maximum") is not None
+        )
+        distribution = str(raw.get("distribution") or "")
+        if not distribution and has_range:
+            distribution = "uniform"
+        if not distribution and confidence == "low":
+            distribution = "scenario_set"
+        digest = _sha({"index": index, "row": raw})[:16]
+        row: dict[str, Any] = {
+            "assumption_id": f"ticket-assumption-{index + 1}-{digest}",
+            "status": "approved" if approved_by in APPROVED_LIGHTWEIGHT_STATES else "proposed",
+            "type": _lightweight_type(raw),
+            "uncertainty_type": "mixed" if distribution or has_range else "epistemic",
+            "statement": _lightweight_statement(raw),
+            "intended_use": objective,
+            "owner": "gpts-usage-center",
+            "source_type": source_type,
+            "basis": str(raw.get("basis") or "Declared in compute ticket")[:4000],
+            "confidence": confidence,
+            "criticality": "medium",
+            "evidence_strength": "moderate" if source_type in {"benchmark", "historical"} else "weak",
+            "calibration_status": "uncalibrated",
+            "sensitivity_required": bool(confidence == "low" or distribution or has_range),
+        }
+        if operation:
+            row["linked_operations"] = [operation]
+        if approved_by in APPROVED_LIGHTWEIGHT_STATES:
+            row["approver"] = approved_by
+        if isinstance(sensitivity, Mapping):
+            row["minimum"] = sensitivity.get("minimum")
+            row["maximum"] = sensitivity.get("maximum")
+        for key in ("minimum", "mode", "maximum"):
+            if raw.get(key) is not None:
+                row[key] = raw[key]
+        if distribution:
+            row["distribution"] = distribution
+        if raw.get("invalid_when"):
+            row["invalid_when"] = str(raw["invalid_when"])[:4000]
+        if raw.get("created_at"):
+            row["created_at"] = str(raw["created_at"])[:100]
+        normalized.append(row)
+    _validate(REGISTER_SCHEMA_PATH, normalized, "assumptions")
+    return normalized
+
+
 def _assessment_date(ticket: Mapping[str, Any]) -> str | None:
     profile = ticket.get("credibility_profile")
     if not isinstance(profile, Mapping):
@@ -317,10 +415,12 @@ def assess_assumptions(ticket: Mapping[str, Any]) -> dict[str, Any]:
         str(row["assumption_id"]): row for row in library.get("assumptions", [])
     }
     refs = ticket.get("assumption_refs")
-    inline = ticket.get("assumption_register")
+    registered = ticket.get("assumption_register")
     refs = refs if isinstance(refs, list) else []
-    inline = inline if isinstance(inline, list) else []
-    _validate(REGISTER_SCHEMA_PATH, inline, "assumption_register")
+    registered = registered if isinstance(registered, list) else []
+    _validate(REGISTER_SCHEMA_PATH, registered, "assumption_register")
+    lightweight = _normalize_lightweight_assumptions(ticket)
+    inline = [*registered, *lightweight]
 
     resolved, issues = _resolve_assumptions(refs, inline, index)
     ids = [str(row.get("assumption_id") or "") for row in resolved]
@@ -348,6 +448,18 @@ def assess_assumptions(ticket: Mapping[str, Any]) -> dict[str, Any]:
         )
 
     decision_class = _decision_class(ticket)
+    unapproved_lightweight = [
+        row for row in lightweight if str(row.get("status")) == "proposed"
+    ]
+    if decision_class == "high_stakes" and unapproved_lightweight:
+        issues.append(
+            _issue(
+                "UNAPPROVED_LIGHTWEIGHT_ASSUMPTION",
+                "FAIL",
+                True,
+                "High-stakes tickets must explicitly approve lightweight assumptions or use the governed assumption register.",
+            )
+        )
     if not resolved:
         issues.append(
             _issue(
@@ -366,6 +478,8 @@ def assess_assumptions(ticket: Mapping[str, Any]) -> dict[str, Any]:
         "decision_class": decision_class,
         "library_reference_count": len(refs),
         "inline_assumption_count": len(inline),
+        "registered_assumption_count": len(registered),
+        "lightweight_assumption_count": len(lightweight),
         "resolved_assumption_count": len(resolved),
         "resolved_snapshot_sha256": _sha(resolved),
         "risk_ranking": _risk_ranking(resolved),
