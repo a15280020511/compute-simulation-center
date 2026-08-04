@@ -118,7 +118,8 @@ def validate_inputs(inputs: Mapping[str, Any]) -> dict[str, Any]:
     return payload
 
 
-SAGE_RUNNER = r'''from sage.all import *
+SAGE_RUNNER = r'''from functools import reduce
+from sage.all import *
 import json
 
 payload = json.load(open('/work/payload.json', encoding='utf-8'))
@@ -165,9 +166,9 @@ elif mode == 'number_theory':
     elif action == 'is_prime':
         value = bool(values[0].is_prime())
     elif action == 'gcd':
-        value = int(gcd(values))
+        value = int(reduce(gcd, values))
     elif action == 'lcm':
-        value = int(lcm(values))
+        value = int(reduce(lcm, values))
     else:
         value = int(euler_phi(values[0]))
     result = {'action': action, 'value': value}
@@ -198,6 +199,7 @@ def _run_sage(payload: Mapping[str, Any]) -> dict[str, Any]:
             "--pids-limit", str(RUNTIME["pids_limit"]),
             "--memory", f"{RUNTIME['memory_mb']}m", "--cpus", str(RUNTIME["cpus"]),
             "--tmpfs", "/tmp:rw,noexec,nosuid,size=256m",
+            "-e", "HOME=/tmp/sage-home",
             "-v", f"{root}:/work:ro", "--entrypoint", "sage", image,
             "-python", "/work/runner.py",
         ]
