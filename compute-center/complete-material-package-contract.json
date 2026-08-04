@@ -45,7 +45,8 @@
     "missing or unreviewed license",
     "compute-analysis is outside license use_scope",
     "expired package or overdue source review",
-    "GPTs validation is absent, not PASS, or bound to another task or manifest",
+    "GPTs selection validation is absent, not PASS, or bound to another task or selection",
+    "independent GPTs relay attestation is absent, not PASS, or bound to another task, transfer, manifest, envelope or content hash",
     "contains_personal_data is not false",
     "unknown material type or media type",
     "unsafe path, symbolic link, undeclared file, archive or executable content",
@@ -73,7 +74,8 @@
     "payload_root": "payload",
     "required_control_files": [
       "envelope.json",
-      "manifest.json"
+      "manifest.json",
+      "gpts-relay-attestation.json"
     ],
     "runtime_code_allowed": false,
     "symbolic_links_allowed": false,
@@ -102,13 +104,23 @@
     "contains_personal_data",
     "gpts_validation"
   ],
-  "required_gpts_validation_fields": [
+  "required_gpts_selection_validation_fields": [
     "status",
     "validator",
     "validated_at",
     "task_id",
-    "selection_sha256",
-    "approved_manifest_sha256"
+    "selection_sha256"
+  ],
+  "required_gpts_relay_attestation_fields": [
+    "schema_version",
+    "status",
+    "validator",
+    "validated_at",
+    "task_id",
+    "transfer_id",
+    "manifest_sha256",
+    "envelope_sha256",
+    "content_sha256"
   ],
   "required_license_fields": [
     "name",
@@ -116,7 +128,7 @@
     "use_scope",
     "source_record_ids"
   ],
-  "schema_version": "compute-complete-material-package-contract-v1",
+  "schema_version": "compute-complete-material-package-contract-v2",
   "source_storage_owner": "intelligence-center",
   "transport_owner": "gpts-usage-center"
 }
