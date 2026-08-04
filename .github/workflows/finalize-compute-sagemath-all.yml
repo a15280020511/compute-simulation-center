@@ -1,0 +1,67 @@
+name: Finalize Compute SageMath Integration
+
+on:
+  push:
+    branches: [feat/sagemath-capability-20260804]
+    paths:
+      - .github/workflows/finalize-compute-sagemath-all.yml
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: finalize-compute-sagemath-all
+  cancel-in-progress: false
+
+jobs:
+  finalize:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          persist-credentials: true
+          ref: feat/sagemath-capability-20260804
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065
+        with:
+          python-version: '3.12'
+      - name: Register capability and integrate production workflow
+        run: |
+          set -euo pipefail
+          python maintenance/register_sagemath_capability.py
+          python maintenance/integrate_sagemath_workflow.py
+      - name: Validate full static integration
+        run: |
+          set -euo pipefail
+          python -m pip install --disable-pip-version-check --no-input -r compute-center/requirements.txt
+          python -m py_compile compute-center/sagemath_operations.py
+          python -m unittest discover -s compute-center/tests -p 'test_sagemath_operations.py' -v
+          python compute-center/tool_registry.py validate
+          python compute-center/systems_matrix.py validate
+          grep -F 'Pre-pull and attest selected SageMath runtime' .github/workflows/compute-ticket.yml
+          python - <<'PY'
+          import json
+          registry=json.load(open('compute-center/tool-registry.json'))
+          groups={row['id']:row for row in registry['groups']}
+          assert groups['sagemath-symbolic']['operations']==['symbolic_mathematics']
+          caps=json.load(open('compute-center/compute-capabilities.json'))
+          assert caps['operation_count']==30
+          assert caps['managed_mode_count']==130
+          assert caps['effective_managed_mode_count']==191
+          matrix=json.load(open('compute-center/systems-computation-matrix.json'))
+          assert 'symbolic_mathematics' in matrix['routes']
+          PY
+          git diff --check
+      - name: Commit final formal integration
+        run: |
+          set -euo pipefail
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git add compute-center/tool-registry.json compute-center/compute-capabilities.json compute-center/systems-computation-matrix.json .github/workflows/compute-ticket.yml
+          if git diff --cached --quiet; then
+            echo 'No final integration changes generated'
+            exit 1
+          fi
+          git commit -m 'feat: finalize SageMath registry and production routing'
+          git push origin HEAD:feat/sagemath-capability-20260804
