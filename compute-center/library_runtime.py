@@ -1,5 +1,10 @@
 #!/usr/bin/env python3
-"""Resolve selected institutional and domain library entries and fail closed on unknown IDs."""
+"""Resolve selected institutional and domain library entries.
+
+Unknown IDs fail closed for formal/high-stakes work. Exploratory tickets are
+soft-normalized: known IDs are retained and unknown IDs become explicit
+warnings, preventing a harmless annotation error from aborting the numeric run.
+"""
 from __future__ import annotations
 
 import hashlib
@@ -43,13 +48,21 @@ def _index(rows: Any, key: str, label: str) -> dict[str, Mapping[str, Any]]:
     return result
 
 
-def _resolve(ids: list[str], index: Mapping[str, Mapping[str, Any]], label: str) -> list[dict[str, Any]]:
+def _resolve(
+    ids: list[str],
+    index: Mapping[str, Mapping[str, Any]],
+    label: str,
+    *,
+    strict: bool = True,
+) -> tuple[list[dict[str, Any]], list[str]]:
     if len(set(ids)) != len(ids):
         raise LibrarySelectionError(f"duplicate {label} IDs")
     unknown = sorted(set(ids) - set(index))
-    if unknown:
+    if unknown and strict:
         raise LibrarySelectionError(f"unknown {label} IDs: {', '.join(unknown)}")
-    return [dict(index[identifier]) for identifier in ids]
+    resolved = [dict(index[identifier]) for identifier in ids if identifier in index]
+    warnings = [f"UNKNOWN_{label.upper()}_ID:{identifier}" for identifier in unknown]
+    return resolved, warnings
 
 
 def resolve_library_selection(ticket: Mapping[str, Any]) -> dict[str, Any]:
@@ -64,24 +77,29 @@ def resolve_library_selection(ticket: Mapping[str, Any]) -> dict[str, Any]:
     sample_ids = [str(item) for item in quality.get("sample_ids", [])]
     rule_ids = [str(item) for item in quality.get("rule_ids", [])]
     benchmark_ids = [str(item) for item in quality.get("benchmark_ids", [])]
-    decision_class = str(quality.get("decision_class") or "formal")
+    decision_class = str(quality.get("decision_class") or "exploratory")
+    strict = decision_class in {"formal", "high_stakes"}
 
-    strategy = _resolve([strategy_id], strategy_index, "strategy") if strategy_id else []
-    methods = _resolve(method_ids, method_index, "method")
-    samples = _resolve(sample_ids, sample_index, "sample")
-    rules = _resolve(rule_ids, rule_index, "rule")
+    warnings: list[str] = []
+    strategy, rows = _resolve([strategy_id], strategy_index, "strategy", strict=strict) if strategy_id else ([], [])
+    warnings.extend(rows)
+    methods, rows = _resolve(method_ids, method_index, "method", strict=strict)
+    warnings.extend(rows)
+    samples, rows = _resolve(sample_ids, sample_index, "sample", strict=strict)
+    warnings.extend(rows)
+    rules, rows = _resolve(rule_ids, rule_index, "rule", strict=strict)
+    warnings.extend(rows)
     domain_libraries = resolve_domain_library_selection(quality)
 
-    warnings = []
-    if decision_class in {"formal", "high_stakes"} and not strategy:
+    if strict and not strategy:
         warnings.append("NO_EXPLICIT_DECISION_STRATEGY")
     if sample_ids and not samples:
         warnings.append("NO_RESOLVED_SAMPLE")
-    if decision_class in {"formal", "high_stakes"} and quality.get("factor_ids") and not quality.get("baseline_ids"):
+    if strict and quality.get("factor_ids") and not quality.get("baseline_ids"):
         warnings.append("FACTOR_WITHOUT_EXPLICIT_BASELINE")
 
     report: dict[str, Any] = {
-        "schema_version": "compute-library-selection-v2",
+        "schema_version": "compute-library-selection-v3",
         "status": "WARN" if warnings else "PASS",
         "decision_class": decision_class,
         "selection_owner": "gpts-usage-center",
