@@ -1,0 +1,99 @@
+name: Temporary Finalize SageMath Capability
+
+on:
+  issues:
+    types: [opened]
+
+permissions:
+  contents: write
+  issues: write
+
+concurrency:
+  group: temporary-finalize-sagemath-capability
+  cancel-in-progress: false
+
+jobs:
+  finalize:
+    if: >-
+      github.actor == github.repository_owner &&
+      github.event.issue.title == '[maintenance] finalize sagemath capability 20260804'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    steps:
+      - name: Checkout feature branch
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          persist-credentials: true
+          ref: feat/sagemath-capability-20260804
+          fetch-depth: 0
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065
+        with:
+          python-version: '3.12'
+      - name: Register SageMath and integrate production routing
+        run: |
+          set -euo pipefail
+          python maintenance/register_sagemath_capability.py
+          python maintenance/integrate_sagemath_workflow.py
+      - name: Remove migration-only branch files
+        run: |
+          rm -f \
+            maintenance/apply_sagemath_capability.py \
+            maintenance/apply_sagemath_capability.fixed.py \
+            maintenance/repair_and_apply_sagemath.py \
+            maintenance/register_sagemath_capability.py \
+            maintenance/integrate_sagemath_workflow.py \
+            maintenance/sagemath-migration-diagnostics.txt \
+            .github/workflows/apply-sagemath-capability.yml \
+            .github/workflows/finalize-sagemath-capability.yml \
+            .github/workflows/register-sagemath-capability.yml \
+            .github/workflows/integrate-sagemath-workflow.yml \
+            .github/workflows/finalize-compute-sagemath-all.yml
+      - name: Validate final static capability surface
+        run: |
+          set -euo pipefail
+          python -m pip install --disable-pip-version-check --no-input -r compute-center/requirements.txt
+          python -m pip check
+          python -m py_compile compute-center/sagemath_operations.py compute-center/tool_registry.py compute-center/systems_matrix.py
+          python -m unittest discover -s compute-center/tests -p 'test_sagemath_operations.py' -v
+          python compute-center/tool_registry.py validate
+          python compute-center/systems_matrix.py validate
+          grep -F 'Pre-pull and attest selected SageMath runtime' .github/workflows/compute-ticket.yml
+          python - <<'PY'
+          import json
+          registry=json.load(open('compute-center/tool-registry.json'))
+          groups={row['id']:row for row in registry['groups']}
+          group=groups['sagemath-symbolic']
+          assert group['operations']==['symbolic_mathematics']
+          assert set(group['modes'])=={'simplify','solve','differentiate','integrate','matrix_analysis','number_theory'}
+          assert group['network_policy']=='deny'
+          caps=json.load(open('compute-center/compute-capabilities.json'))
+          assert caps['operation_count']==30
+          assert caps['managed_mode_count']==130
+          assert caps['effective_managed_mode_count']==191
+          assert any(row['id']=='symbolic_mathematics' for row in caps['operations'])
+          matrix=json.load(open('compute-center/systems-computation-matrix.json'))
+          assert 'symbolic_mathematics' in matrix['routes']
+          runtime=json.load(open('compute-center/sagemath-runtime.json'))
+          assert runtime['image']=='sagemath/sagemath@sha256:e068670ae5863b54b2550e72437ec637b0283acb0dc712c8584c124dbf44e667'
+          PY
+          git diff --check
+      - name: Commit clean final feature branch
+        run: |
+          set -euo pipefail
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git add -A
+          if git diff --cached --quiet; then
+            echo 'No finalization changes found'
+            exit 1
+          fi
+          git commit -m 'feat: finalize clean offline SageMath production capability'
+          git push origin HEAD:feat/sagemath-capability-20260804
+      - name: Close maintenance issue
+        if: always()
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh issue comment "${{ github.event.issue.number }}" --body "One-shot finalizer outcome: ${{ job.status }}."
+          gh issue close "${{ github.event.issue.number }}" --reason completed
+        continue-on-error: true
