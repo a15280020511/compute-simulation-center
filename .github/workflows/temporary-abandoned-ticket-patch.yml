@@ -1,0 +1,138 @@
+name: Temporary Abandoned Ticket Patch
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+    paths:
+      - ".github/workflows/temporary-abandoned-ticket-patch.yml"
+
+permissions:
+  contents: write
+
+concurrency:
+  group: temporary-abandoned-ticket-patch-${{ github.head_ref }}
+  cancel-in-progress: true
+
+jobs:
+  apply-patch:
+    if: >-
+      github.actor == github.repository_owner &&
+      github.event.pull_request.head.repo.full_name == github.repository &&
+      github.head_ref == 'fix/abandoned-ticket-id-release-20260804'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - name: Checkout exact pull request branch
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ github.head_ref }}
+          persist-credentials: true
+          fetch-depth: 0
+
+      - name: Apply deterministic admission patch and regression tests
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          from pathlib import Path
+
+          path = Path('compute-center/compute_ticket.py')
+          text = path.read_text(encoding='utf-8')
+          old = '''        number, packet = prior
+                  same_id = str(packet.get("task_id") or "") == task_id
+                  same_fingerprint = _canonical_sha(packet) == fingerprint
+                  if same_id or same_fingerprint:
+                      if retry_issue == number:
+                          comments = list(
+                              _trusted_comments(os.getenv("GITHUB_REPOSITORY", ""), number)
+                          )
+                          terminal_failure = any(
+          '''
+          new = '''        number, packet = prior
+                  comments = list(
+                      _trusted_comments(os.getenv("GITHUB_REPOSITORY", ""), number)
+                  )
+                  abandoned = str(raw.get("state") or "") == "closed" and not comments
+                  if abandoned:
+                      continue
+                  same_id = str(packet.get("task_id") or "") == task_id
+                  same_fingerprint = _canonical_sha(packet) == fingerprint
+                  if same_id or same_fingerprint:
+                      if retry_issue == number:
+                          terminal_failure = any(
+          '''
+          if old not in text:
+              raise SystemExit('target admission snippet not found')
+          path.write_text(text.replace(old, new, 1), encoding='utf-8')
+
+          test_path = Path('compute-center/tests/test_abandoned_ticket_release.py')
+          test_path.write_text('''from __future__ import annotations
+
+import json
+import unittest
+from unittest.mock import patch
+
+import compute_ticket
+
+
+class AbandonedTicketReleaseTests(unittest.TestCase):
+    def _row(self, *, state: str = "closed") -> dict[str, object]:
+        return {
+            "number": 81,
+            "title": "[compute] abandoned admission test",
+            "body": json.dumps({"task_id": "shared-task", "operation": "descriptive_statistics"}),
+            "state": state,
+        }
+
+    def test_closed_ticket_without_trusted_receipt_releases_identifier(self) -> None:
+        with patch.object(compute_ticket, "_trusted_comments", return_value=[]):
+            result = compute_ticket._duplicate_in_rows(
+                [self._row()],
+                current_issue=82,
+                task_id="shared-task",
+                fingerprint="different",
+                retry_issue=77,
+            )
+        self.assertEqual(result, "")
+
+    def test_open_ticket_without_receipt_still_reserves_identifier(self) -> None:
+        with patch.object(compute_ticket, "_trusted_comments", return_value=[]):
+            result = compute_ticket._duplicate_in_rows(
+                [self._row(state="open")],
+                current_issue=82,
+                task_id="shared-task",
+                fingerprint="different",
+                retry_issue=77,
+            )
+        self.assertIn("duplicate task_id", result)
+
+    def test_closed_accepted_ticket_still_reserves_identifier(self) -> None:
+        with patch.object(
+            compute_ticket,
+            "_trusted_comments",
+            return_value=["## COMPUTE_ACCEPTED"],
+        ):
+            result = compute_ticket._duplicate_in_rows(
+                [self._row()],
+                current_issue=82,
+                task_id="shared-task",
+                fingerprint="different",
+                retry_issue=77,
+            )
+        self.assertIn("duplicate task_id", result)
+
+
+if __name__ == "__main__":
+    unittest.main()
+''', encoding='utf-8')
+          PY
+          python -m py_compile compute-center/compute_ticket.py
+          git diff --check
+
+      - name: Commit patched admission logic
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add compute-center/compute_ticket.py compute-center/tests/test_abandoned_ticket_release.py
+          git commit -m "fix: release IDs held by abandoned compute tickets [skip admission-patch]"
+          git push origin "HEAD:${GITHUB_HEAD_REF}"
