@@ -108,7 +108,9 @@ jobs:
           set -o pipefail
           python -m unittest discover -s compute-center/tests -v 2>&1 | tee compute-test-console.log
 
-      - name: Execute all 29 production operations
+      - name: Execute all 30 production operations
+        env:
+          SAGEMATH_FIXTURE_MODE: "1"
         run: |
           set -o pipefail
           python compute-center/validate_all_operations.py --output-dir all-compute-operation-artifacts 2>&1 | tee all-compute-operations-console.log
@@ -138,11 +140,12 @@ jobs:
           operation_root = Path('all-compute-operation-artifacts')
           operation_summary = json.loads((operation_root / 'all-operations-validation-summary.json').read_text(encoding='utf-8'))
           assert operation_summary['status'] == 'PASS', operation_summary
-          assert operation_summary['operation_count_expected'] == 29, operation_summary
-          assert operation_summary['operation_count_executed'] == 29, operation_summary
-          assert operation_summary['passed'] == 29 and operation_summary['failed'] == 0, operation_summary
-          assert len(operation_summary['registry']) == 29
-          assert len(operation_summary['rows']) == 29
+          assert operation_summary['operation_count_expected'] == 30, operation_summary
+          assert operation_summary['operation_count_executed'] == 30, operation_summary
+          assert operation_summary['passed'] == 30 and operation_summary['failed'] == 0, operation_summary
+          assert len(operation_summary['registry']) == 30
+          assert len(operation_summary['rows']) == 30
+          assert 'symbolic_mathematics' in operation_summary['registry']
           required = (
               'compute-result.json', 'compute-audit.json', 'compute-diagnostics.json',
               'compute-preflight.json', 'compute-data-gap-plan.json',
@@ -176,7 +179,7 @@ jobs:
               for name in ('compute-result.json', 'compute-audit.json', 'compute-diagnostics.json', 'compute-preflight.json', 'compute-data-gap-plan.json', 'compute-expert-review-request.json', 'artifact-manifest.json'):
                   assert (root / name).is_file(), (row['mode'], name)
 
-          print(json.dumps({'status': 'PASS', 'operations': 29, 'managed_modes': 112, 'institutional_libraries': 16, 'credibility_factors': 12, 'decision_intelligence_modes': 22, 'operation_summary_sha256': operation_summary['summary_sha256'], 'mode_summary_sha256': mode_summary['summary_sha256'], 'sole_relay': 'gpts-usage-center', 'compute_network_policy': 'deny'}))
+          print(json.dumps({'status': 'PASS', 'operations': 30, 'managed_modes': 130, 'institutional_libraries': 16, 'credibility_factors': 12, 'decision_intelligence_modes': 22, 'operation_summary_sha256': operation_summary['summary_sha256'], 'mode_summary_sha256': mode_summary['summary_sha256'], 'sole_relay': 'gpts-usage-center', 'compute_network_policy': 'deny'}))
           PY
 
       - name: Upload exhaustive compute evidence
