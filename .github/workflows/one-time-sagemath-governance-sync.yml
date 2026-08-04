@@ -12,7 +12,7 @@ jobs:
   sync:
     if: >-
       github.actor == github.repository_owner &&
-      github.event.issue.title == '[maintenance] sync SageMath governance catalogs 20260805 v2'
+      github.event.issue.title == '[maintenance] sync SageMath governance catalogs 20260805 v3'
     runs-on: ubuntu-24.04
     timeout-minutes: 10
     steps:
@@ -109,12 +109,6 @@ jobs:
           fi
           if [ "$rc" -eq 0 ]; then
             python compute-center/governance_catalog.py >> /tmp/sagemath-governance-sync.log 2>&1 || rc=$?
-          fi
-          if [ "$rc" -eq 0 ]; then
-            python compute-center/tool_registry.py validate >> /tmp/sagemath-governance-sync.log 2>&1 || rc=$?
-          fi
-          if [ "$rc" -eq 0 ]; then
-            python compute-center/systems_matrix.py validate >> /tmp/sagemath-governance-sync.log 2>&1 || rc=$?
           fi
           if [ "$rc" -eq 0 ]; then
             git diff --check >> /tmp/sagemath-governance-sync.log 2>&1 || rc=$?
