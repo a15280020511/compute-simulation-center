@@ -30,6 +30,7 @@ TERMINAL_STATE_PREFIXES = (
     "## COMPUTE_FAILED",
     "## COMPUTE_REJECTED",
 )
+ACTIVE_RUN_STATUSES = ("queued", "in_progress")
 
 
 def _reject_constant(value: str) -> None:
@@ -195,6 +196,49 @@ def _active_task_reason(repo: str, current_issue: int) -> str:
     return ""
 
 
+def _workflow_run_ids(payload: Any) -> set[int]:
+    if not isinstance(payload, Mapping):
+        return set()
+    rows = payload.get("workflow_runs")
+    if not isinstance(rows, list):
+        return set()
+    run_ids: set[int] = set()
+    for row in rows:
+        if not isinstance(row, Mapping):
+            continue
+        event = str(row.get("event") or "issues")
+        status = str(row.get("status") or "")
+        run_id = int(row.get("id") or 0)
+        if event == "issues" and status in ACTIVE_RUN_STATUSES and run_id > 0:
+            run_ids.add(run_id)
+    return run_ids
+
+
+def _active_workflow_run_reason(repo: str) -> str:
+    token = os.getenv("GITHUB_TOKEN") or os.getenv("GH_TOKEN")
+    current_raw = os.getenv("GITHUB_RUN_ID")
+    if not repo or not token or not current_raw:
+        return ""
+    try:
+        current_run = int(current_raw)
+    except ValueError:
+        return "unable to verify global compute slot: invalid GITHUB_RUN_ID"
+    active = {current_run}
+    try:
+        for status in ACTIVE_RUN_STATUSES:
+            payload = _api_json(
+                f"https://api.github.com/repos/{repo}/actions/workflows/compute-ticket.yml/runs"
+                f"?status={status}&per_page=100"
+            )
+            active.update(_workflow_run_ids(payload))
+    except Exception as exc:  # noqa: BLE001 - admission must fail closed
+        return f"unable to verify global compute slot: {type(exc).__name__}"
+    winner = min(active)
+    if winner != current_run:
+        return f"another compute workflow run #{winner} owns the global execution slot"
+    return ""
+
+
 def _status(
     *,
     accepted: bool,
@@ -320,6 +364,9 @@ def prepare(args: argparse.Namespace) -> int:
     if packet is not None and not errors:
         fingerprint = _canonical_sha(packet)
         errors.extend(_current_issue_errors(repo, issue_number))
+        workflow_slot = _active_workflow_run_reason(repo)
+        if workflow_slot:
+            errors.append(workflow_slot)
         active = _active_task_reason(repo, issue_number)
         if active:
             errors.append(active)
