@@ -1,5 +1,11 @@
 #!/usr/bin/env python3
-"""Authorize and validate independent ``[compute]`` Issue tickets."""
+"""Authorize, normalize, validate and de-duplicate independent ``[compute]`` tickets.
+
+The admission layer remains deterministic. It supports explicit retry lineage,
+softly removes unknown method IDs only for exploratory tickets, requires hashed
+upstream evidence for formal/high-stakes tickets, and preserves the global
+single-task execution slot.
+"""
 from __future__ import annotations
 
 import argparse
@@ -16,6 +22,7 @@ from operation_validation import validate_operation_inputs
 
 HERE = Path(__file__).resolve().parent
 SCHEMA_PATH = HERE / "compute-ticket.schema.json"
+METHOD_REGISTRY_PATH = HERE / "method-registry.json"
 MAX_BODY_CHARS = 100_000
 MAX_DUPLICATE_PAGES = 5
 MAX_ACTIVE_TASK_PAGES = 5
@@ -95,7 +102,9 @@ def _trusted_comments(repo: str, issue_number: int) -> Iterable[str]:
     return comments
 
 
-def _prior_ticket(row: Mapping[str, Any], current_issue: int) -> tuple[int, Mapping[str, Any]] | None:
+def _prior_ticket(
+    row: Mapping[str, Any], current_issue: int
+) -> tuple[int, Mapping[str, Any]] | None:
     if row.get("pull_request"):
         return None
     number = int(row.get("number") or 0)
@@ -108,12 +117,26 @@ def _prior_ticket(row: Mapping[str, Any], current_issue: int) -> tuple[int, Mapp
     return (number, parsed) if isinstance(parsed, Mapping) else None
 
 
+def _retry_issue(packet: Mapping[str, Any]) -> int | None:
+    retry = packet.get("retry_of")
+    if retry is None:
+        return None
+    if isinstance(retry, int) and not isinstance(retry, bool) and retry > 0:
+        return retry
+    if isinstance(retry, Mapping):
+        value = retry.get("issue_number")
+        if isinstance(value, int) and not isinstance(value, bool) and value > 0:
+            return value
+    return -1
+
+
 def _duplicate_in_rows(
     rows: list[Any],
     *,
     current_issue: int,
     task_id: str,
     fingerprint: str,
+    retry_issue: int | None = None,
 ) -> str:
     for raw in rows:
         if not isinstance(raw, Mapping):
@@ -125,6 +148,17 @@ def _duplicate_in_rows(
         same_id = str(packet.get("task_id") or "") == task_id
         same_fingerprint = _canonical_sha(packet) == fingerprint
         if same_id or same_fingerprint:
+            if retry_issue == number:
+                comments = list(
+                    _trusted_comments(os.getenv("GITHUB_REPOSITORY", ""), number)
+                )
+                terminal_failure = any(
+                    body.startswith(("## COMPUTE_FAILED", "## COMPUTE_REJECTED"))
+                    for body in comments
+                )
+                if terminal_failure:
+                    continue
+                return f"retry_of Issue #{number} is not a failed or rejected terminal task"
             reason = "task_id" if same_id else "ticket fingerprint"
             return f"duplicate {reason}; previously submitted in Issue #{number}"
     return ""
@@ -139,6 +173,9 @@ def _duplicate_reason(
     if not repo or not os.getenv("GITHUB_TOKEN"):
         return ""
     task_id = str(packet.get("task_id") or "")
+    retry_issue = _retry_issue(packet)
+    if retry_issue == -1:
+        return "retry_of must be a positive Issue number or an object containing issue_number"
     for page in range(1, MAX_DUPLICATE_PAGES + 1):
         rows = _api_json(
             f"https://api.github.com/repos/{repo}/issues?state=all&per_page=100&page={page}"
@@ -150,6 +187,7 @@ def _duplicate_reason(
             current_issue=current_issue,
             task_id=task_id,
             fingerprint=fingerprint,
+            retry_issue=retry_issue,
         )
         if duplicate:
             return duplicate
@@ -231,35 +269,12 @@ def _active_workflow_run_reason(repo: str) -> str:
                 f"?status={status}&per_page=100"
             )
             active.update(_workflow_run_ids(payload))
-    except Exception as exc:  # noqa: BLE001 - admission must fail closed
+    except Exception as exc:
         return f"unable to verify global compute slot: {type(exc).__name__}"
     winner = min(active)
     if winner != current_run:
         return f"another compute workflow run #{winner} owns the global execution slot"
     return ""
-
-
-def _status(
-    *,
-    accepted: bool,
-    reason: str,
-    packet: Mapping[str, Any] | None,
-    issue_number: int,
-    fingerprint: str | None,
-) -> dict[str, Any]:
-    return {
-        "version": 1,
-        "accepted": accepted,
-        "reason": reason,
-        "issue_number": issue_number,
-        "task_id": str((packet or {}).get("task_id") or ""),
-        "operation": str((packet or {}).get("operation") or ""),
-        "ticket_sha256": fingerprint,
-        "analysis_owner": "web-gpt",
-        "execution_owner": "github-compute-center",
-        "model_calls": 0,
-        "network_fetches": 0,
-    }
 
 
 def _event_fields(event: Mapping[str, Any]) -> tuple[str, str, str, int]:
@@ -285,11 +300,134 @@ def _parse_packet(body: str) -> tuple[Mapping[str, Any] | None, list[str]]:
     return parsed, []
 
 
+def _registered_method_ids() -> set[str]:
+    try:
+        data = json.loads(METHOD_REGISTRY_PATH.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError):
+        return set()
+    rows = data.get("installed_method_packs") if isinstance(data, Mapping) else []
+    return {
+        str(row.get("id"))
+        for row in rows
+        if isinstance(row, Mapping) and row.get("id")
+    }
+
+
+def _normalize_packet(
+    packet: Mapping[str, Any], issue_number: int
+) -> tuple[dict[str, Any], list[str], list[str]]:
+    normalized = json.loads(json.dumps(packet, ensure_ascii=False, allow_nan=False))
+    warnings: list[str] = []
+    errors: list[str] = []
+
+    retry_issue = _retry_issue(normalized)
+    if retry_issue == -1:
+        errors.append(
+            "retry_of must be a positive Issue number or an object containing issue_number"
+        )
+    elif retry_issue is not None:
+        base_id = str(normalized.get("task_id") or "")
+        suffix = f"-r{issue_number}"
+        normalized["task_id"] = (
+            base_id[: 128 - len(suffix)] + suffix
+            if base_id
+            else f"compute-retry-{issue_number}"
+        )
+        warnings.append(
+            f"retry lineage declared from Issue #{retry_issue}; task_id revised for immutable audit"
+        )
+        normalized.pop("retry_of", None)
+
+    quality = (
+        normalized.get("quality_profile")
+        if isinstance(normalized.get("quality_profile"), Mapping)
+        else {}
+    )
+    decision_class = str(quality.get("decision_class") or "exploratory")
+    method_ids = (
+        quality.get("method_ids") if isinstance(quality.get("method_ids"), list) else []
+    )
+    if method_ids:
+        registered = _registered_method_ids()
+        unknown = sorted({str(item) for item in method_ids} - registered)
+        if unknown and decision_class == "exploratory":
+            kept = [str(item) for item in method_ids if str(item) in registered]
+            normalized.setdefault("quality_profile", {})["method_ids"] = kept
+            warnings.append(
+                "unknown exploratory method IDs removed: " + ", ".join(unknown)
+            )
+        elif unknown:
+            errors.append(
+                "unknown method IDs for formal/high-stakes ticket: "
+                + ", ".join(unknown)
+            )
+
+    upstream: list[Any] = []
+    pipeline = normalized.get("pipeline")
+    if isinstance(pipeline, Mapping) and isinstance(pipeline.get("upstream_refs"), list):
+        upstream = pipeline["upstream_refs"]
+    if decision_class in {"formal", "high_stakes"} and not upstream:
+        errors.append(
+            "formal/high-stakes tickets require pipeline.upstream_refs with hashed evidence"
+        )
+    elif decision_class == "exploratory" and not upstream:
+        warnings.append(
+            "no hashed upstream evidence supplied; release must remain exploratory/blocked"
+        )
+    return normalized, warnings, errors
+
+
+def _analysis_chain_plan(packet: Mapping[str, Any]) -> dict[str, Any] | None:
+    assumptions = (
+        packet.get("assumptions") if isinstance(packet.get("assumptions"), list) else []
+    )
+    variables: list[Any] = []
+    data_context = packet.get("data_context")
+    if isinstance(data_context, Mapping) and isinstance(data_context.get("variables"), list):
+        variables = data_context["variables"]
+    uncertain: list[str] = []
+    for row in [*assumptions, *variables]:
+        if not isinstance(row, Mapping):
+            continue
+        confidence = str(row.get("confidence") or "")
+        source_type = str(row.get("source_type") or "")
+        if confidence in {"low", "medium"} or source_type in {
+            "proxy",
+            "gpts_assumption",
+            "expert_hypothesis",
+        }:
+            uncertain.append(str(row.get("name") or "unknown"))
+    if len(set(uncertain)) < 2:
+        return None
+    return {
+        "schema_version": "compute-analysis-chain-plan-v1",
+        "status": "REQUIRED_BEFORE_UNCONDITIONAL_RELEASE",
+        "trigger_variables": sorted(set(uncertain)),
+        "sequence": [
+            {
+                "operation": "scenario_compare",
+                "purpose": "compare explicit structural cases",
+            },
+            {
+                "operation": "sensitivity_analysis",
+                "purpose": "rank range-driven conclusion instability",
+            },
+            {
+                "operation": "monte_carlo",
+                "purpose": "estimate outcome distribution and threshold risk",
+            },
+        ],
+        "execution_policy": "sequential-single-task-tickets",
+        "automatic_parallel_execution": False,
+        "model_calls": 0,
+        "network_fetches": 0,
+    }
+
+
 def _ticket_validation_errors(packet: Mapping[str, Any]) -> list[str]:
     errors: list[str] = []
     validation_errors = sorted(
-        VALIDATOR.iter_errors(packet),
-        key=lambda item: list(item.absolute_path),
+        VALIDATOR.iter_errors(packet), key=lambda item: list(item.absolute_path)
     )
     for error in validation_errors[:20]:
         path = ".".join(str(item) for item in error.absolute_path) or "$"
@@ -312,7 +450,9 @@ def _current_issue_errors(repo: str, issue_number: int) -> list[str]:
     return ["this compute Issue is already accepted or running"] if accepted and not failed else []
 
 
-def _authorization_errors(actor: str, owner: str, title: str, body: str) -> list[str]:
+def _authorization_errors(
+    actor: str, owner: str, title: str, body: str
+) -> list[str]:
     errors: list[str] = []
     if not title.startswith("[compute]"):
         errors.append("Issue title must start with [compute]")
@@ -323,14 +463,38 @@ def _authorization_errors(actor: str, owner: str, title: str, body: str) -> list
     return errors
 
 
+def _status(
+    *,
+    accepted: bool,
+    reason: str,
+    packet: Mapping[str, Any] | None,
+    issue_number: int,
+    fingerprint: str | None,
+    warnings: list[str] | None = None,
+) -> dict[str, Any]:
+    return {
+        "version": 2,
+        "accepted": accepted,
+        "reason": reason,
+        "warnings": list(warnings or []),
+        "issue_number": issue_number,
+        "task_id": str((packet or {}).get("task_id") or ""),
+        "operation": str((packet or {}).get("operation") or ""),
+        "ticket_sha256": fingerprint,
+        "analysis_owner": "web-gpt",
+        "execution_owner": "github-compute-center",
+        "model_calls": 0,
+        "network_fetches": 0,
+    }
+
+
 def _persist_status(
     root: Path,
     status: Mapping[str, Any],
     packet: Mapping[str, Any] | None,
 ) -> None:
     (root / "ticket-status.json").write_text(
-        json.dumps(status, ensure_ascii=False, indent=2),
-        encoding="utf-8",
+        json.dumps(status, ensure_ascii=False, indent=2), encoding="utf-8"
     )
     if packet is not None:
         (root / "ticket.json").write_text(
@@ -358,9 +522,13 @@ def prepare(args: argparse.Namespace) -> int:
     errors = _authorization_errors(actor, owner, title, body)
     packet, parse_errors = _parse_packet(body)
     errors.extend(parse_errors)
-    fingerprint: str | None = None
+    warnings: list[str] = []
+    original_packet = packet
     if packet is not None:
+        packet, warnings, normalization_errors = _normalize_packet(packet, issue_number)
+        errors.extend(normalization_errors)
         errors.extend(_ticket_validation_errors(packet))
+    fingerprint: str | None = None
     if packet is not None and not errors:
         fingerprint = _canonical_sha(packet)
         errors.extend(_current_issue_errors(repo, issue_number))
@@ -370,7 +538,15 @@ def prepare(args: argparse.Namespace) -> int:
         active = _active_task_reason(repo, issue_number)
         if active:
             errors.append(active)
-        duplicate = _duplicate_reason(repo, issue_number, packet, fingerprint)
+        duplicate_packet = (
+            original_packet if isinstance(original_packet, Mapping) else packet
+        )
+        duplicate = _duplicate_reason(
+            repo,
+            issue_number,
+            duplicate_packet,
+            _canonical_sha(duplicate_packet),
+        )
         if duplicate:
             errors.append(duplicate)
 
@@ -381,17 +557,39 @@ def prepare(args: argparse.Namespace) -> int:
         packet=packet,
         issue_number=issue_number,
         fingerprint=fingerprint,
+        warnings=warnings,
     )
     _persist_status(root, status, packet)
+    if warnings:
+        (root / "ticket-normalization.json").write_text(
+            json.dumps(
+                {
+                    "schema_version": "compute-ticket-normalization-v1",
+                    "warnings": warnings,
+                },
+                ensure_ascii=False,
+                indent=2,
+            ),
+            encoding="utf-8",
+        )
+    if packet is not None:
+        plan = _analysis_chain_plan(packet)
+        if plan is not None:
+            (root / "analysis-chain-plan.json").write_text(
+                json.dumps(plan, ensure_ascii=False, indent=2), encoding="utf-8"
+            )
     return 0 if accepted else 2
 
 
 def render(args: argparse.Namespace) -> int:
     root = Path(args.output_dir)
-    status = json.loads((root / "ticket-status.json").read_text(encoding="utf-8"))
-    heading = {"accepted": "COMPUTE_ACCEPTED", "rejected": "COMPUTE_REJECTED"}[
-        args.phase
-    ]
+    status = json.loads(
+        (root / "ticket-status.json").read_text(encoding="utf-8")
+    )
+    heading = {
+        "accepted": "COMPUTE_ACCEPTED",
+        "rejected": "COMPUTE_REJECTED",
+    }[args.phase]
     print(f"## {heading}")
     print()
     print(f"- Task ID: `{status.get('task_id') or 'unknown'}`")
@@ -401,6 +599,8 @@ def render(args: argparse.Namespace) -> int:
     print("- Model calls: `0`")
     print("- External data fetches: `0`")
     print(f"- Run: `{args.run_url}`")
+    for warning in status.get("warnings") or []:
+        print(f"- Warning: `{warning}`")
     if args.phase == "rejected":
         print(f"- Reason: `{status.get('reason') or 'unknown'}`")
     return 0
@@ -423,6 +623,10 @@ def parser() -> argparse.ArgumentParser:
     return root
 
 
+def main() -> int:
+    args = parser().parse_args()
+    return int(args.func(args))
+
+
 if __name__ == "__main__":
-    arguments = parser().parse_args()
-    raise SystemExit(arguments.func(arguments))
+    raise SystemExit(main())
