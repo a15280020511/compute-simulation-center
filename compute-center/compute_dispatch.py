@@ -20,6 +20,7 @@ from accuracy_release import apply_accuracy_release_gate  # noqa: E402
 from compute_diagnostics import write_failure, write_success  # noqa: E402
 from compute_preflight import assess as assess_preflight  # noqa: E402
 from compute_preflight import canonical_sha as canonical_preflight_sha  # noqa: E402
+from material_package_validation import validate_material_package  # noqa: E402
 from quality_gate import build_quality_report  # noqa: E402
 from relay_contracts import build_data_gap_plan, build_expert_review_request  # noqa: E402
 from tool_registry import register_into  # noqa: E402
@@ -51,6 +52,43 @@ def _refresh_manifest(output_dir: Path) -> None:
 
 def _write_json(path: Path, value: Any) -> None:
     path.write_text(json.dumps(value, ensure_ascii=False, indent=2, allow_nan=False), encoding="utf-8")
+
+
+def _validate_relayed_material(output_dir: Path, ticket_path: Path) -> dict[str, Any]:
+    package_root = ticket_path.parent / "compute-input" / "material-package"
+    receipt_path = output_dir / "compute-material-package-validation.json"
+    if not package_root.exists():
+        receipt = {
+            "schema_version": "compute-material-package-validation-receipt-v2",
+            "status": "NOT_PRESENT",
+            "package_root": "compute-input/material-package",
+            "numeric_execution_blocked": False,
+            "reason": "No GPTs-relayed material package was supplied for this ticket.",
+            "runtime_network_used": False,
+            "direct_center_connection": False,
+            "model_calls": 0,
+        }
+        _write_json(receipt_path, receipt)
+        print(json.dumps({
+            "material_package_status": "NOT_PRESENT",
+            "material_package_validation_file": receipt_path.name,
+        }, ensure_ascii=False))
+        return receipt
+    if not package_root.is_dir():
+        raise ComputeError("MATERIAL_PACKAGE_INVALID: compute-input/material-package is not a directory")
+    try:
+        receipt = validate_material_package(package_root)
+    except Exception as exc:
+        raise ComputeError(f"MATERIAL_PACKAGE_BLOCKED:{type(exc).__name__}:{exc}") from exc
+    _write_json(receipt_path, receipt)
+    print(json.dumps({
+        "material_package_status": receipt["status"],
+        "material_package_id": receipt["package_id"],
+        "material_package_sha256": receipt["content_sha256"],
+        "material_package_validation_file": receipt_path.name,
+        "runtime_network_used": False,
+    }, ensure_ascii=False))
+    return receipt
 
 
 def _write_preflight(output_dir: Path, ticket: Mapping[str, Any]) -> dict[str, Any]:
@@ -111,6 +149,7 @@ def _attach_governance_to_transfer(
         "direct_center_contact_allowed": False,
         "data_gap_plan_file": "compute-data-gap-plan.json",
         "expert_review_request_file": "compute-expert-review-request.json",
+        "material_package_validation_file": "compute-material-package-validation.json",
     }
     if isinstance(ticket, Mapping):
         pipeline = ticket.get("pipeline")
@@ -141,6 +180,7 @@ def _attach_governance_to_transfer(
                 "package_sha256": result["package_sha256"],
                 "sole_relay": "gpts-usage-center",
                 "direct_center_contact_allowed": False,
+                "material_package_validation_file": "compute-material-package-validation.json",
             })
             if "pipeline_sha256" in result:
                 audit["pipeline_sha256"] = result["pipeline_sha256"]
@@ -162,6 +202,7 @@ def _attach_governance_to_transfer(
             f"\n- Required evidence maturity: `{quality_report['constraints'].get('required_evidence_maturity')}`"
             f"\n- Quality report SHA256: `{quality_sha256}`"
             f"\n- Package SHA256: `{result['package_sha256']}`"
+            "\n- Material package validation: `compute-material-package-validation.json`"
             "\n- Sole cross-center relay: `gpts-usage-center`"
             "\n- Direct center contact: `forbidden`"
         )
@@ -190,12 +231,21 @@ def main(argv: list[str] | None = None) -> int:
         ticket = _load_ticket(ticket_path)
         stage = "validate_ticket"
         validate_ticket(ticket)
+        stage = "material_package_validation"
+        material_receipt = _validate_relayed_material(output_dir, ticket_path)
         stage = "data_preflight"
         preflight = _write_preflight(output_dir, ticket)
         if not preflight["execution_allowed"]:
             raise ComputeError(f"PREFLIGHT_BLOCKED:{preflight['status']}; GPTs must resolve data gaps or obtain required user approval")
         stage = "execute_operation"
         result = run_ticket(dict(ticket), output_dir)
+        result["material_package"] = {
+            "status": material_receipt["status"],
+            "validation_file": "compute-material-package-validation.json",
+            "content_sha256": material_receipt.get("content_sha256"),
+            "gpts_relay_attestation": material_receipt.get("gpts_relay_attestation"),
+            "runtime_network_used": False,
+        }
         stage = "quality_gate"
         quality_report = build_quality_report(ticket, result, preflight)
         quality_report = apply_accuracy_release_gate(quality_report, result)
@@ -209,6 +259,7 @@ def main(argv: list[str] | None = None) -> int:
         expert_request["observed_evidence_maturity"] = quality_report["constraints"].get("observed_evidence_maturity")
         expert_request["required_evidence_maturity"] = quality_report["constraints"].get("required_evidence_maturity")
         expert_request["quality_report_file"] = "compute-quality-report.json"
+        expert_request["material_package_validation_file"] = "compute-material-package-validation.json"
         _write_json(output_dir / "compute-expert-review-request.json", expert_request)
         elapsed = time.perf_counter() - started
         write_success(output_dir, ticket=ticket, result=result, elapsed_seconds=elapsed)
@@ -219,6 +270,7 @@ def main(argv: list[str] | None = None) -> int:
             "release_status": quality_report["release_status"],
             "formal_decision_use_allowed": quality_report["constraints"]["formal_decision_use_allowed"],
             "evidence_maturity": quality_report["constraints"].get("observed_evidence_maturity"),
+            "material_package_status": material_receipt["status"],
             "output_dir": str(output_dir),
         }, ensure_ascii=False))
         return 0
