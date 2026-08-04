@@ -5,6 +5,7 @@ on:
     branches: [feat/sagemath-capability-20260804]
     paths:
       - maintenance/apply_sagemath_capability.py
+      - maintenance/repair_and_apply_sagemath.py
       - .github/workflows/apply-sagemath-capability.yml
   workflow_dispatch:
 
@@ -39,7 +40,7 @@ jobs:
           echo "SAGEMATH_VERSION=$version" >> "$GITHUB_ENV"
           printf '%s\n%s\n' "$digest" "$version"
       - name: Apply deterministic capability migration
-        run: python maintenance/apply_sagemath_capability.py
+        run: python maintenance/repair_and_apply_sagemath.py
       - name: Validate registry, systems matrix and fixture tests
         run: |
           python -m pip install --disable-pip-version-check --no-input -r compute-center/requirements.txt
