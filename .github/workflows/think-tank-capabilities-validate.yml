@@ -91,6 +91,9 @@ jobs:
           mkdir -p think-tank-validation
           python compute-center/validate_think_tank_packs.py --pack "${{ matrix.pack }}" \
             | tee "think-tank-validation/${{ matrix.pack }}.json"
+      - name: Validate GEKKO local backend
+        if: matrix.pack == 'decision'
+        run: python -m unittest compute-center/tests/test_gekko_backend.py -v
       - name: Prove offline runtime contract
         run: |
           python - <<'PY'
