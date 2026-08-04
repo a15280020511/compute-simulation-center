@@ -52,7 +52,30 @@ jobs:
       - name: Prove offline validation boundary
         run: |
           set -euo pipefail
-          ! grep -R -nE 'urllib|requests|httpx|socket|huggingface_hub|subprocess' \
-            compute-center/material_package_validation.py
-          ! grep -R -nE 'eval\(|exec\(|compile\(' \
-            compute-center/material_package_validation.py
+          python - <<'PY'
+          import ast
+          from pathlib import Path
+
+          path = Path('compute-center/material_package_validation.py')
+          tree = ast.parse(path.read_text(encoding='utf-8'))
+          forbidden_modules = {
+              'urllib', 'requests', 'httpx', 'socket', 'huggingface_hub',
+              'subprocess', 'ftplib', 'telnetlib', 'webbrowser',
+          }
+          imports = set()
+          dangerous_calls = set()
+          for node in ast.walk(tree):
+              if isinstance(node, ast.Import):
+                  imports.update(alias.name.split('.')[0] for alias in node.names)
+              elif isinstance(node, ast.ImportFrom) and node.module:
+                  imports.add(node.module.split('.')[0])
+              elif isinstance(node, ast.Call) and isinstance(node.func, ast.Name):
+                  if node.func.id in {'eval', 'exec', 'compile', '__import__'}:
+                      dangerous_calls.add(node.func.id)
+          blocked_imports = sorted(imports & forbidden_modules)
+          if blocked_imports:
+              raise SystemExit(f'forbidden network/process imports: {blocked_imports}')
+          if dangerous_calls:
+              raise SystemExit(f'forbidden dynamic execution calls: {sorted(dangerous_calls)}')
+          print('offline validator AST boundary: PASS')
+          PY
