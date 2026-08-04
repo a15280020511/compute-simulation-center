@@ -12,7 +12,12 @@ from typing import Any, Mapping
 
 HERE = Path(__file__).resolve().parent
 CONTRACT_PATH = HERE / "complete-material-package-contract.json"
-ALLOWED_CONTROL_FILES = {"envelope.json", "manifest.json", "receipt.json"}
+ALLOWED_CONTROL_FILES = {
+    "envelope.json",
+    "manifest.json",
+    "gpts-relay-attestation.json",
+    "receipt.json",
+}
 SECRET_PATTERNS = (
     re.compile(rb"-----BEGIN (?:RSA |EC |OPENSSH )?PRIVATE KEY-----"),
     re.compile(rb"\bAKIA[0-9A-Z]{16}\b"),
@@ -104,11 +109,15 @@ def validate_material_package(package_root: Path, *, as_of: date | None = None) 
         raise MaterialPackageValidationError("symbolic links are forbidden")
     envelope_path = root / "envelope.json"
     manifest_path = root / "manifest.json"
-    if not envelope_path.is_file() or not manifest_path.is_file():
-        raise MaterialPackageValidationError("envelope.json and manifest.json are required")
+    relay_path = root / "gpts-relay-attestation.json"
+    if not envelope_path.is_file() or not manifest_path.is_file() or not relay_path.is_file():
+        raise MaterialPackageValidationError(
+            "envelope.json, manifest.json and gpts-relay-attestation.json are required"
+        )
     contract = _require_object(_load_json(CONTRACT_PATH), "contract")
     envelope = _require_object(_load_json(envelope_path), "envelope")
     manifest = _require_object(_load_json(manifest_path), "manifest")
+    relay = _require_object(_load_json(relay_path), "GPTs relay attestation")
     today = as_of or datetime.now(timezone.utc).date()
 
     required_envelope = set(contract["required_envelope_fields"])
@@ -123,7 +132,9 @@ def validate_material_package(package_root: Path, *, as_of: date | None = None) 
         raise MaterialPackageValidationError("source_center must be intelligence-center")
     reference = str(envelope.get("source_repository_reference") or "")
     if not reference.startswith("hf-dataset:") or "://" in reference:
-        raise MaterialPackageValidationError("source repository reference must be an opaque HF dataset reference")
+        raise MaterialPackageValidationError(
+            "source repository reference must be an opaque HF dataset reference"
+        )
     if envelope.get("contains_personal_data") is not False:
         raise MaterialPackageValidationError("personal data is forbidden")
     material_type = str(envelope.get("material_type") or "")
@@ -131,7 +142,9 @@ def validate_material_package(package_root: Path, *, as_of: date | None = None) 
         raise MaterialPackageValidationError("unsupported material_type")
     if envelope.get("manifest_path") != "manifest.json":
         raise MaterialPackageValidationError("manifest_path must be manifest.json")
-    if _file_sha(manifest_path) != envelope.get("manifest_sha256"):
+    manifest_sha = _file_sha(manifest_path)
+    envelope_sha = _file_sha(envelope_path)
+    if manifest_sha != envelope.get("manifest_sha256"):
         raise MaterialPackageValidationError("manifest SHA256 mismatch")
 
     for field in (
@@ -162,21 +175,29 @@ def validate_material_package(package_root: Path, *, as_of: date | None = None) 
     if not isinstance(use_scope, list) or "compute-analysis" not in use_scope:
         raise MaterialPackageValidationError("license excludes compute-analysis")
 
-    approval = _require_object(envelope.get("gpts_validation"), "gpts_validation")
-    for field in contract["required_gpts_validation_fields"]:
-        if field not in approval:
-            raise MaterialPackageValidationError(f"GPTs validation field missing: {field}")
-    if approval.get("status") != "PASS" or approval.get("validator") != "gpts-usage-center":
-        raise MaterialPackageValidationError("GPTs approval is not valid")
-    if approval.get("task_id") != envelope.get("task_id"):
-        raise MaterialPackageValidationError("GPTs task_id mismatch")
-    if approval.get("approved_manifest_sha256") != envelope.get("manifest_sha256"):
-        raise MaterialPackageValidationError("GPTs approved manifest SHA mismatch")
-    validated_at = _parse_datetime(approval.get("validated_at"), "gpts_validation.validated_at")
-    if validated_at < created_at:
-        raise MaterialPackageValidationError("GPTs validation predates package creation")
-    if validated_at.date() > today:
-        raise MaterialPackageValidationError("GPTs validation is in the future")
+    selection_approval = _require_object(envelope.get("gpts_validation"), "gpts_validation")
+    selection_fields = set(contract["required_gpts_selection_validation_fields"])
+    if set(selection_approval) != selection_fields:
+        raise MaterialPackageValidationError(
+            "GPTs selection validation fields are incomplete or excessive"
+        )
+    if (
+        selection_approval.get("status") != "PASS"
+        or selection_approval.get("validator") != "gpts-usage-center"
+    ):
+        raise MaterialPackageValidationError("GPTs selection approval is not valid")
+    if selection_approval.get("task_id") != envelope.get("task_id"):
+        raise MaterialPackageValidationError("GPTs selection task_id mismatch")
+    selection_sha = str(selection_approval.get("selection_sha256") or "")
+    if not re.fullmatch(r"[0-9a-f]{64}", selection_sha):
+        raise MaterialPackageValidationError("GPTs selection SHA256 is invalid")
+    if manifest.get("selection_sha256") != selection_sha:
+        raise MaterialPackageValidationError("manifest/GPTs selection SHA256 mismatch")
+    selection_validated_at = _parse_datetime(
+        selection_approval.get("validated_at"), "gpts_validation.validated_at"
+    )
+    if selection_validated_at.date() > today:
+        raise MaterialPackageValidationError("GPTs selection validation is in the future")
 
     envelope_files = envelope.get("files")
     manifest_files = manifest.get("files")
@@ -211,7 +232,9 @@ def validate_material_package(package_root: Path, *, as_of: date | None = None) 
             raise MaterialPackageValidationError(f"payload file missing or unsafe: {text}")
         suffix = relative.suffix.lower()
         if suffix in FORBIDDEN_SUFFIXES:
-            raise MaterialPackageValidationError(f"executable or archive payload forbidden: {text}")
+            raise MaterialPackageValidationError(
+                f"executable or archive payload forbidden: {text}"
+            )
         media_type = str(row.get("media_type") or "")
         extensions = allowed_media.get(media_type)
         if not isinstance(extensions, list) or suffix not in extensions:
@@ -240,8 +263,10 @@ def validate_material_package(package_root: Path, *, as_of: date | None = None) 
     unexpected = sorted(actual_relative_files - declared_paths - ALLOWED_CONTROL_FILES)
     if unexpected:
         raise MaterialPackageValidationError(f"undeclared package files: {unexpected[:10]}")
-    for control in (envelope_path, manifest_path):
-        _scan_secrets(control)
+    for control_name in ALLOWED_CONTROL_FILES:
+        control = root / control_name
+        if control.is_file():
+            _scan_secrets(control)
 
     if manifest.get("total_bytes") != total_bytes:
         raise MaterialPackageValidationError("manifest total_bytes mismatch")
@@ -252,34 +277,70 @@ def validate_material_package(package_root: Path, *, as_of: date | None = None) 
     source_records = manifest.get("source_records")
     if not isinstance(source_records, list) or not source_records:
         raise MaterialPackageValidationError("source_records are required")
+    source_record_ids: list[str] = []
     for row in source_records:
         if not isinstance(row, Mapping):
             raise MaterialPackageValidationError("source record entry must be an object")
+        record_id = str(row.get("record_id") or "")
+        if not record_id:
+            raise MaterialPackageValidationError("source record ID is required")
+        source_record_ids.append(record_id)
         review_due = _parse_date(row.get("review_due_at"), "source review_due_at")
         if review_due < today:
             raise MaterialPackageValidationError("source record review is overdue")
         digest = str(row.get("record_sha256") or "")
         if not re.fullmatch(r"[0-9a-f]{64}", digest):
             raise MaterialPackageValidationError("source record SHA256 is invalid")
+    if len(set(source_record_ids)) != len(source_record_ids):
+        raise MaterialPackageValidationError("duplicate source record IDs")
+    declared_license_records = license_block.get("source_record_ids")
+    if declared_license_records != source_record_ids:
+        raise MaterialPackageValidationError("license/source record binding mismatch")
 
-    package_sha = _canonical_sha({
-        "manifest_sha256": envelope["manifest_sha256"],
-        "envelope_sha256": _file_sha(envelope_path),
+    content_sha = _canonical_sha({
+        "manifest_sha256": manifest_sha,
+        "envelope_sha256": envelope_sha,
         "files": envelope_files,
     })
+    relay_fields = set(contract["required_gpts_relay_attestation_fields"])
+    if set(relay) != relay_fields:
+        raise MaterialPackageValidationError(
+            "GPTs relay attestation fields are incomplete or excessive"
+        )
+    if relay.get("schema_version") != "gpts-compute-material-relay-attestation-v1":
+        raise MaterialPackageValidationError("unsupported GPTs relay attestation schema")
+    if relay.get("status") != "PASS" or relay.get("validator") != "gpts-usage-center":
+        raise MaterialPackageValidationError("GPTs relay attestation is not valid")
+    relay_bindings = {
+        "task_id": envelope["task_id"],
+        "transfer_id": envelope["transfer_id"],
+        "manifest_sha256": manifest_sha,
+        "envelope_sha256": envelope_sha,
+        "content_sha256": content_sha,
+    }
+    for field, expected in relay_bindings.items():
+        if relay.get(field) != expected:
+            raise MaterialPackageValidationError(f"GPTs relay binding mismatch: {field}")
+    relay_validated_at = _parse_datetime(relay.get("validated_at"), "relay.validated_at")
+    if relay_validated_at < created_at:
+        raise MaterialPackageValidationError("GPTs relay attestation predates package creation")
+    if relay_validated_at.date() > today:
+        raise MaterialPackageValidationError("GPTs relay attestation is in the future")
+
     result = {
-        "schema_version": "compute-material-package-validation-receipt-v1",
+        "schema_version": "compute-material-package-validation-receipt-v2",
         "status": "PASS",
         "package_id": envelope["transfer_id"],
         "task_id": envelope["task_id"],
         "material_type": material_type,
         "file_count": len(envelope_files),
         "total_bytes": total_bytes,
-        "manifest_sha256": envelope["manifest_sha256"],
-        "envelope_sha256": _file_sha(envelope_path),
-        "package_sha256": package_sha,
+        "manifest_sha256": manifest_sha,
+        "envelope_sha256": envelope_sha,
+        "content_sha256": content_sha,
         "license_reviewed": True,
-        "gpts_validation": "PASS",
+        "gpts_selection_validation": "PASS",
+        "gpts_relay_attestation": "PASS",
         "actual_file_hashes_verified": True,
         "actual_file_sizes_verified": True,
         "validity_verified_as_of": today.isoformat(),
