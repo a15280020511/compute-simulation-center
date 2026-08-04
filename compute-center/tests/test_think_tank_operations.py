@@ -13,7 +13,12 @@ if str(ROOT) not in sys.path:
 from assurance_operations import HANDLERS as ASSURANCE_HANDLERS
 from capability_manager import requirements_for_ticket, runtime_plan
 from think_tank_business_operations import customer_lifetime_value, inventory_policy, process_capability
-from think_tank_decision_operations import influence_diagram, policy_microsimulation, strategic_sandbox
+from think_tank_decision_operations import (
+    algebraic_resource_optimization,
+    influence_diagram,
+    policy_microsimulation,
+    strategic_sandbox,
+)
 from think_tank_operations import SUPPORTED_MODES
 from think_tank_registry_validate import EXPECTED_EXTENSION_MODES, validate
 
@@ -102,6 +107,23 @@ class ThinkTankPureModeTests(unittest.TestCase):
         )
         self.assertEqual(result["best_action"], "invest")
         self.assertGreaterEqual(result["perfect_information_value"], 0.0)
+
+    def test_gekko_local_resource_optimization(self) -> None:
+        result = algebraic_resource_optimization(
+            {
+                "objective": [3.0, 2.0],
+                "constraint_matrix": [[1.0, 1.0], [1.0, 0.0], [0.0, 1.0]],
+                "constraint_bounds": [4.0, 2.0, 3.0],
+                "maximize": True,
+                "solver_engine": "gekko",
+            }
+        )
+        self.assertEqual(result["mode"], "algebraic_resource_optimization")
+        self.assertEqual(result["termination"], "optimal-local")
+        self.assertEqual(result["engines"]["remote"], False)
+        self.assertAlmostEqual(result["objective_value"], 10.0, places=4)
+        self.assertAlmostEqual(result["decision"][0], 2.0, places=4)
+        self.assertAlmostEqual(result["decision"][1], 2.0, places=4)
 
     def test_policy_microsimulation(self) -> None:
         result = policy_microsimulation(
