@@ -145,13 +145,16 @@ def _duplicate_in_rows(
         if prior is None:
             continue
         number, packet = prior
+        comments = list(
+            _trusted_comments(os.getenv("GITHUB_REPOSITORY", ""), number)
+        )
+        abandoned = str(raw.get("state") or "") == "closed" and not comments
+        if abandoned:
+            continue
         same_id = str(packet.get("task_id") or "") == task_id
         same_fingerprint = _canonical_sha(packet) == fingerprint
         if same_id or same_fingerprint:
             if retry_issue == number:
-                comments = list(
-                    _trusted_comments(os.getenv("GITHUB_REPOSITORY", ""), number)
-                )
                 terminal_failure = any(
                     body.startswith(("## COMPUTE_FAILED", "## COMPUTE_REJECTED"))
                     for body in comments
