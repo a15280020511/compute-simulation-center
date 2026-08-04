@@ -199,7 +199,7 @@ def _run_sage(payload: Mapping[str, Any]) -> dict[str, Any]:
             "--pids-limit", str(RUNTIME["pids_limit"]),
             "--memory", f"{RUNTIME['memory_mb']}m", "--cpus", str(RUNTIME["cpus"]),
             "--tmpfs", "/tmp:rw,noexec,nosuid,size=256m",
-            "-e", "HOME=/tmp/sage-home",
+            "-e", "HOME=/tmp",
             "-v", f"{root}:/work:ro", "--entrypoint", "sage", image,
             "-python", "/work/runner.py",
         ]
