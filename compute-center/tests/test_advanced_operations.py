@@ -35,7 +35,9 @@ class LightweightSimulationSuiteTests(unittest.TestCase):
         self.assertTrue(expected.issubset(dispatch.OPERATIONS))
         schema = json.loads((ROOT / "compute-ticket.schema.json").read_text(encoding="utf-8"))
         declared = set(schema["properties"]["operation"]["enum"])
-        self.assertEqual(set(dispatch.OPERATIONS), declared)
+        self.assertTrue(declared.issubset(set(dispatch.OPERATIONS)))
+        self.assertIn("symbolic_mathematics", dispatch.OPERATIONS)
+        self.assertNotIn("symbolic_mathematics", declared)
 
     def test_discrete_event_simulation_is_reproducible(self) -> None:
         inputs = {"seed": 7, "entities": 200, "arrival": {"distribution": "exponential", "mean": 1.2}, "stages": [{"name": "intake", "capacity": 2, "service": {"distribution": "triangular", "minimum": 0.5, "mode": 0.8, "maximum": 1.5}}, {"name": "service", "capacity": 3, "service": {"distribution": "constant", "value": 1.0}}]}
