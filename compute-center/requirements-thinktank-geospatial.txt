@@ -1,6 +1,6 @@
 pandas==3.0.3
 xarray==2026.7.0
 rasterio==1.5.0
-rioxarray==0.22.0
+rioxarray==0.23.0
 libpysal==4.15.0
 esda==2.10.0

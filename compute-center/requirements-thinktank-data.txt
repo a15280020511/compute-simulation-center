@@ -1,6 +1,6 @@
 pandas==3.0.3
-duckdb==1.4.5
-polars==1.41.2
+duckdb==1.5.5
+polars==1.42.1
 pyarrow==22.0.0
-pandera==0.29.0
+pandera==0.32.1
 pint==0.25.3
