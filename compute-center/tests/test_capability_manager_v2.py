@@ -17,8 +17,9 @@ class CapabilityManagerV2Tests(unittest.TestCase):
         self.assertFalse(registry["arbitrary_modules_allowed"])
         self.assertFalse(registry["arbitrary_requirements_allowed"])
         groups = capability_manager.validated_groups()
-        self.assertEqual(len(groups), 13)
+        self.assertEqual(len(groups), 14)
         self.assertEqual(len({row["id"] for row in groups}), len(groups))
+        self.assertIn("sagemath-symbolic", {row["id"] for row in groups})
 
     def test_runtime_plan_is_bounded_and_offline(self):
         plan = capability_manager.runtime_plan({
@@ -46,13 +47,14 @@ class CapabilityManagerV2Tests(unittest.TestCase):
 
     def test_all_registered_operations_load(self):
         operations = capability_manager.load_registered_operations()
-        self.assertEqual(len(operations), 23)
+        self.assertEqual(len(operations), 24)
         for name in (
             "finance_decision_analysis", "missing_data_analysis",
             "system_dynamics_simulation", "crisis_early_warning",
             "information_diffusion_analysis", "causal_policy_evaluation",
             "bayesian_network_inference", "sector_model_analysis",
             "strategic_policy_analysis", "transport_forecast_analysis",
+            "symbolic_mathematics",
         ):
             self.assertIn(name, operations)
 
