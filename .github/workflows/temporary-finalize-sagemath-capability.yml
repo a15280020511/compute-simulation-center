@@ -16,7 +16,7 @@ jobs:
   finalize:
     if: >-
       github.actor == github.repository_owner &&
-      github.event.issue.title == '[maintenance] finalize sagemath capability 20260804'
+      github.event.issue.title == '[maintenance] diagnose and finalize sagemath capability 20260804'
     runs-on: ubuntu-24.04
     timeout-minutes: 45
     steps:
@@ -29,13 +29,28 @@ jobs:
       - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065
         with:
           python-version: '3.12'
-      - name: Register SageMath and integrate production routing
+      - name: Diagnose, validate and finalize
+        id: finalize
+        continue-on-error: true
         run: |
-          set -euo pipefail
+          set +e
+          exec > >(tee /tmp/sagemath-finalizer.log) 2>&1
+          stage=register
+          echo "STAGE=$stage"
           python maintenance/register_sagemath_capability.py
+          rc=$?
+          echo "EXIT_$stage=$rc"
+          [[ $rc -eq 0 ]] || exit $rc
+
+          stage=integrate_workflow
+          echo "STAGE=$stage"
           python maintenance/integrate_sagemath_workflow.py
-      - name: Remove migration-only branch files
-        run: |
+          rc=$?
+          echo "EXIT_$stage=$rc"
+          [[ $rc -eq 0 ]] || exit $rc
+
+          stage=cleanup
+          echo "STAGE=$stage"
           rm -f \
             maintenance/apply_sagemath_capability.py \
             maintenance/apply_sagemath_capability.fixed.py \
@@ -48,16 +63,25 @@ jobs:
             .github/workflows/register-sagemath-capability.yml \
             .github/workflows/integrate-sagemath-workflow.yml \
             .github/workflows/finalize-compute-sagemath-all.yml
-      - name: Validate final static capability surface
-        run: |
-          set -euo pipefail
+          rc=$?
+          echo "EXIT_$stage=$rc"
+          [[ $rc -eq 0 ]] || exit $rc
+
+          stage=install
+          echo "STAGE=$stage"
           python -m pip install --disable-pip-version-check --no-input -r compute-center/requirements.txt
-          python -m pip check
-          python -m py_compile compute-center/sagemath_operations.py compute-center/tool_registry.py compute-center/systems_matrix.py
-          python -m unittest discover -s compute-center/tests -p 'test_sagemath_operations.py' -v
-          python compute-center/tool_registry.py validate
-          python compute-center/systems_matrix.py validate
-          grep -F 'Pre-pull and attest selected SageMath runtime' .github/workflows/compute-ticket.yml
+          rc=$?
+          echo "EXIT_$stage=$rc"
+          [[ $rc -eq 0 ]] || exit $rc
+          python -m pip check || exit $?
+
+          stage=static_validation
+          echo "STAGE=$stage"
+          python -m py_compile compute-center/sagemath_operations.py compute-center/tool_registry.py compute-center/systems_matrix.py || exit $?
+          python -m unittest discover -s compute-center/tests -p 'test_sagemath_operations.py' -v || exit $?
+          python compute-center/tool_registry.py validate || exit $?
+          python compute-center/systems_matrix.py validate || exit $?
+          grep -F 'Pre-pull and attest selected SageMath runtime' .github/workflows/compute-ticket.yml || exit $?
           python - <<'PY'
           import json
           registry=json.load(open('compute-center/tool-registry.json'))
@@ -67,33 +91,49 @@ jobs:
           assert set(group['modes'])=={'simplify','solve','differentiate','integrate','matrix_analysis','number_theory'}
           assert group['network_policy']=='deny'
           caps=json.load(open('compute-center/compute-capabilities.json'))
-          assert caps['operation_count']==30
-          assert caps['managed_mode_count']==130
-          assert caps['effective_managed_mode_count']==191
+          assert caps['operation_count']==30, caps['operation_count']
+          assert caps['managed_mode_count']==130, caps['managed_mode_count']
+          assert caps['effective_managed_mode_count']==191, caps['effective_managed_mode_count']
           assert any(row['id']=='symbolic_mathematics' for row in caps['operations'])
           matrix=json.load(open('compute-center/systems-computation-matrix.json'))
           assert 'symbolic_mathematics' in matrix['routes']
           runtime=json.load(open('compute-center/sagemath-runtime.json'))
           assert runtime['image']=='sagemath/sagemath@sha256:e068670ae5863b54b2550e72437ec637b0283acb0dc712c8584c124dbf44e667'
           PY
-          git diff --check
-      - name: Commit clean final feature branch
-        run: |
-          set -euo pipefail
+          rc=$?
+          echo "EXIT_$stage=$rc"
+          [[ $rc -eq 0 ]] || exit $rc
+          git diff --check || exit $?
+
+          stage=commit
+          echo "STAGE=$stage"
           git config user.name github-actions[bot]
           git config user.email 41898282+github-actions[bot]@users.noreply.github.com
           git add -A
-          if git diff --cached --quiet; then
-            echo 'No finalization changes found'
-            exit 1
-          fi
-          git commit -m 'feat: finalize clean offline SageMath production capability'
-          git push origin HEAD:feat/sagemath-capability-20260804
-      - name: Close maintenance issue
+          git diff --cached --quiet && { echo 'No finalization changes found'; exit 41; }
+          git commit -m 'feat: finalize clean offline SageMath production capability' || exit $?
+          git push origin HEAD:feat/sagemath-capability-20260804 || exit $?
+          echo "EXIT_$stage=0"
+          exit 0
+      - name: Publish diagnostic outcome
         if: always()
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          OUTCOME: ${{ steps.finalize.outcome }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
         run: |
-          gh issue comment "${{ github.event.issue.number }}" --body "One-shot finalizer outcome: ${{ job.status }}."
-          gh issue close "${{ github.event.issue.number }}" --reason completed
-        continue-on-error: true
+          {
+            echo "Finalizer outcome: $OUTCOME"
+            echo "Run: $RUN_URL"
+            echo
+            echo '```text'
+            tail -n 180 /tmp/sagemath-finalizer.log 2>/dev/null || true
+            echo '```'
+          } > /tmp/comment.md
+          gh issue comment "${{ github.event.issue.number }}" --body-file /tmp/comment.md
+          if [[ "$OUTCOME" == "success" ]]; then
+            gh issue close "${{ github.event.issue.number }}" --reason completed
+          fi
+      - name: Fail closed
+        if: steps.finalize.outcome != 'success'
+        run: exit 1
