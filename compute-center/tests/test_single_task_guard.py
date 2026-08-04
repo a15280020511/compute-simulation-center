@@ -82,9 +82,98 @@ class SingleTaskGuardTests(unittest.TestCase):
             "another compute task is already accepted and active in Issue #10",
         )
 
+    def test_workflow_run_ids_include_only_active_issue_runs(self):
+        payload = {
+            "workflow_runs": [
+                {"id": 100, "event": "issues", "status": "queued"},
+                {"id": 101, "event": "issues", "status": "in_progress"},
+                {"id": 102, "event": "issues", "status": "completed"},
+                {"id": 103, "event": "workflow_dispatch", "status": "queued"},
+                {"id": 0, "event": "issues", "status": "queued"},
+            ]
+        }
+        self.assertEqual(compute_ticket._workflow_run_ids(payload), {100, 101})
+
+    def test_lowest_active_workflow_run_owns_slot(self):
+        def api(url: str):
+            if "status=queued" in url:
+                return {
+                    "workflow_runs": [
+                        {"id": 200, "event": "issues", "status": "queued"},
+                        {"id": 201, "event": "issues", "status": "queued"},
+                    ]
+                }
+            if "status=in_progress" in url:
+                return {
+                    "workflow_runs": [
+                        {"id": 199, "event": "issues", "status": "in_progress"}
+                    ]
+                }
+            raise AssertionError(url)
+
+        with (
+            patch.dict(
+                os.environ,
+                {
+                    "GITHUB_TOKEN": "test-token",
+                    "GITHUB_RUN_ID": "201",
+                },
+                clear=True,
+            ),
+            patch.object(compute_ticket, "_api_json", side_effect=api),
+        ):
+            reason = compute_ticket._active_workflow_run_reason(self.repo)
+        self.assertEqual(
+            reason,
+            "another compute workflow run #199 owns the global execution slot",
+        )
+
+    def test_lowest_current_workflow_run_is_admitted(self):
+        def api(url: str):
+            if "status=queued" in url:
+                return {
+                    "workflow_runs": [
+                        {"id": 200, "event": "issues", "status": "queued"},
+                        {"id": 201, "event": "issues", "status": "queued"},
+                    ]
+                }
+            if "status=in_progress" in url:
+                return {"workflow_runs": []}
+            raise AssertionError(url)
+
+        with (
+            patch.dict(
+                os.environ,
+                {
+                    "GITHUB_TOKEN": "test-token",
+                    "GITHUB_RUN_ID": "200",
+                },
+                clear=True,
+            ),
+            patch.object(compute_ticket, "_api_json", side_effect=api),
+        ):
+            reason = compute_ticket._active_workflow_run_reason(self.repo)
+        self.assertEqual(reason, "")
+
+    def test_workflow_slot_api_failure_is_fail_closed(self):
+        with (
+            patch.dict(
+                os.environ,
+                {
+                    "GITHUB_TOKEN": "test-token",
+                    "GITHUB_RUN_ID": "200",
+                },
+                clear=True,
+            ),
+            patch.object(compute_ticket, "_api_json", side_effect=TimeoutError()),
+        ):
+            reason = compute_ticket._active_workflow_run_reason(self.repo)
+        self.assertEqual(reason, "unable to verify global compute slot: TimeoutError")
+
     def test_no_token_keeps_local_validation_network_free(self):
         with patch.dict(os.environ, {}, clear=True):
             self.assertEqual(compute_ticket._active_task_reason(self.repo, 13), "")
+            self.assertEqual(compute_ticket._active_workflow_run_reason(self.repo), "")
 
 
 if __name__ == "__main__":
