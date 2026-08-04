@@ -1,0 +1,49 @@
+name: Integrate SageMath Workflow
+
+on:
+  push:
+    branches: [feat/sagemath-capability-20260804]
+    paths:
+      - maintenance/integrate_sagemath_workflow.py
+      - .github/workflows/integrate-sagemath-workflow.yml
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: integrate-sagemath-workflow
+  cancel-in-progress: false
+
+jobs:
+  integrate:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          persist-credentials: true
+          ref: feat/sagemath-capability-20260804
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065
+        with:
+          python-version: '3.12'
+      - run: python maintenance/integrate_sagemath_workflow.py
+      - name: Verify production workflow contract
+        run: |
+          grep -F 'compute-center/requirements-sagemath.txt' .github/workflows/compute-ticket.yml
+          grep -F 'Pre-pull and attest selected SageMath runtime' .github/workflows/compute-ticket.yml
+          grep -F '.capability_pack == "sagemath-symbolic"' .github/workflows/compute-ticket.yml
+          grep -F 'network_policy:"none"' .github/workflows/compute-ticket.yml
+          git diff --check
+      - name: Commit production workflow integration
+        run: |
+          set -euo pipefail
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git add .github/workflows/compute-ticket.yml
+          if git diff --cached --quiet; then
+            echo 'No workflow changes generated'
+            exit 1
+          fi
+          git commit -m 'feat: pre-pull and attest SageMath only when selected'
+          git push origin HEAD:feat/sagemath-capability-20260804
