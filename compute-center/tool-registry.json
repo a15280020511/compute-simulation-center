@@ -1570,6 +1570,84 @@
           }
         }
       }
+    },
+    {
+      "id": "sagemath-symbolic",
+      "module": "sagemath_operations",
+      "operations": [
+        "symbolic_mathematics"
+      ],
+      "input_validation": "mode_allowlist",
+      "default_requirements": [
+        "requirements-sagemath.txt"
+      ],
+      "mode_requirements": {},
+      "network_policy": "deny",
+      "deterministic": true,
+      "maturity": "controlled-preview",
+      "resource_limits": {
+        "max_seconds": 90,
+        "max_memory_mb": 3072
+      },
+      "rollback": {
+        "stable_module": "sagemath_operations",
+        "strategy": "git-revert"
+      },
+      "modes": {
+        "simplify": {
+          "maturity": "controlled-preview",
+          "network_policy": "deny",
+          "deterministic": true,
+          "limits": {
+            "max_expression_characters": 2000,
+            "max_variables": 20
+          }
+        },
+        "solve": {
+          "maturity": "controlled-preview",
+          "network_policy": "deny",
+          "deterministic": true,
+          "limits": {
+            "max_expression_characters": 2000,
+            "max_variables": 20
+          }
+        },
+        "differentiate": {
+          "maturity": "controlled-preview",
+          "network_policy": "deny",
+          "deterministic": true,
+          "limits": {
+            "max_expression_characters": 2000,
+            "max_order": 10
+          }
+        },
+        "integrate": {
+          "maturity": "controlled-preview",
+          "network_policy": "deny",
+          "deterministic": true,
+          "limits": {
+            "max_expression_characters": 2000
+          }
+        },
+        "matrix_analysis": {
+          "maturity": "controlled-preview",
+          "network_policy": "deny",
+          "deterministic": true,
+          "limits": {
+            "max_rows": 20,
+            "max_columns": 20
+          }
+        },
+        "number_theory": {
+          "maturity": "controlled-preview",
+          "network_policy": "deny",
+          "deterministic": true,
+          "limits": {
+            "max_values": 20,
+            "max_absolute_integer": 1000000000000000000
+          }
+        }
+      }
     }
   ]
 }

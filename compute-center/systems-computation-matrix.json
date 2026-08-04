@@ -378,6 +378,17 @@
         "external_validation",
         "feedback_monitoring"
       ]
+    },
+    "symbolic_mathematics": {
+      "problem_class": "exact symbolic mathematics",
+      "system_level": "mechanism",
+      "feedback_structure": "closed-form symbolic transformation with exact-runtime verification",
+      "required_gates": [
+        "input_quality",
+        "assumption_register",
+        "constraint_feasibility",
+        "external_validation"
+      ]
     }
   }
 }
