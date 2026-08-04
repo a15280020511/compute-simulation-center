@@ -158,7 +158,8 @@ class MaterialPackageValidationTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmp:
             package = self.fixture(Path(tmp))
             payload = package / "payload/source-001/data.csv"
-            payload.write_text("token,hf_abcdefghijklmnopqrstuvwxyz123456\n", encoding="utf-8")
+            fake_secret = "hf_" + "abcdefghijklmnopqrstuvwxyz123456"
+            payload.write_text(f"token,{fake_secret}\n", encoding="utf-8")
             envelope = json.loads((package / "envelope.json").read_text(encoding="utf-8"))
             manifest = json.loads((package / "manifest.json").read_text(encoding="utf-8"))
             size = payload.stat().st_size
