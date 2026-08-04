@@ -332,6 +332,37 @@
       ]
     },
     {
+      "model_id": "symbolic_mathematics-sagemath-10.9-v1",
+      "operation": "symbolic_mathematics",
+      "maturity": "controlled-preview",
+      "engineering_maturity": "controlled-preview",
+      "evidence_maturity": "experimental",
+      "risk_tier": "medium",
+      "calibration_supported": false,
+      "allowed_backends": [],
+      "intended_use": [
+        "Bounded exact symbolic algebra, calculus, matrix analysis and number theory through the pinned SageMath runtime."
+      ],
+      "prohibited_use": [
+        "Ticket-supplied Sage or Python code",
+        "External network access",
+        "Expressions outside the fixed allowlist and size bounds"
+      ],
+      "theoretical_basis": "Exact and symbolic computation through SageMath 10.9 in a digest-pinned, read-only, network-denied container.",
+      "known_failure_conditions": [
+        "Inputs outside the dedicated ticket schema",
+        "Unsupported symbolic forms or resource limits",
+        "Pinned runtime unavailable before the offline execution stage"
+      ],
+      "assurance_owner": "compute-quality-gate",
+      "revalidation_trigger": [
+        "runtime_digest_change",
+        "schema_change",
+        "dependency_change",
+        "scope_change"
+      ]
+    },
+    {
       "model_id": "system_dynamics_simulation-registered-v1",
       "operation": "system_dynamics_simulation",
       "maturity": "controlled-preview",
