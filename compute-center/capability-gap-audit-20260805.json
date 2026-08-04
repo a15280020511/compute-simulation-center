@@ -1,0 +1,123 @@
+{
+  "schema_version": "compute-capability-gap-audit-v1",
+  "audited_on": "2026-08-05",
+  "baseline_commit": "839f60f671d2acf7e7377103fc75dc192d559e69",
+  "principles": [
+    "Do not install a package merely because it is popular.",
+    "Prefer a new tool only when it adds a distinct mathematical or execution capability.",
+    "Keep the Compute Center network-denied; external computational APIs belong in the Evidence/Usage layer.",
+    "Every promoted tool needs pinned dependencies, a bounded gateway, deterministic tests where possible, resource limits and rollback."
+  ],
+  "confirmed_existing_capabilities": [
+    {
+      "capability": "symbolic-mathematics",
+      "examples": ["SageMath", "SymPy-compatible symbolic operations"]
+    },
+    {
+      "capability": "smt-and-constraint-solving",
+      "examples": ["Z3", "CLINGO", "SMT operations"]
+    },
+    {
+      "capability": "mathematical-optimization",
+      "examples": ["CVXPY", "OR-Tools", "Pyomo", "HiGHS/highspy", "pymoo", "Optuna", "GEKKO", "RSOME"]
+    },
+    {
+      "capability": "causal-inference",
+      "examples": ["DoWhy", "EconML", "causal policy operations"]
+    },
+    {
+      "capability": "bayesian-and-probabilistic-modeling",
+      "examples": ["PyMC", "pgmpy", "ProbLog", "OpenTURNS"]
+    },
+    {
+      "capability": "simulation-and-games",
+      "examples": ["Mesa", "SimPy-style discrete-event operations", "PySD", "OpenSpiel", "Gambit", "Axelrod", "NegMAS"]
+    },
+    {
+      "capability": "knowledge-graph-and-entity-resolution",
+      "examples": ["RDFLib", "OWLReady2", "pySHACL", "Splink", "NetworkX", "igraph"]
+    },
+    {
+      "capability": "uncertainty-and-validation",
+      "examples": ["SALib", "MAPIE", "OpenTURNS", "sensitivity and stress-test gateways"]
+    }
+  ],
+  "high_priority_unique_candidates": [
+    {
+      "tool": "cvc5",
+      "capability_added": "Second independent SMT/theorem-proving engine with proof production, synthesis and theory coverage beyond a single Z3 implementation.",
+      "overlap": "Partial overlap with Z3, but useful for solver cross-checks and proof-oriented tasks.",
+      "deployment": "Python wheel available; add only through a fixed SMT cross-validation gateway.",
+      "status": "recommended-for-controlled-preview",
+      "priority": "P0"
+    },
+    {
+      "tool": "python-flint",
+      "capability_added": "Fast exact integer/rational/polynomial computation and Arb real/complex ball arithmetic with rigorous error bounds.",
+      "overlap": "SageMath can expose related mathematics, but python-flint is lighter and directly suitable for certified numerical kernels.",
+      "deployment": "Add through a certified-numerics gateway with precision, dimension and timeout limits.",
+      "status": "recommended-for-controlled-preview",
+      "priority": "P0"
+    }
+  ],
+  "conditional_heavier_candidates": [
+    {
+      "tool": "OpenMDAO",
+      "capability_added": "Multidisciplinary coupled-model assembly, derivative-aware optimization and system-level analysis.",
+      "overlap": "General optimization already exists; the unique value is explicit coupling of heterogeneous disciplinary components.",
+      "condition": "Promote only when a real cross-domain engineering or infrastructure model requires coupled components.",
+      "status": "candidate",
+      "priority": "P1"
+    },
+    {
+      "tool": "NumPyro",
+      "capability_added": "JAX-backed probabilistic programming with automatic differentiation and JIT acceleration.",
+      "overlap": "PyMC and existing Bayesian tools already cover most ordinary inference tasks.",
+      "condition": "Promote only after benchmarks show a material speed or differentiable-model advantage that justifies JAX dependency weight.",
+      "status": "candidate",
+      "priority": "P1"
+    },
+    {
+      "tool": "Dymos",
+      "capability_added": "Optimal-control and trajectory optimization on top of OpenMDAO.",
+      "overlap": "Vehicle routing and ordinary optimization do not provide continuous-time optimal control.",
+      "condition": "Requires OpenMDAO and a concrete trajectory/optimal-control production use case.",
+      "status": "defer-until-use-case",
+      "priority": "P2"
+    }
+  ],
+  "do_not_duplicate_or_misplace": [
+    {
+      "tool": "Wolfram Alpha API",
+      "decision": "already-integrated-outside-compute-center",
+      "reason": "The Evidence Center knowledge-tools provider already exposes bounded Wolfram full-results, short-answer and LLM-result operations. The network-denied Compute Center must not call it directly."
+    },
+    {
+      "tool": "Pyomo and HiGHS",
+      "decision": "already-present",
+      "reason": "Pinned in requirements-thinktank-decision.txt."
+    },
+    {
+      "tool": "DoWhy",
+      "decision": "already-present",
+      "reason": "Pinned and used by the causal module."
+    },
+    {
+      "tool": "DuckDB/Polars/Dask/Ray",
+      "decision": "not-a-mathematical-capability-by-default",
+      "reason": "These are execution/data-processing engines. Add only if measured workload size exceeds the current bounded pandas/NumPy path; do not treat them as reasoning upgrades."
+    },
+    {
+      "tool": "Lean/Rocq/Isabelle/TLA+/Alloy",
+      "decision": "dedicated-runtime-only",
+      "reason": "Formal proof/model-checking systems require separate pinned runtimes, languages and proof artifacts; do not mix them into ordinary Python task requirements."
+    }
+  ],
+  "next_acceptance_sequence": [
+    "Build isolated cvc5 and python-flint canaries on GitHub Actions.",
+    "Measure install time, wheel availability, memory, deterministic output and rollback.",
+    "Implement one bounded gateway per accepted capability; arbitrary formulas or modules remain prohibited.",
+    "Run cross-check benchmarks against Z3/SageMath and promote only if the new tool adds verifiable value."
+  ],
+  "current_status": "audit-only-no-new-runtime-dependency-installed"
+}
