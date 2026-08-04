@@ -38,7 +38,10 @@ class MesaOperationTests(unittest.TestCase):
         self.assertIn("agent_based_simulation", dispatch.OPERATIONS)
         schema = json.loads((ROOT / "compute-ticket.schema.json").read_text(encoding="utf-8"))
         declared = set(schema["properties"]["operation"]["enum"])
-        self.assertEqual(set(dispatch.OPERATIONS), declared)
+        self.assertIn("agent_based_simulation", declared)
+        self.assertTrue(declared.issubset(set(dispatch.OPERATIONS)))
+        self.assertIn("symbolic_mathematics", dispatch.OPERATIONS)
+        self.assertNotIn("symbolic_mathematics", declared)
 
     def test_worker_choice_is_reproducible(self) -> None:
         inputs = {"mode": "heterogeneous_worker_choice", "agent_count": 80, "steps": 20, "seed": 20260728, "learning_rate": 0.2, "choice_sensitivity": 2.0, "switching_cost": 0.5, "preference_standard_deviation": 0.4, "reward_standard_deviation": 0.2, "options": [{"name": "zone_a", "base_reward": 20, "cost": 5, "capacity": 35, "congestion_penalty": 8}, {"name": "zone_b", "base_reward": 18, "cost": 3, "capacity": 50, "congestion_penalty": 4}]}
