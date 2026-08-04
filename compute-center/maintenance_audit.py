@@ -172,7 +172,11 @@ def _configuration_checks(
     ticket: str,
 ) -> list[dict[str, Any]]:
     cache_paths = _cache_dependency_paths(ticket)
-    expected_cache_paths = {f"compute-center/{path.name}" for path in requirement_paths}
+    expected_cache_paths = {
+        f"compute-center/{path.name}"
+        for path in requirement_paths
+        if requirement_sets.get(path.name)
+    }
     return [
         {
             "name": "all-compute-requirements-exactly-pinned",
