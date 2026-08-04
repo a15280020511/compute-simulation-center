@@ -4,6 +4,11 @@ on:
   push:
     branches:
       - fix/assumption-governance-and-load-stability-20260804
+  pull_request:
+    branches: [main]
+    paths:
+      - ".github/workflows/temporary-patch-compute-concurrency.yml"
+      - ".github/workflows/compute-ticket.yml"
 
 permissions:
   contents: write
