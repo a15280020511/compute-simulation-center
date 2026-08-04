@@ -1,0 +1,122 @@
+{
+  "accepted_material_types": [
+    "sample_snapshot",
+    "factor_definition_snapshot",
+    "domain_rule_snapshot",
+    "baseline_evidence_snapshot",
+    "metric_threshold_snapshot",
+    "ontology_crosswalk_snapshot",
+    "regime_event_snapshot",
+    "outcome_feedback_snapshot",
+    "benchmark_manifest"
+  ],
+  "allowed_media_types": {
+    "application/geo+json": [
+      ".geojson",
+      ".json"
+    ],
+    "application/geopackage+sqlite3": [
+      ".gpkg"
+    ],
+    "application/json": [
+      ".json"
+    ],
+    "application/vnd.apache.arrow.file": [
+      ".arrow",
+      ".feather"
+    ],
+    "application/vnd.apache.parquet": [
+      ".parquet"
+    ],
+    "application/x-ndjson": [
+      ".jsonl",
+      ".ndjson"
+    ],
+    "text/csv": [
+      ".csv"
+    ]
+  },
+  "artifact_metadata_only_allowed": false,
+  "blocking_conditions": [
+    "source_center is not intelligence-center",
+    "complete package bytes are unavailable",
+    "manifest or payload file hash mismatch",
+    "declared and actual file size mismatch",
+    "missing or unreviewed license",
+    "compute-analysis is outside license use_scope",
+    "expired package or overdue source review",
+    "GPTs validation is absent, not PASS, or bound to another task or manifest",
+    "contains_personal_data is not false",
+    "unknown material type or media type",
+    "unsafe path, symbolic link, undeclared file, archive or executable content",
+    "credential-like content in control or text payload files"
+  ],
+  "complete_package_bytes_required": true,
+  "compute_runtime_network_allowed": false,
+  "database_credentials_allowed": false,
+  "direct_center_connection_allowed": false,
+  "execution_owner": "github-compute-center",
+  "file_fields": [
+    "path",
+    "sha256",
+    "bytes",
+    "media_type"
+  ],
+  "limits": {
+    "max_file_bytes": 2000000000,
+    "max_total_bytes": 10000000000
+  },
+  "package_layout": {
+    "optional_control_files": [
+      "receipt.json"
+    ],
+    "payload_root": "payload",
+    "required_control_files": [
+      "envelope.json",
+      "manifest.json"
+    ],
+    "runtime_code_allowed": false,
+    "symbolic_links_allowed": false,
+    "undeclared_files_allowed": false
+  },
+  "packager_owner": "intelligence-center",
+  "packager_path": "api-center/huggingface/compute_material_packager.py",
+  "packager_repository": "a15280020511/evidence-data-center",
+  "required_envelope_fields": [
+    "schema_version",
+    "transfer_id",
+    "task_id",
+    "material_type",
+    "source_center",
+    "source_repository_reference",
+    "version",
+    "created_at",
+    "valid_from",
+    "valid_to",
+    "files",
+    "manifest_path",
+    "manifest_sha256",
+    "license",
+    "geographic_scope",
+    "time_range",
+    "contains_personal_data",
+    "gpts_validation"
+  ],
+  "required_gpts_validation_fields": [
+    "status",
+    "validator",
+    "validated_at",
+    "task_id",
+    "selection_sha256",
+    "approved_manifest_sha256"
+  ],
+  "required_license_fields": [
+    "name",
+    "reviewed",
+    "use_scope",
+    "source_record_ids"
+  ],
+  "schema_version": "compute-complete-material-package-contract-v1",
+  "source_storage_owner": "intelligence-center",
+  "transport_owner": "gpts-usage-center"
+}
