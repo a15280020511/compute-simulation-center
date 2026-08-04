@@ -99,7 +99,7 @@ def resolve_library_selection(ticket: Mapping[str, Any]) -> dict[str, Any]:
         warnings.append("FACTOR_WITHOUT_EXPLICIT_BASELINE")
 
     report: dict[str, Any] = {
-        "schema_version": "compute-library-selection-v3",
+        "schema_version": "compute-library-selection-v2",
         "status": "WARN" if warnings else "PASS",
         "decision_class": decision_class,
         "selection_owner": "gpts-usage-center",
