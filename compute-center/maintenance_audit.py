@@ -76,8 +76,25 @@ def _requirement_rows(path: Path) -> list[str]:
     return [line.strip() for line in _read(path).splitlines() if line.strip() and not line.lstrip().startswith("#")]
 
 
-def _exactly_pinned(rows: list[str]) -> bool:
-    return bool(rows) and all(row.startswith("-r ") or re.fullmatch(r"[A-Za-z0-9_.-]+==[^=\s]+", row) for row in rows)
+def _exactly_pinned(rows: list[str], *, allow_empty: bool = False) -> bool:
+    return (allow_empty or bool(rows)) and all(
+        row.startswith("-r ") or re.fullmatch(r"[A-Za-z0-9_.-]+==[^=\s]+", row)
+        for row in rows
+    )
+
+
+def _sagemath_runtime_is_pinned(runtime: Mapping[str, Any]) -> bool:
+    image = str(runtime.get("image") or "")
+    return bool(
+        runtime.get("schema_version") == "sagemath-runtime-v1"
+        and re.fullmatch(r"sagemath/sagemath@sha256:[0-9a-f]{64}", image)
+        and runtime.get("network_policy") == "none"
+        and runtime.get("read_only_root") is True
+        and runtime.get("cap_drop_all") is True
+        and runtime.get("no_new_privileges") is True
+        and isinstance(runtime.get("timeout_seconds"), int)
+        and 1 <= int(runtime["timeout_seconds"]) <= 300
+    )
 
 
 def _cache_dependency_paths(workflow: str) -> set[str]:
@@ -107,6 +124,8 @@ def _required_configuration_paths(root: Path, compute: Path) -> list[Path]:
         compute / "requirements.txt",
         compute / "requirements-mesa.txt",
         compute / "requirements-finance.txt",
+        compute / "requirements-sagemath.txt",
+        compute / "sagemath-runtime.json",
         compute / "tool-registry.json",
         root / ".github" / "dependabot.yml",
         root / ".github" / "workflows" / "dependabot-auto-merge.yml",
@@ -146,18 +165,33 @@ def _configuration_checks(
     core_names: set[str],
     registry_valid: bool,
     requirement_paths: list[Path],
+    sagemath_runtime_valid: bool,
     dependabot: str,
     auto_merge: str,
     validate: str,
     ticket: str,
 ) -> list[dict[str, Any]]:
     cache_paths = _cache_dependency_paths(ticket)
-    expected_cache_paths = {f"compute-center/{path.name}" for path in requirement_paths}
+    expected_cache_paths = {
+        f"compute-center/{path.name}"
+        for path in requirement_paths
+        if requirement_sets.get(path.name)
+    }
     return [
         {
             "name": "all-compute-requirements-exactly-pinned",
             "pass": bool(requirement_sets)
-            and all(_exactly_pinned(rows) for rows in requirement_sets.values()),
+            and all(
+                _exactly_pinned(
+                    rows,
+                    allow_empty=(name == "requirements-sagemath.txt" and sagemath_runtime_valid),
+                )
+                for name, rows in requirement_sets.items()
+            ),
+        },
+        {
+            "name": "sagemath-runtime-exact-digest-and-isolated",
+            "pass": sagemath_runtime_valid,
         },
         {
             "name": "required-compute-packages",
@@ -230,12 +264,17 @@ def validate_configuration(root: Path) -> dict[str, Any]:
     registry = json.loads(_read(compute / "tool-registry.json"))
     if not isinstance(registry, Mapping):
         registry = {}
+    runtime = json.loads(_read(compute / "sagemath-runtime.json"))
+    if not isinstance(runtime, Mapping):
+        runtime = {}
+    sagemath_runtime_valid = _sagemath_runtime_is_pinned(runtime)
     registry_status, groups = _registry_valid(registry)
     checks = _configuration_checks(
         requirement_sets=requirement_sets,
         core_names=core_names,
         registry_valid=registry_status,
         requirement_paths=requirement_paths,
+        sagemath_runtime_valid=sagemath_runtime_valid,
         dependabot=_read(root / ".github" / "dependabot.yml"),
         auto_merge=_read(root / ".github" / "workflows" / "dependabot-auto-merge.yml"),
         validate=_read(root / ".github" / "workflows" / "compute-validate.yml"),
@@ -244,6 +283,7 @@ def validate_configuration(root: Path) -> dict[str, Any]:
     return {
         "status": "PASS" if all(item["pass"] for item in checks) else "FAIL",
         "requirement_files": requirement_sets,
+        "sagemath_runtime_valid": sagemath_runtime_valid,
         "tool_registry_group_count": len(groups),
         "checks": checks,
         "update_classifier_examples": {

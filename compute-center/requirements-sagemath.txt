@@ -1,0 +1,2 @@
+# SageMath is executed from the repository-pinned official container image in sagemath-runtime.json.
+# No Python package installation is used for the SageMath engine.

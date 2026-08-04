@@ -1,0 +1,131 @@
+name: Validate SageMath Capability
+
+on:
+  pull_request:
+    paths:
+      - compute-center/sagemath-*.json
+      - compute-center/sagemath_*.py
+      - compute-center/requirements-sagemath.txt
+      - compute-center/sagemath-guide.md
+      - compute-center/tests/test_sagemath_operations.py
+      - compute-center/tool-registry.json
+      - compute-center/compute-capabilities.json
+      - compute-center/systems-computation-matrix.json
+      - .github/workflows/compute-ticket.yml
+      - .github/workflows/sagemath-capability-validate.yml
+  push:
+    branches: [main]
+    paths:
+      - compute-center/sagemath-*.json
+      - compute-center/sagemath_*.py
+      - compute-center/requirements-sagemath.txt
+      - compute-center/sagemath-guide.md
+      - compute-center/tests/test_sagemath_operations.py
+      - compute-center/tool-registry.json
+      - compute-center/compute-capabilities.json
+      - compute-center/systems-computation-matrix.json
+      - .github/workflows/compute-ticket.yml
+      - .github/workflows/sagemath-capability-validate.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065
+        with:
+          python-version: '3.12'
+          cache: pip
+          cache-dependency-path: compute-center/requirements.txt
+      - name: Install core compute dependencies
+        run: |
+          python -m pip install --disable-pip-version-check --no-input -r compute-center/requirements.txt
+          python -m pip check
+      - name: Validate static contracts and injection rejection
+        run: |
+          python -m py_compile compute-center/sagemath_operations.py
+          python -m unittest discover -s compute-center/tests -p 'test_sagemath_operations.py' -v
+          python compute-center/tool_registry.py validate
+          python compute-center/systems_matrix.py validate
+          python - <<'PY'
+          import json
+          registry=json.load(open('compute-center/tool-registry.json'))
+          groups={row['id']:row for row in registry['groups']}
+          group=groups['sagemath-symbolic']
+          assert group['operations']==['symbolic_mathematics']
+          assert set(group['modes'])=={'simplify','solve','differentiate','integrate','matrix_analysis','number_theory'}
+          assert group['network_policy']=='deny'
+          assert group['maturity']=='controlled-preview'
+          caps=json.load(open('compute-center/compute-capabilities.json'))
+          assert caps['operation_count']==30
+          assert caps['managed_mode_count']==130
+          assert caps['effective_managed_mode_count']==191
+          assert any(row['id']=='symbolic_mathematics' for row in caps['operations'])
+          PY
+      - name: Pull and attest exact official SageMath runtime
+        run: |
+          set -euo pipefail
+          image="$(jq -r '.image' compute-center/sagemath-runtime.json)"
+          expected_prefix="$(jq -r '.sage_version_expected_prefix' compute-center/sagemath-runtime.json)"
+          docker pull "$image"
+          observed_digest="$(docker image inspect "$image" --format '{{index .RepoDigests 0}}')"
+          test "$observed_digest" = "$image"
+          observed_version="$(docker run --rm --network none --entrypoint sage "$image" --version | head -n 1)"
+          [[ "$observed_version" == "$expected_prefix"* ]]
+          jq -n --arg image "$image" --arg observed_digest "$observed_digest" --arg observed_version "$observed_version" \
+            '{status:"PASS",image:$image,observed_digest:$observed_digest,observed_version:$observed_version,network_policy:"none"}' \
+            > sagemath-runtime-attestation.json
+      - name: Execute every mode and every number-theory action
+        run: |
+          python - <<'PY'
+          import json,sys
+          sys.path.insert(0,'compute-center')
+          import sagemath_operations as sage
+          samples=[
+              {'mode':'simplify','variables':['x'],'expression':'(x^2-1)/(x-1)'},
+              {'mode':'solve','variables':['x'],'variable':'x','expression':'x^2-4'},
+              {'mode':'differentiate','variables':['x'],'variable':'x','expression':'sin(x)*exp(x)','order':2},
+              {'mode':'integrate','variables':['x'],'variable':'x','expression':'x^2','lower':0,'upper':1},
+              {'mode':'matrix_analysis','matrix':[[1,2],[3,4]]},
+              {'mode':'number_theory','action':'factor','values':[360]},
+              {'mode':'number_theory','action':'is_prime','values':[104729]},
+              {'mode':'number_theory','action':'gcd','values':[84,126,210]},
+              {'mode':'number_theory','action':'lcm','values':[12,18,30]},
+              {'mode':'number_theory','action':'euler_phi','values':[36]},
+          ]
+          rows=[]
+          for sample in samples:
+              output=sage.symbolic_mathematics(sample)
+              assert output['engine']=='SageMath'
+              assert output['runtime']['network_policy']=='none'
+              assert output['runtime']['arbitrary_code_allowed'] is False
+              rows.append({'input':sample,'output':output})
+          open('sagemath-operation-validation.json','w').write(json.dumps({'status':'PASS','model_calls':0,'external_data_fetches':0,'executions':rows},ensure_ascii=False,indent=2)+'\n')
+          PY
+      - name: Verify layered offline execution in OS network namespace
+        run: |
+          set -euo pipefail
+          PYTHON_BIN="$(command -v python)"
+          WORKSPACE="$GITHUB_WORKSPACE"
+          sudo unshare --net --mount-proc bash -c "
+            set -euo pipefail
+            cd '$WORKSPACE'
+            '$PYTHON_BIN' -c \"import sys;sys.path.insert(0,'compute-center');import sagemath_operations as s;out=s.symbolic_mathematics({'mode':'simplify','variables':['x'],'expression':'x^2+2*x+1'});assert out['engine']=='SageMath';assert out['runtime']['network_policy']=='none'\"
+          "
+      - name: Upload SageMath evidence
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: sagemath-capability-validation-${{ github.run_id }}
+          path: |
+            sagemath-runtime-attestation.json
+            sagemath-operation-validation.json
+          if-no-files-found: error
+          retention-days: 30

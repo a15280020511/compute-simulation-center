@@ -126,7 +126,12 @@ def _validate_catalog_schemas(catalogs: Mapping[str, Any]) -> dict[str, Any]:
         assumption_library.get("assumptions") or [],
         "assumption_library.assumptions",
     )
-    return _schema("compute-ticket.schema.json")
+    primary_ticket_schema = _schema("compute-ticket.schema.json")
+    dedicated_ticket_schemas = [_schema("sagemath-ticket.schema.json")]
+    return {
+        "primary": primary_ticket_schema,
+        "dedicated": dedicated_ticket_schemas,
+    }
 
 
 def _catalog_rows(catalogs: Mapping[str, Any]) -> dict[str, list[Mapping[str, Any]]]:
@@ -161,7 +166,13 @@ def _validate_operations(
 ) -> tuple[set[str], int]:
     capabilities = catalogs["capabilities"]
     capability_operations = _unique(rows["capabilities"], "id", "capability catalog")
-    ticket_operations = set(ticket_schema["properties"]["operation"]["enum"])
+    ticket_operations = set(ticket_schema["primary"]["properties"]["operation"]["enum"])
+    for dedicated_schema in ticket_schema["dedicated"]:
+        operation_schema = dedicated_schema["properties"]["operation"]
+        if "const" in operation_schema:
+            ticket_operations.add(str(operation_schema["const"]))
+        else:
+            ticket_operations.update(str(item) for item in operation_schema.get("enum", []))
     model_operations = {str(row.get("operation") or "") for row in rows["models"]}
     registered_operations = {
         str(operation)

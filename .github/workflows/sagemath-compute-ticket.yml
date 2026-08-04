@@ -1,0 +1,138 @@
+name: SageMath Compute Ticket
+
+on:
+  issues:
+    types: [opened, reopened]
+
+permissions:
+  contents: read
+  issues: write
+  actions: read
+
+concurrency:
+  group: compute-sagemath-global
+  cancel-in-progress: false
+
+jobs:
+  execute:
+    if: >-
+      github.actor == github.repository_owner &&
+      startsWith(github.event.issue.title, '[compute-sage]')
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    env:
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      ISSUE_NUMBER: ${{ github.event.issue.number }}
+    steps:
+      - name: Checkout pinned source
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          persist-credentials: false
+      - name: Set up isolated Python
+        uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065
+        with:
+          python-version: '3.12'
+          cache: pip
+          cache-dependency-path: compute-center/requirements.txt
+      - name: Install pinned control-plane dependencies
+        run: |
+          python -m pip install --disable-pip-version-check --no-input -r compute-center/requirements.txt
+          python -m pip check
+      - name: Compile fixed runtime
+        run: |
+          python -m py_compile \
+            compute-center/sagemath_operations.py \
+            compute-center/sagemath_ticket_runtime.py
+      - name: Parse and authorize ticket
+        id: prepare
+        continue-on-error: true
+        run: |
+          python compute-center/sagemath_ticket_runtime.py prepare \
+            --event-path "$GITHUB_EVENT_PATH" \
+            --output-dir sagemath-artifacts
+      - name: Publish admission result
+        if: always()
+        run: |
+          status="$(jq -r '.status // "REJECTED"' sagemath-artifacts/admission.json 2>/dev/null || echo REJECTED)"
+          failure="$(jq -r '.failure.message // empty' sagemath-artifacts/admission.json 2>/dev/null || true)"
+          {
+            echo "SageMath ticket admission: **${status}**"
+            echo
+            echo "- Runtime network policy: \`deny + Docker none\`"
+            echo "- Arbitrary code allowed: \`false\`"
+            echo "- Model calls: \`0\`"
+            if [[ -n "$failure" ]]; then echo "- Failure: \`$failure\`"; fi
+          } > /tmp/admission-comment.md
+          gh issue comment "$ISSUE_NUMBER" --body-file /tmp/admission-comment.md
+      - name: Pre-pull and attest exact SageMath image
+        id: image
+        if: steps.prepare.outcome == 'success'
+        run: |
+          set -euo pipefail
+          image="$(jq -r '.image' compute-center/sagemath-runtime.json)"
+          expected_prefix="$(jq -r '.sage_version_expected_prefix' compute-center/sagemath-runtime.json)"
+          docker pull "$image"
+          observed_digest="$(docker image inspect "$image" --format '{{index .RepoDigests 0}}')"
+          test "$observed_digest" = "$image"
+          observed_version="$(docker run --rm --network none --entrypoint sage "$image" --version | head -n 1)"
+          [[ "$observed_version" == "$expected_prefix"* ]]
+          jq -n \
+            --arg image "$image" \
+            --arg observed_digest "$observed_digest" \
+            --arg observed_version "$observed_version" \
+            '{schema_version:"sagemath-runtime-attestation-v1",status:"PASS",image:$image,observed_digest:$observed_digest,observed_version:$observed_version,network_policy:"none",model_calls:0,external_data_fetches:0}' \
+            > sagemath-artifacts/runtime-attestation.json
+      - name: Execute inside OS network namespace and offline container
+        id: execute
+        if: steps.prepare.outcome == 'success' && steps.image.outcome == 'success'
+        continue-on-error: true
+        run: |
+          set -euo pipefail
+          PYTHON_BIN="$(command -v python)"
+          WORKSPACE="$GITHUB_WORKSPACE"
+          sudo unshare --net --mount-proc bash -c "
+            set -euo pipefail
+            cd '$WORKSPACE'
+            '$PYTHON_BIN' compute-center/sagemath_ticket_runtime.py execute \
+              --ticket sagemath-artifacts/ticket.json \
+              --output-dir sagemath-artifacts
+          "
+      - name: Upload immutable evidence
+        id: upload
+        if: always()
+        continue-on-error: true
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: compute-sagemath-${{ github.event.issue.number }}-${{ github.run_id }}
+          path: sagemath-artifacts/
+          if-no-files-found: error
+          retention-days: 30
+      - name: Publish verified result
+        if: always() && steps.prepare.outcome == 'success'
+        env:
+          ARTIFACT_URL: ${{ steps.upload.outputs.artifact-url }}
+        run: |
+          status="$(jq -r '.status // "COMPUTE_SAGEMATH_FAILED"' sagemath-artifacts/diagnostics.json 2>/dev/null || echo COMPUTE_SAGEMATH_FAILED)"
+          failure="$(jq -r '.failure.message // empty' sagemath-artifacts/diagnostics.json 2>/dev/null || true)"
+          result_sha="$(jq -r '.result_sha256 // empty' sagemath-artifacts/compute-result.json 2>/dev/null || true)"
+          {
+            echo "SageMath execution: **${status}**"
+            echo
+            echo "- Runtime network used: \`false\`"
+            echo "- External data fetches: \`0\`"
+            echo "- Model calls: \`0\`"
+            echo "- Arbitrary code allowed: \`false\`"
+            if [[ -n "$result_sha" ]]; then echo "- Result SHA256: \`$result_sha\`"; fi
+            if [[ -n "$ARTIFACT_URL" ]]; then echo "- Artifact: $ARTIFACT_URL"; fi
+            if [[ -n "$failure" ]]; then echo "- Failure: \`$failure\`"; fi
+          } > /tmp/result-comment.md
+          gh issue comment "$ISSUE_NUMBER" --body-file /tmp/result-comment.md
+      - name: Fail closed
+        if: >-
+          always() &&
+          (steps.prepare.outcome != 'success' ||
+           steps.image.outcome != 'success' ||
+           steps.execute.outcome != 'success' ||
+           steps.upload.outcome != 'success')
+        run: exit 1

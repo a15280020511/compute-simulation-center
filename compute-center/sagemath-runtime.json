@@ -1,0 +1,14 @@
+{
+  "schema_version": "sagemath-runtime-v1",
+  "image": "sagemath/sagemath@sha256:e068670ae5863b54b2550e72437ec637b0283acb0dc712c8584c124dbf44e667",
+  "source_tag": "sagemath/sagemath:10.9",
+  "sage_version_expected_prefix": "SageMath version 10.9",
+  "network_policy": "none",
+  "read_only_root": true,
+  "cap_drop_all": true,
+  "no_new_privileges": true,
+  "pids_limit": 128,
+  "memory_mb": 3072,
+  "cpus": 2,
+  "timeout_seconds": 90
+}

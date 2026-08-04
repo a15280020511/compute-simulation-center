@@ -1,10 +1,10 @@
 {
   "schema_version": "compute-capabilities-v9",
   "catalog_status": "production",
-  "operation_count": 29,
-  "managed_mode_count": 124,
+  "operation_count": 30,
+  "managed_mode_count": 130,
   "extension_mode_count": 61,
-  "effective_managed_mode_count": 185,
+  "effective_managed_mode_count": 191,
   "capability_manager_version": 2,
   "selection_owner": "gpts-usage-center",
   "maintenance_owner": "ordinary-web-gpt-with-github-plugin",
@@ -104,7 +104,8 @@
     "mlxtend": "0.25.0; frequent-itemset and association-rule analysis",
     "repository-native-assurance": "forecast scoring, calibration, interval validation, realized-outcome feedback, cross-model agreement, VV&A and bounded linear state estimation",
     "Eclipse SUMO": "1.27.1; isolated bounded road, transit and logistics micro-simulation",
-    "StatsForecast": "2.1.1; bounded high-throughput statistical forecasting"
+    "StatsForecast": "2.1.1; bounded high-throughput statistical forecasting",
+    "SageMath": "10.9 official image pinned by exact repository digest; Docker network=none, read-only root and no-new-privileges"
   },
   "toolkit_assessment": {
     "current_scope_sufficient_for_existing_operations": true,
@@ -133,7 +134,8 @@
       "transport shortest paths, epidemic compartments and fixed-template system dynamics",
       "strategic games, negotiation, policy counterfactuals, entity resolution, evidence graphs and structured intelligence analysis",
       "fixed derivatives and bond analytics, active-inference choice, classic anomaly screening, market-basket rules, evolutionary strategy and bounded group-behavior scenarios",
-      "forecast scoring, calibration diagnostics, prediction-interval validation, realized-outcome feedback, benchmark comparison, cross-model agreement, VV&A and bounded generic state estimation"
+      "forecast scoring, calibration diagnostics, prediction-interval validation, realized-outcome feedback, benchmark comparison, cross-model agreement, VV&A and bounded generic state estimation",
+      "exact symbolic algebra, equation solving, calculus, matrix invariants and number theory in a pinned offline SageMath runtime"
     ],
     "not_intended_for": [
       "individual psychological diagnosis or deterministic individual prediction",
@@ -733,6 +735,13 @@
         "固定随机种子或预测基准",
         "独立验证或冻结基准后方可用于正式决策"
       ]
+    },
+    {
+      "id": "symbolic_mathematics",
+      "engine": "SageMath 10.9 exact-digest offline container",
+      "availability": "controlled-preview",
+      "use_when": "exact symbolic simplification, equation solving, calculus, matrix algebra or number theory are required",
+      "typical_output": "exact symbolic expressions, solutions, derivatives, integrals, matrix invariants or number-theory results"
     }
   ],
   "safety_boundaries": [
