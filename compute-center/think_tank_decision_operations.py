@@ -9,6 +9,7 @@ from typing import Any, Callable
 import numpy as np
 
 from compute_runner import ComputeError
+from gekko_backend import solve_nonnegative_linear_program
 from think_tank_common import MAX_ACTORS, MAX_PERIODS, finite, identifiers, integer, mapping, matrix, package, probability, sequence, vector
 
 
@@ -95,10 +96,6 @@ def bounded_hyperparameter_search(inputs: Mapping[str, Any]) -> dict[str, Any]:
 
 
 def algebraic_resource_optimization(inputs: Mapping[str, Any]) -> dict[str, Any]:
-    package("pyomo")
-    package("highspy")
-    import pyomo.environ as pyo
-
     objective = vector(inputs.get("objective"), "inputs.objective", maximum=200)
     constraints = matrix(
         inputs.get("constraint_matrix"), "inputs.constraint_matrix", max_rows=1_000, max_columns=200
@@ -106,11 +103,41 @@ def algebraic_resource_optimization(inputs: Mapping[str, Any]) -> dict[str, Any]
     bounds = vector(inputs.get("constraint_bounds"), "inputs.constraint_bounds", maximum=1_000)
     if constraints.shape[1] != objective.size or constraints.shape[0] != bounds.size:
         raise ComputeError("objective and constraint dimensions must align")
+
+    maximize = bool(inputs.get("maximize", True))
+    solver_engine = str(inputs.get("solver_engine") or "highs").strip().lower()
+    if solver_engine not in {"highs", "gekko"}:
+        raise ComputeError("inputs.solver_engine must be 'highs' or 'gekko'")
+
+    if solver_engine == "gekko":
+        gekko_version = package("gekko")
+        result = solve_nonnegative_linear_program(
+            objective,
+            constraints,
+            bounds,
+            maximize=maximize,
+        )
+        return {
+            "mode": "algebraic_resource_optimization",
+            "decision": result["decision"],
+            "objective_value": result["objective_value"],
+            "termination": result["termination"],
+            "engines": {
+                "gekko": gekko_version,
+                "solver": result["solver"],
+                "remote": result["remote"],
+            },
+        }
+
+    package("pyomo")
+    package("highspy")
+    import pyomo.environ as pyo
+
     model = pyo.ConcreteModel()
     model.I = pyo.RangeSet(0, objective.size - 1)
     model.J = pyo.RangeSet(0, constraints.shape[0] - 1)
     model.x = pyo.Var(model.I, domain=pyo.NonNegativeReals)
-    sense = pyo.maximize if bool(inputs.get("maximize", True)) else pyo.minimize
+    sense = pyo.maximize if maximize else pyo.minimize
     model.objective = pyo.Objective(expr=sum(float(objective[i]) * model.x[i] for i in model.I), sense=sense)
     model.constraints = pyo.ConstraintList()
     for j in range(constraints.shape[0]):
