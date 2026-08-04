@@ -189,6 +189,7 @@ def _run_sage(payload: Mapping[str, Any]) -> dict[str, Any]:
 
     with tempfile.TemporaryDirectory(prefix="compute-sagemath-") as temp_dir:
         root = Path(temp_dir)
+        root.chmod(0o755)
         (root / "payload.json").write_text(json.dumps(dict(payload), ensure_ascii=False), encoding="utf-8")
         (root / "runner.py").write_text(SAGE_RUNNER, encoding="utf-8")
         for path in root.iterdir():
