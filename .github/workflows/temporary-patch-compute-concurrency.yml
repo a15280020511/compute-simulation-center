@@ -1,0 +1,55 @@
+name: Temporary Patch Compute Concurrency
+
+on:
+  push:
+    branches:
+      - fix/assumption-governance-and-load-stability-20260804
+
+permissions:
+  contents: write
+
+concurrency:
+  group: temporary-patch-compute-concurrency-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  patch:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          ref: fix/assumption-governance-and-load-stability-20260804
+          persist-credentials: true
+
+      - name: Add repository-wide compute ticket serialization
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          from pathlib import Path
+
+          path = Path('.github/workflows/compute-ticket.yml')
+          text = path.read_text(encoding='utf-8')
+          block = (
+              'concurrency:\n'
+              '  group: independent-compute-center-single-task\n'
+              '  cancel-in-progress: false\n\n'
+          )
+          if 'group: independent-compute-center-single-task' not in text:
+              marker = '\njobs:\n'
+              if marker not in text:
+                  raise SystemExit('jobs marker not found')
+              text = text.replace(marker, '\n' + block + 'jobs:\n', 1)
+              path.write_text(text, encoding='utf-8')
+          PY
+
+          if git diff --quiet -- .github/workflows/compute-ticket.yml; then
+            echo 'compute-ticket.yml already serialized'
+            exit 0
+          fi
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add .github/workflows/compute-ticket.yml
+          git commit -m 'fix: serialize independent compute tickets'
+          git push origin HEAD:fix/assumption-governance-and-load-stability-20260804
