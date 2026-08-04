@@ -18,8 +18,14 @@ HERE = Path(__file__).resolve().parent
 SCHEMA_PATH = HERE / "compute-ticket.schema.json"
 MAX_BODY_CHARS = 100_000
 MAX_DUPLICATE_PAGES = 5
+MAX_ACTIVE_TASK_PAGES = 5
 TRUSTED_STATE_PREFIXES = (
     "## COMPUTE_ACCEPTED",
+    "## COMPUTE_COMPLETED",
+    "## COMPUTE_FAILED",
+    "## COMPUTE_REJECTED",
+)
+TERMINAL_STATE_PREFIXES = (
     "## COMPUTE_COMPLETED",
     "## COMPUTE_FAILED",
     "## COMPUTE_REJECTED",
@@ -151,6 +157,44 @@ def _duplicate_reason(
     return ""
 
 
+def _active_issue_number(
+    rows: list[Any],
+    *,
+    current_issue: int,
+    repo: str,
+) -> int | None:
+    for raw in rows:
+        if not isinstance(raw, Mapping) or raw.get("pull_request"):
+            continue
+        number = int(raw.get("number") or 0)
+        title = str(raw.get("title") or "")
+        if number <= 0 or number == current_issue or not title.startswith("[compute]"):
+            continue
+        comments = list(_trusted_comments(repo, number))
+        accepted = any(body.startswith("## COMPUTE_ACCEPTED") for body in comments)
+        terminal = any(body.startswith(TERMINAL_STATE_PREFIXES) for body in comments)
+        if accepted and not terminal:
+            return number
+    return None
+
+
+def _active_task_reason(repo: str, current_issue: int) -> str:
+    if not repo or not os.getenv("GITHUB_TOKEN"):
+        return ""
+    for page in range(1, MAX_ACTIVE_TASK_PAGES + 1):
+        rows = _api_json(
+            f"https://api.github.com/repos/{repo}/issues?state=open&per_page=100&page={page}"
+        )
+        if not isinstance(rows, list):
+            return ""
+        number = _active_issue_number(rows, current_issue=current_issue, repo=repo)
+        if number is not None:
+            return f"another compute task is already accepted and active in Issue #{number}"
+        if len(rows) < 100:
+            return ""
+    return ""
+
+
 def _status(
     *,
     accepted: bool,
@@ -276,6 +320,9 @@ def prepare(args: argparse.Namespace) -> int:
     if packet is not None and not errors:
         fingerprint = _canonical_sha(packet)
         errors.extend(_current_issue_errors(repo, issue_number))
+        active = _active_task_reason(repo, issue_number)
+        if active:
+            errors.append(active)
         duplicate = _duplicate_reason(repo, issue_number, packet, fingerprint)
         if duplicate:
             errors.append(duplicate)
