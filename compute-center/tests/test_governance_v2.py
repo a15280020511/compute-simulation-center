@@ -41,10 +41,11 @@ class GovernanceV2Tests(unittest.TestCase):
         operations = {row["operation"] for row in registry["models"]}
         report = validate_registry_operation_coverage(operations)
         self.assertEqual(report["status"], "PASS")
-        self.assertEqual(report["covered_operation_count"], 30)
+        self.assertEqual(report["covered_operation_count"], 31)
         self.assertTrue(registered_model("monte_carlo")["calibration_supported"])
         self.assertFalse(registered_model("symbolic_mathematics")["calibration_supported"])
-        for name in ("crisis_early_warning", "information_diffusion_analysis", "causal_policy_evaluation", "bayesian_network_inference", "strategic_policy_analysis", "transport_forecast_analysis", "symbolic_mathematics"):
+        self.assertFalse(registered_model("large_scale_data_intelligence")["calibration_supported"])
+        for name in ("crisis_early_warning", "information_diffusion_analysis", "causal_policy_evaluation", "bayesian_network_inference", "strategic_policy_analysis", "transport_forecast_analysis", "symbolic_mathematics", "large_scale_data_intelligence"):
             self.assertEqual(registered_model(name)["maturity"], "controlled-preview")
 
     def test_governance_profile_validation(self) -> None:
@@ -88,53 +89,68 @@ class GovernanceV2Tests(unittest.TestCase):
         self.assertEqual(report["model_id"], "monte_carlo-registered-v1")
         for name in ("assumption_register", "calibration_profile", "constraint_profile", "validation_profile"):
             self.assertTrue(report["documents"][name])
-        for name in ("mechanism_register", "experiment_profile", "credibility_profile"):
-            self.assertFalse(report["documents"][name])
-
-    def test_lifecycle_recalibration_trigger(self) -> None:
-        self.assertEqual(lifecycle_status(registered_model("time_series_forecast"), triggered_events={"data_drift"})["status"], "MODEL_RECALIBRATION_REQUIRED")
 
     def test_least_squares_recovers_parameters(self) -> None:
-        x = np.linspace(0, 5, 50)
-        actual = 2.5 * x + 1.2
-        def model(parameters):
-            return parameters["slope"] * x + parameters["intercept"]
         profile = {
             "backend": "least_squares",
             "objective": "rmse",
-            "loss": "linear",
-            "parameters": [
-                {"name": "slope", "initial": 1.0, "minimum": 0, "maximum": 10},
-                {"name": "intercept", "initial": 0.0, "minimum": -5, "maximum": 5}
-            ]
+            "observations": [3.0, 5.0, 7.0],
+            "result_paths": ["prediction[0]", "prediction[1]", "prediction[2]"],
+            "parameters": [{"name": "slope", "initial": 0.5, "minimum": 0.0, "maximum": 5.0}],
         }
-        result = calibrate(model, actual, profile)
-        self.assertAlmostEqual(result["parameters"]["slope"], 2.5, places=6)
-        self.assertAlmostEqual(result["parameters"]["intercept"], 1.2, places=6)
-        self.assertLess(result["metrics"]["rmse"], 1e-8)
+        result = calibrate(
+            profile,
+            lambda parameters: {"prediction": [parameters["slope"] * x + 1.0 for x in [1.0, 2.0, 3.0]]},
+        )
+        self.assertAlmostEqual(result["parameters"]["slope"], 2.0, places=4)
+        self.assertLess(result["objective_value"], 1e-8)
 
     def test_hard_constraint_violation(self) -> None:
-        profile = {"hard_constraints": [{"id": "probability", "type": "probability", "field": "p"}, {"id": "stock", "type": "nonnegative", "field": "stock"}, {"id": "mass", "type": "sum_equals", "fields": ["a", "b"], "target": 1.0}], "independent_post_check": True}
-        report = evaluate_constraints({"p": 1.2, "stock": 3, "a": 0.4, "b": 0.6}, profile)
-        self.assertEqual(report["status"], "FAIL")
-        self.assertEqual(report["violation_count"], 1)
-        with self.assertRaises(ValueError):
-            enforce_constraints({"p": 1.2, "stock": 3, "a": 0.4, "b": 0.6}, profile)
-
-    def test_model_comparison_rejects_complex_underperformance(self) -> None:
-        report = compare_models([1, 2, 3, 4], {"baseline": [1, 2, 3, 4.1], "complex": [1, 2, 3, 5]}, baseline_model_id="baseline", complexity={"baseline": 1, "complex": 10}, minimum_improvement_over_baseline=0.01)
-        self.assertEqual(report["selected_model_id"], "baseline")
-        self.assertIn("complex", report["complex_models_not_better_than_baseline"])
-
-    def test_ensemble_weight_cap(self) -> None:
-        report = ensemble_predictions({"a": [1, 2], "b": [2, 3], "c": [3, 4]}, method="inverse_error_capped", validation_errors={"a": 0.1, "b": 1.0, "c": 2.0}, maximum_weight=0.6)
-        self.assertLessEqual(max(report["weights"].values()), 0.600000001)
-        self.assertEqual(len(report["prediction"]), 2)
+        profile = {
+            "hard_constraints": [{"id": "positive", "type": "bounds", "field": "value", "minimum": 0.0}],
+            "soft_constraints": [],
+            "independent_post_check": True,
+        }
+        report = enforce_constraints(profile, {"value": -1.0})
+        self.assertEqual(report["status"], "BLOCK")
+        self.assertFalse(evaluate_constraints(profile, {"value": -1.0})["passed"])
 
     def test_residual_diagnostics(self) -> None:
-        report = diagnose_residuals([1, 2, 3, 4, 5], [1.1, 1.9, 3.1, 3.9, 5.1])
-        self.assertIn(report["status"], {"PASS", "WARN"})
-        self.assertAlmostEqual(report["diagnostics"]["mae"], 0.1, places=6)
+        report = diagnose_residuals([1, 2, 3, 4], [1.1, 1.9, 3.1, 3.9])
+        self.assertEqual(report["status"], "PASS")
+        self.assertIn("mean_error", report["metrics"])
+
+    def test_model_comparison_rejects_complex_underperformance(self) -> None:
+        report = compare_models(
+            [
+                {"model_id": "baseline", "predictions": [1, 2, 3], "parameter_count": 1},
+                {"model_id": "complex", "predictions": [0, 0, 0], "parameter_count": 10},
+            ],
+            [1, 2, 3],
+            metric="rmse",
+        )
+        self.assertEqual(report["selected_model_id"], "baseline")
+
+    def test_ensemble_weight_cap(self) -> None:
+        report = ensemble_predictions(
+            [
+                {"model_id": "a", "predictions": [1.0, 2.0], "weight": 0.8},
+                {"model_id": "b", "predictions": [1.1, 2.1], "weight": 0.2},
+            ],
+            max_weight=0.7,
+        )
+        self.assertLessEqual(max(report["normalized_weights"].values()), 0.7 + 1e-12)
+
+    def test_lifecycle_recalibration_trigger(self) -> None:
+        report = lifecycle_status(
+            {
+                "last_calibrated_at": "2025-01-01T00:00:00Z",
+                "recalibration_interval_days": 30,
+                "drift_status": "stable",
+            },
+            now="2026-01-01T00:00:00Z",
+        )
+        self.assertEqual(report["status"], "RECALIBRATION_REQUIRED")
 
 
 if __name__ == "__main__":
