@@ -3,7 +3,7 @@
   "status": "production-pending-live-acceptance",
   "network_policy": "deny",
   "ticket_prefix": "[compute-certified-math]",
-  "requirements_file": "requirements-certified-math.txt",
+  "requirements_file": "certified-math/requirements.txt",
   "dependencies": {
     "cvc5": "1.3.4",
     "python-flint": "0.9.0"
@@ -34,6 +34,7 @@
     "model_calls": 0,
     "one_ticket_one_operation": true,
     "deterministic_receipt_and_manifest": true,
+    "dependency_isolation": "dedicated subdirectory outside the general compute requirements registry",
     "rollback": "git-revert dedicated workflow and requirements"
   },
   "relationship_to_existing_tools": {
