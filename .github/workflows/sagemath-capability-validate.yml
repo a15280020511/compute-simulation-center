@@ -64,10 +64,11 @@ jobs:
           assert group['network_policy']=='deny'
           assert group['maturity']=='controlled-preview'
           caps=json.load(open('compute-center/compute-capabilities.json'))
-          assert caps['operation_count']==30
-          assert caps['managed_mode_count']==130
-          assert caps['effective_managed_mode_count']==191
+          assert caps['operation_count']==31
+          assert caps['managed_mode_count']==135
+          assert caps['effective_managed_mode_count']==196
           assert any(row['id']=='symbolic_mathematics' for row in caps['operations'])
+          assert any(row['id']=='large_scale_data_intelligence' for row in caps['operations'])
           PY
       - name: Pull and attest exact official SageMath runtime
         run: |

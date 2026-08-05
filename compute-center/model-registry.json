@@ -213,6 +213,37 @@
       ]
     },
     {
+      "model_id": "large-scale-data-intelligence-registered-v1",
+      "operation": "large_scale_data_intelligence",
+      "calibration_supported": false,
+      "allowed_backends": [],
+      "maturity": "controlled-preview",
+      "engineering_maturity": "controlled-preview",
+      "evidence_maturity": "experimental",
+      "risk_tier": "medium",
+      "intended_use": [
+        "Bounded offline collision, comparison, numeric profiling, timeline and sparse graph analysis."
+      ],
+      "prohibited_use": [
+        "Unbounded Cartesian joins",
+        "Personal identity targeting",
+        "External network access",
+        "Autonomous enforcement or decision execution"
+      ],
+      "theoretical_basis": "Blocking, sort-and-sweep, one-pass Welford aggregation and sparse graph algorithms.",
+      "known_failure_conditions": [
+        "Candidate-pair budget exhausted",
+        "Input exceeds registered dimensions",
+        "Blocking fields are incomplete or too coarse"
+      ],
+      "revalidation_trigger": [
+        "algorithm change",
+        "limit change",
+        "performance degradation",
+        "scope change"
+      ]
+    },
+    {
       "model_id": "markov_simulation-registered-v1",
       "operation": "markov_simulation",
       "calibration_supported": true,

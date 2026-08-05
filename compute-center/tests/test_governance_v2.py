@@ -41,10 +41,11 @@ class GovernanceV2Tests(unittest.TestCase):
         operations = {row["operation"] for row in registry["models"]}
         report = validate_registry_operation_coverage(operations)
         self.assertEqual(report["status"], "PASS")
-        self.assertEqual(report["covered_operation_count"], 30)
+        self.assertEqual(report["covered_operation_count"], 31)
         self.assertTrue(registered_model("monte_carlo")["calibration_supported"])
         self.assertFalse(registered_model("symbolic_mathematics")["calibration_supported"])
-        for name in ("crisis_early_warning", "information_diffusion_analysis", "causal_policy_evaluation", "bayesian_network_inference", "strategic_policy_analysis", "transport_forecast_analysis", "symbolic_mathematics"):
+        self.assertFalse(registered_model("large_scale_data_intelligence")["calibration_supported"])
+        for name in ("crisis_early_warning", "information_diffusion_analysis", "causal_policy_evaluation", "bayesian_network_inference", "strategic_policy_analysis", "transport_forecast_analysis", "symbolic_mathematics", "large_scale_data_intelligence"):
             self.assertEqual(registered_model(name)["maturity"], "controlled-preview")
 
     def test_governance_profile_validation(self) -> None:

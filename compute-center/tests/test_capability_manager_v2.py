@@ -17,7 +17,7 @@ class CapabilityManagerV2Tests(unittest.TestCase):
         self.assertFalse(registry["arbitrary_modules_allowed"])
         self.assertFalse(registry["arbitrary_requirements_allowed"])
         groups = capability_manager.validated_groups()
-        self.assertEqual(len(groups), 14)
+        self.assertEqual(len(groups), 15)
         self.assertEqual(len({row["id"] for row in groups}), len(groups))
         self.assertIn("sagemath-symbolic", {row["id"] for row in groups})
 
@@ -47,14 +47,14 @@ class CapabilityManagerV2Tests(unittest.TestCase):
 
     def test_all_registered_operations_load(self):
         operations = capability_manager.load_registered_operations()
-        self.assertEqual(len(operations), 24)
+        self.assertEqual(len(operations), 25)
         for name in (
             "finance_decision_analysis", "missing_data_analysis",
             "system_dynamics_simulation", "crisis_early_warning",
             "information_diffusion_analysis", "causal_policy_evaluation",
             "bayesian_network_inference", "sector_model_analysis",
             "strategic_policy_analysis", "transport_forecast_analysis",
-            "symbolic_mathematics",
+            "symbolic_mathematics", "large_scale_data_intelligence",
         ):
             self.assertIn(name, operations)
 
