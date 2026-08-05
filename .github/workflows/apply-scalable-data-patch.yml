@@ -6,6 +6,7 @@ on:
       - feature/scalable-data-intelligence-20260805
     paths:
       - tools/apply_scalable_data_patch.py
+      - tools/apply_scalable_data_patch_v2.py
       - .github/workflows/apply-scalable-data-patch.yml
   workflow_dispatch:
 
@@ -32,7 +33,7 @@ jobs:
         with:
           python-version: "3.12"
       - name: Apply repository patch
-        run: python tools/apply_scalable_data_patch.py
+        run: python tools/apply_scalable_data_patch_v2.py
       - name: Validate new module and registry
         run: |
           set -euo pipefail
