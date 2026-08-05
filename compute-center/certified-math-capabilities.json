@@ -1,0 +1,44 @@
+{
+  "schema_version": "certified-math-capabilities-v1",
+  "status": "production-pending-live-acceptance",
+  "network_policy": "deny",
+  "ticket_prefix": "[compute-certified-math]",
+  "requirements_file": "requirements-certified-math.txt",
+  "dependencies": {
+    "cvc5": "1.3.4",
+    "python-flint": "0.9.0"
+  },
+  "operations": [
+    {
+      "operation_id": "smt-integer-feasibility",
+      "capability": "bounded quantifier-free linear integer arithmetic feasibility with SAT/UNSAT and model evidence",
+      "limits": {"max_variables": 40, "max_constraints": 200, "max_coefficient_abs": 1000000000},
+      "arbitrary_formulas_allowed": false
+    },
+    {
+      "operation_id": "exact-integer-polynomial",
+      "capability": "exact FLINT integer polynomial evaluation using Horner's method",
+      "limits": {"max_coefficients": 100, "max_input_abs": 1000000000000000000}
+    },
+    {
+      "operation_id": "certified-rational-interval",
+      "capability": "exact rational plus Arb outward-rounded interval bounds",
+      "limits": {"precision_digits_min": 20, "precision_digits_max": 200}
+    }
+  ],
+  "governance": {
+    "arbitrary_code_allowed": false,
+    "arbitrary_modules_allowed": false,
+    "arbitrary_requirements_allowed": false,
+    "network_calls_allowed": false,
+    "model_calls": 0,
+    "one_ticket_one_operation": true,
+    "deterministic_receipt_and_manifest": true,
+    "rollback": "git-revert dedicated workflow and requirements"
+  },
+  "relationship_to_existing_tools": {
+    "z3": "cvc5 supplies an independent SMT engine for cross-checks and proof-oriented workflows",
+    "sagemath": "python-flint supplies a lighter direct exact/certified numerical kernel",
+    "wolfram": "remains an external Evidence Center API and is not called from the network-denied Compute Center"
+  }
+}
