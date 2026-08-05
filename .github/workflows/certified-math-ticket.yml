@@ -34,11 +34,11 @@ jobs:
         with:
           python-version: "3.12"
           cache: pip
-          cache-dependency-path: compute-center/requirements-certified-math.txt
+          cache-dependency-path: compute-center/certified-math/requirements.txt
 
       - name: Install pinned certified dependencies
         run: |
-          python -m pip install --disable-pip-version-check --no-input -r compute-center/requirements-certified-math.txt
+          python -m pip install --disable-pip-version-check --no-input -r compute-center/certified-math/requirements.txt
           python -m pip check
 
       - name: Extract ticket
@@ -101,7 +101,11 @@ jobs:
                   f"- Artifact: {os.environ.get('ARTIFACT_URL') or 'unavailable'}",
               ]
           else:
-              lines = ["Certified Math result: `WORKFLOW_FAILED_BEFORE_RECEIPT`", "", f"- Artifact: {os.environ.get('ARTIFACT_URL') or 'unavailable'}"]
+              lines = [
+                  "Certified Math result: `WORKFLOW_FAILED_BEFORE_RECEIPT`",
+                  "",
+                  f"- Artifact: {os.environ.get('ARTIFACT_URL') or 'unavailable'}",
+              ]
           Path('certified-math-comment.md').write_text('\n'.join(lines) + '\n', encoding='utf-8')
           PY
           gh api --method POST "repos/${GITHUB_REPOSITORY}/issues/${ISSUE_NUMBER}/comments" -F body=@certified-math-comment.md
