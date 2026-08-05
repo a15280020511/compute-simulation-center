@@ -1,0 +1,79 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://decision-system.example/schemas/certified-math-ticket-v1.json",
+  "title": "Certified Math Ticket",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["task_id", "operation", "inputs"],
+  "properties": {
+    "task_id": {"type": "string", "pattern": "^[A-Za-z0-9][A-Za-z0-9._-]{2,119}$"},
+    "operation": {"type": "string", "enum": ["smt-integer-feasibility", "exact-integer-polynomial", "certified-rational-interval"]},
+    "inputs": {"type": "object"},
+    "notes": {"type": "string", "maxLength": 1000}
+  },
+  "allOf": [
+    {
+      "if": {"properties": {"operation": {"const": "smt-integer-feasibility"}}},
+      "then": {
+        "properties": {
+          "inputs": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["variables", "constraints"],
+            "properties": {
+              "variables": {"type": "array", "minItems": 1, "maxItems": 40, "uniqueItems": true, "items": {"type": "string", "pattern": "^[A-Za-z][A-Za-z0-9_]{0,31}$"}},
+              "constraints": {
+                "type": "array",
+                "minItems": 1,
+                "maxItems": 200,
+                "items": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": ["coefficients", "operator", "rhs"],
+                  "properties": {
+                    "coefficients": {"type": "object", "minProperties": 1, "maxProperties": 40, "additionalProperties": {"type": "integer", "minimum": -1000000000, "maximum": 1000000000}},
+                    "operator": {"type": "string", "enum": ["<=", ">=", "=="]},
+                    "rhs": {"type": "integer", "minimum": -1000000000000000000, "maximum": 1000000000000000000}
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {"properties": {"operation": {"const": "exact-integer-polynomial"}}},
+      "then": {
+        "properties": {
+          "inputs": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["coefficients", "x"],
+            "properties": {
+              "coefficients": {"type": "array", "minItems": 1, "maxItems": 100, "items": {"type": "integer", "minimum": -1000000000000000000, "maximum": 1000000000000000000}},
+              "x": {"type": "integer", "minimum": -1000000000000000000, "maximum": 1000000000000000000}
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {"properties": {"operation": {"const": "certified-rational-interval"}}},
+      "then": {
+        "properties": {
+          "inputs": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["numerator", "denominator"],
+            "properties": {
+              "numerator": {"type": "integer", "minimum": -1000000000000000000000000000000, "maximum": 1000000000000000000000000000000},
+              "denominator": {"type": "integer", "minimum": -1000000000000000000000000000000, "maximum": 1000000000000000000000000000000, "not": {"const": 0}},
+              "precision_digits": {"type": "integer", "minimum": 20, "maximum": 200}
+            }
+          }
+        }
+      }
+    }
+  ]
+}
