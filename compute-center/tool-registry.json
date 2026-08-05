@@ -1648,6 +1648,75 @@
           }
         }
       }
+    },
+    {
+      "id": "large-scale-data-intelligence",
+      "module": "large_scale_data_intelligence_operations",
+      "operations": [
+        "large_scale_data_intelligence"
+      ],
+      "input_validation": "mode_allowlist",
+      "default_requirements": [],
+      "mode_requirements": {},
+      "network_policy": "deny",
+      "deterministic": true,
+      "maturity": "controlled-preview",
+      "resource_limits": {
+        "max_seconds": 600,
+        "max_memory_mb": 6144
+      },
+      "rollback": {
+        "stable_module": "large_scale_data_intelligence_operations",
+        "strategy": "git-revert"
+      },
+      "modes": {
+        "complexity_preflight": {
+          "maturity": "production",
+          "network_policy": "deny",
+          "deterministic": true,
+          "limits": {
+            "max_rows": 50000,
+            "max_candidate_pairs": 2000000
+          }
+        },
+        "blocked_entity_collision": {
+          "maturity": "controlled-preview",
+          "network_policy": "deny",
+          "deterministic": true,
+          "limits": {
+            "max_rows": 50000,
+            "max_fields": 10,
+            "max_candidate_pairs": 2000000
+          }
+        },
+        "sorted_event_collision": {
+          "maturity": "controlled-preview",
+          "network_policy": "deny",
+          "deterministic": true,
+          "limits": {
+            "max_events": 50000,
+            "max_overlap_checks": 2000000
+          }
+        },
+        "chunked_numeric_profile": {
+          "maturity": "controlled-preview",
+          "network_policy": "deny",
+          "deterministic": true,
+          "limits": {
+            "max_rows": 25000,
+            "max_columns": 100
+          }
+        },
+        "large_graph_summary": {
+          "maturity": "controlled-preview",
+          "network_policy": "deny",
+          "deterministic": true,
+          "limits": {
+            "max_nodes": 10000,
+            "max_edges": 100000
+          }
+        }
+      }
     }
   ]
 }

@@ -1,10 +1,10 @@
 {
   "schema_version": "compute-capabilities-v9",
   "catalog_status": "production",
-  "operation_count": 30,
-  "managed_mode_count": 130,
+  "operation_count": 31,
+  "managed_mode_count": 135,
   "extension_mode_count": 61,
-  "effective_managed_mode_count": 191,
+  "effective_managed_mode_count": 196,
   "capability_manager_version": 2,
   "selection_owner": "gpts-usage-center",
   "maintenance_owner": "ordinary-web-gpt-with-github-plugin",
@@ -135,7 +135,8 @@
       "strategic games, negotiation, policy counterfactuals, entity resolution, evidence graphs and structured intelligence analysis",
       "fixed derivatives and bond analytics, active-inference choice, classic anomaly screening, market-basket rules, evolutionary strategy and bounded group-behavior scenarios",
       "forecast scoring, calibration diagnostics, prediction-interval validation, realized-outcome feedback, benchmark comparison, cross-model agreement, VV&A and bounded generic state estimation",
-      "exact symbolic algebra, equation solving, calculus, matrix invariants and number theory in a pinned offline SageMath runtime"
+      "exact symbolic algebra, equation solving, calculus, matrix invariants and number theory in a pinned offline SageMath runtime",
+      "bounded large-scale blocking, sort-and-sweep, streaming numeric profiling and sparse graph summaries"
     ],
     "not_intended_for": [
       "individual psychological diagnosis or deterministic individual prediction",
@@ -205,7 +206,14 @@
     "global_causal_rows": 5000,
     "global_spatial_lag_rows": 2000,
     "global_transport_links": 5000,
-    "global_epidemic_simulations": 200
+    "global_epidemic_simulations": 200,
+    "large_scale_records": 50000,
+    "large_scale_candidate_pairs": 2000000,
+    "large_scale_events": 50000,
+    "large_scale_graph_nodes": 10000,
+    "large_scale_graph_edges": 100000,
+    "large_scale_numeric_rows": 25000,
+    "large_scale_numeric_columns": 100
   },
   "operations": [
     {
@@ -742,6 +750,13 @@
       "availability": "controlled-preview",
       "use_when": "exact symbolic simplification, equation solving, calculus, matrix algebra or number theory are required",
       "typical_output": "exact symbolic expressions, solutions, derivatives, integrals, matrix invariants or number-theory results"
+    },
+    {
+      "id": "large_scale_data_intelligence",
+      "engine": "repository-native sparse and streaming algorithms",
+      "availability": "managed controlled-preview",
+      "use_when": "large structured datasets require bounded collision, comparison, profiling, timeline or graph analysis",
+      "typical_output": "complexity profile, candidate-limited matches, conflict summary, column profile or sparse graph ranking"
     }
   ],
   "safety_boundaries": [

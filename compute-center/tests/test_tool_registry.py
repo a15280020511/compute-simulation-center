@@ -14,12 +14,12 @@ import tool_registry  # noqa: E402
 class ToolRegistryTests(unittest.TestCase):
     def test_registry_modules_match_declared_operations(self):
         operations = tool_registry.load_registered_operations()
-        self.assertEqual(len(operations), 24)
+        self.assertEqual(len(operations), 25)
         for name in (
             "finance_decision_analysis", "agent_based_simulation", "missing_data_analysis",
             "system_dynamics_simulation", "crisis_early_warning", "information_diffusion_analysis",
             "causal_policy_evaluation", "bayesian_network_inference", "sector_model_analysis",
-            "strategic_policy_analysis", "transport_forecast_analysis", "symbolic_mathematics",
+            "strategic_policy_analysis", "transport_forecast_analysis", "symbolic_mathematics", "large_scale_data_intelligence",
         ):
             self.assertIn(name, operations)
 
@@ -43,8 +43,9 @@ class ToolRegistryTests(unittest.TestCase):
     def test_registry_registers_without_conflicts(self):
         target = dict(compute_runner.OPERATIONS)
         tool_registry.register_into(target)
-        self.assertEqual(len(target), 30)
+        self.assertEqual(len(target), 31)
         self.assertIn("symbolic_mathematics", target)
+        self.assertIn("large_scale_data_intelligence", target)
 
 
 if __name__ == "__main__":

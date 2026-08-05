@@ -389,6 +389,17 @@
         "constraint_feasibility",
         "external_validation"
       ]
+    },
+    "large_scale_data_intelligence": {
+      "problem_class": "large-scale-data-linkage-and-structure-analysis",
+      "system_level": "observation",
+      "feedback_structure": "bounded-batch-and-sparse-relations",
+      "required_gates": [
+        "input_quality",
+        "assumption_register",
+        "uncertainty",
+        "stress_test"
+      ]
     }
   }
 }
