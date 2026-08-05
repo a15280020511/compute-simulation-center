@@ -6,7 +6,7 @@ on:
       - "compute-center/certified_math_task.py"
       - "compute-center/certified-math-ticket.schema.json"
       - "compute-center/certified-math-capabilities.json"
-      - "compute-center/requirements-certified-math.txt"
+      - "compute-center/certified-math/requirements.txt"
       - "compute-center/tests/test_certified_math_task.py"
       - ".github/workflows/certified-math-*.yml"
   push:
@@ -15,7 +15,7 @@ on:
       - "compute-center/certified_math_task.py"
       - "compute-center/certified-math-ticket.schema.json"
       - "compute-center/certified-math-capabilities.json"
-      - "compute-center/requirements-certified-math.txt"
+      - "compute-center/certified-math/requirements.txt"
       - "compute-center/tests/test_certified_math_task.py"
       - ".github/workflows/certified-math-*.yml"
 
@@ -41,11 +41,11 @@ jobs:
         with:
           python-version: "3.12"
           cache: pip
-          cache-dependency-path: compute-center/requirements-certified-math.txt
+          cache-dependency-path: compute-center/certified-math/requirements.txt
 
       - name: Install pinned certified dependencies
         run: |
-          python -m pip install --disable-pip-version-check --no-input -r compute-center/requirements-certified-math.txt
+          python -m pip install --disable-pip-version-check --no-input -r compute-center/certified-math/requirements.txt
           python -m pip check
 
       - name: Compile
@@ -65,6 +65,7 @@ jobs:
           catalog = json.loads((root / 'certified-math-capabilities.json').read_text(encoding='utf-8'))
           Draft202012Validator.check_schema(schema)
           assert catalog['network_policy'] == 'deny'
+          assert catalog['requirements_file'] == 'certified-math/requirements.txt'
           assert catalog['governance']['network_calls_allowed'] is False
           assert catalog['governance']['arbitrary_code_allowed'] is False
           assert catalog['governance']['model_calls'] == 0
