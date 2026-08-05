@@ -54,11 +54,17 @@ if not any(row.get("operation") == OPERATION for row in models):
     models.sort(key=lambda row: str(row.get("operation") or ""))
 registry_path.write_text(json.dumps(registry, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
 
-test_path = CENTER / "tests" / "test_capability_manager_v2.py"
-text = test_path.read_text(encoding="utf-8")
+manager_test_path = CENTER / "tests" / "test_capability_manager_v2.py"
+text = manager_test_path.read_text(encoding="utf-8")
 text = text.replace('self.assertEqual(len(groups), 14)', 'self.assertEqual(len(groups), 15)')
 text = text.replace('self.assertEqual(len(operations), 24)', 'self.assertEqual(len(operations), 25)')
 text = text.replace('            "symbolic_mathematics",\n', '            "symbolic_mathematics", "large_scale_data_intelligence",\n')
-test_path.write_text(text, encoding="utf-8")
+manager_test_path.write_text(text, encoding="utf-8")
+
+governance_test_path = CENTER / "tests" / "test_governance_catalogs.py"
+text = governance_test_path.read_text(encoding="utf-8")
+text = text.replace('self.assertEqual(report["operation_count"], 30)', 'self.assertEqual(report["operation_count"], 31)')
+text = text.replace('self.assertEqual(report["managed_mode_count"], 130)', 'self.assertEqual(report["managed_mode_count"], 135)')
+governance_test_path.write_text(text, encoding="utf-8")
 
 print("large-scale catalog alignment applied")
