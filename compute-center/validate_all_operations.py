@@ -58,6 +58,7 @@ def fixtures() -> dict[str, dict[str, Any]]:
         "strategic_policy_analysis": {"mode": "issue_tree_coverage", "root": "profit decline", "branches": [{"name": "revenue", "weight": 0.6, "evidence_count": 2}, {"name": "cost", "weight": 0.4, "evidence_count": 1}]},
         "transport_forecast_analysis": {"mode": "sumo_micro_simulation", "nodes": [{"id": "n0", "x": 0.0, "y": 0.0}, {"id": "n1", "x": 100.0, "y": 0.0}, {"id": "n2", "x": 200.0, "y": 0.0}], "edges": [{"id": "e0", "from": "n0", "to": "n1", "lanes": 1, "speed_mps": 13.89}, {"id": "e1", "from": "n1", "to": "n2", "lanes": 1, "speed_mps": 13.89}], "routes": [{"id": "r0", "edges": ["e0", "e1"]}], "flows": [{"id": "f0", "route": "r0", "begin": 0, "end": 120, "vehicles_per_hour": 360}], "duration_seconds": 180, "seed": 42, "timeout_seconds": 60},
         "symbolic_mathematics": {"mode": "simplify", "variables": ["x"], "expression": "(x^2-1)/(x-1)"},
+        "large_scale_data_intelligence": {"mode": "complexity_preflight", "workload": "entity_collision", "rows": 50000, "columns": 5, "candidate_pairs": 900000},
     }
 
 
