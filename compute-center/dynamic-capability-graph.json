@@ -1,5 +1,5 @@
 {
-  "schema_version": "compute-dynamic-capability-graph-v1",
+  "schema_version": "compute-dynamic-capability-graph-v2",
   "status": "controlled-preview",
   "graph_engine": "networkx",
   "selection_engine": "ortools-cp-sat",
@@ -10,6 +10,13 @@
       "adapter": "ticket_inputs",
       "role": "entry",
       "capabilities": ["discrete-alternative-comparison"]
+    },
+    {
+      "id": "scenario_statistics",
+      "operation": "descriptive_statistics",
+      "adapter": "scenario_ranking_to_descriptive_statistics",
+      "role": "optional-analysis",
+      "capabilities": ["scenario-score-summary", "dispersion-screening"]
     },
     {
       "id": "sensitivity",
@@ -24,18 +31,27 @@
       "adapter": "scenario_ranking_to_monte_carlo",
       "role": "optional-analysis",
       "capabilities": ["probabilistic-risk", "uncertainty-propagation"]
+    },
+    {
+      "id": "decision_optimization",
+      "operation": "constrained_optimization",
+      "adapter": "scenario_ranking_to_constrained_optimization",
+      "role": "optional-decision",
+      "capabilities": ["continuous-decision-search", "bounded-linear-optimization"]
     }
   ],
   "precedence": [
-    ["scenarios", "sensitivity"],
-    ["scenarios", "risk_simulation"],
-    ["sensitivity", "risk_simulation"]
+    ["scenarios", "scenario_statistics"],
+    ["scenario_statistics", "sensitivity"],
+    ["sensitivity", "risk_simulation"],
+    ["risk_simulation", "decision_optimization"]
   ],
   "safety": {
     "dynamic_operation_discovery_allowed": false,
     "ticket_supplied_nodes_allowed": false,
     "ticket_supplied_edges_allowed": false,
     "cycles_allowed": false,
-    "automatic_parallel_execution": false
+    "automatic_parallel_execution": false,
+    "full_graph_must_be_single_serial_chain": true
   }
 }
