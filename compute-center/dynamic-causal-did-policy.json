@@ -1,0 +1,51 @@
+{
+  "schema_version": "compute-dynamic-causal-did-policy-v1",
+  "status": "controlled-preview",
+  "family": "causal-did",
+  "declared_operation": "causal_screening",
+  "planner": "ortools-cp-sat",
+  "graph_engine": "networkx",
+  "network_policy": "deny",
+  "model_calls": 0,
+  "objective_text_routing_allowed": false,
+  "structured_signals_only": true,
+  "dynamic_operation_discovery_allowed": false,
+  "ticket_supplied_code_allowed": false,
+  "automatic_parallel_execution": false,
+  "cycles_allowed": false,
+  "maximum_stages": 2,
+  "allowed_operations": [
+    "causal_screening",
+    "causal_policy_evaluation"
+  ],
+  "allowed_adapters": [
+    "causal_did_screening_inputs",
+    "causal_did_to_policy_evaluation"
+  ],
+  "solver_policy": {
+    "require_optimal_status": true,
+    "max_time_seconds": 2.0,
+    "num_search_workers": 1,
+    "random_seed": 20260807,
+    "exhaustive_cross_check_max_optional_nodes": 8
+  },
+  "selection_policy": {
+    "stage_rules": {
+      "did_policy_evaluation": {
+        "operation": "causal_policy_evaluation",
+        "penalty": 50,
+        "benefits": {
+          "advanced_causal_evaluation_authorized": 150,
+          "formal_decision": 20
+        },
+        "eligible_all": [
+          "advanced_causal_evaluation_authorized",
+          "aligned_did_windows"
+        ],
+        "required_if_any": [
+          "advanced_causal_evaluation_authorized"
+        ]
+      }
+    }
+  }
+}
