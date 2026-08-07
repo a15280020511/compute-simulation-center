@@ -1,0 +1,67 @@
+{
+  "schema_version": "compute-operation-contract-registry-v1",
+  "status": "controlled-preview",
+  "contracts": {
+    "scenario_compare": {
+      "output_schema": {
+        "type": "object",
+        "required": ["ranking", "best_scenario"],
+        "properties": {
+          "best_scenario": {"type": "string", "minLength": 1},
+          "ranking": {
+            "type": "array",
+            "minItems": 1,
+            "items": {
+              "type": "object",
+              "required": ["name", "score", "values", "rank"],
+              "properties": {
+                "name": {"type": "string", "minLength": 1},
+                "score": {"type": "number"},
+                "values": {"type": "object", "minProperties": 1},
+                "rank": {"type": "integer", "minimum": 1}
+              },
+              "additionalProperties": true
+            }
+          }
+        },
+        "additionalProperties": true
+      }
+    },
+    "sensitivity_analysis": {
+      "output_schema": {
+        "type": "object",
+        "required": ["baseline_score", "ranking"],
+        "properties": {
+          "baseline_score": {"type": "number"},
+          "ranking": {
+            "type": "array",
+            "minItems": 1,
+            "items": {
+              "type": "object",
+              "required": ["variable", "low_score", "baseline_score", "high_score", "impact_range"],
+              "additionalProperties": true
+            }
+          }
+        },
+        "additionalProperties": true
+      }
+    },
+    "monte_carlo": {
+      "output_schema": {
+        "type": "object",
+        "required": ["iterations", "seed", "mean", "standard_deviation", "minimum", "maximum", "percentiles", "sensitivity"],
+        "properties": {
+          "iterations": {"type": "integer", "minimum": 100},
+          "seed": {"type": "integer", "minimum": 0},
+          "mean": {"type": "number"},
+          "standard_deviation": {"type": "number", "minimum": 0},
+          "minimum": {"type": "number"},
+          "maximum": {"type": "number"},
+          "percentiles": {"type": "object"},
+          "sensitivity": {"type": "array"}
+        },
+        "additionalProperties": true
+      }
+    }
+  }
+}

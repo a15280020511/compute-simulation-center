@@ -21,6 +21,7 @@ from compute_diagnostics import write_failure, write_success  # noqa: E402
 from compute_preflight import assess as assess_preflight  # noqa: E402
 from compute_preflight import canonical_sha as canonical_preflight_sha  # noqa: E402
 from material_package_validation import validate_material_package  # noqa: E402
+from pipeline_engine import resolve_pipeline_ticket, run_pipeline_ticket  # noqa: E402
 from quality_gate import build_quality_report  # noqa: E402
 from relay_contracts import build_data_gap_plan, build_expert_review_request  # noqa: E402
 from tool_registry import register_into  # noqa: E402
@@ -237,8 +238,13 @@ def main(argv: list[str] | None = None) -> int:
         preflight = _write_preflight(output_dir, ticket)
         if not preflight["execution_allowed"]:
             raise ComputeError(f"PREFLIGHT_BLOCKED:{preflight['status']}; GPTs must resolve data gaps or obtain required user approval")
-        stage = "execute_operation"
-        result = run_ticket(dict(ticket), output_dir)
+        pipeline_definition = resolve_pipeline_ticket(ticket)
+        if pipeline_definition is None:
+            stage = "execute_operation"
+            result = run_ticket(dict(ticket), output_dir)
+        else:
+            stage = "execute_pipeline"
+            result = run_pipeline_ticket(dict(ticket), output_dir, OPERATIONS)
         result["material_package"] = {
             "status": material_receipt["status"],
             "validation_file": "compute-material-package-validation.json",
