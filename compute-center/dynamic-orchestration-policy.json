@@ -1,7 +1,8 @@
 {
-  "schema_version": "compute-dynamic-orchestration-policy-v1",
+  "schema_version": "compute-dynamic-orchestration-policy-v2",
   "status": "experimental",
-  "engine": "networkx",
+  "planner": "ortools-cp-sat",
+  "graph_engine": "networkx",
   "network_policy": "deny",
   "model_calls": 0,
   "objective_text_routing_allowed": false,
@@ -25,6 +26,18 @@
   "selection_policy": {
     "sensitivity_min_scenarios": 3,
     "uncertainty_trigger_count": 2,
+    "stage_penalty": {
+      "sensitivity_analysis": 20,
+      "monte_carlo": 30
+    },
+    "benefit": {
+      "sensitivity_from_scenario_structure": 70,
+      "sensitivity_from_uncertainty": 90,
+      "sensitivity_from_formal_decision": 25,
+      "monte_carlo_from_probabilistic_claim": 100,
+      "monte_carlo_from_uncertainty": 90,
+      "monte_carlo_from_formal_decision": 20
+    },
     "monte_carlo_iterations": {
       "exploratory": 3000,
       "formal": 5000,
