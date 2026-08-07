@@ -28,7 +28,7 @@
   "allowed_adapters": [
     "ticket_inputs",
     "scenario_ranking_to_descriptive_statistics",
-    "scenario_ranking_to_sensitivity",
+    "dynamic_scenario_ranking_to_sensitivity",
     "scenario_ranking_to_monte_carlo",
     "scenario_ranking_to_constrained_optimization"
   ],
