@@ -1,0 +1,44 @@
+{
+  "schema_version": "compute-dynamic-causal-did-capability-graph-v1",
+  "status": "controlled-preview",
+  "family": "causal-did",
+  "graph_engine": "networkx",
+  "selection_engine": "ortools-cp-sat",
+  "nodes": [
+    {
+      "id": "screening",
+      "operation": "causal_screening",
+      "adapter": "causal_did_screening_inputs",
+      "role": "required-entry",
+      "capabilities": [
+        "difference-in-differences-screening",
+        "bootstrap-effect-interval",
+        "pretrend-screening"
+      ]
+    },
+    {
+      "id": "did_policy_evaluation",
+      "operation": "causal_policy_evaluation",
+      "adapter": "causal_did_to_policy_evaluation",
+      "role": "optional-advanced",
+      "capabilities": [
+        "explicit-did-policy-evaluation",
+        "parallel-trends-gate",
+        "causal-language-gate"
+      ]
+    }
+  ],
+  "precedence": [
+    ["screening", "did_policy_evaluation"]
+  ],
+  "safety": {
+    "dynamic_operation_discovery_allowed": false,
+    "ticket_supplied_nodes_allowed": false,
+    "ticket_supplied_edges_allowed": false,
+    "cycles_allowed": false,
+    "automatic_parallel_execution": false,
+    "full_graph_must_be_single_serial_chain": true,
+    "screening_stage_required": true,
+    "advanced_stage_requires_explicit_did_authorization": true
+  }
+}
