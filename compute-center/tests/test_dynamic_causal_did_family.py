@@ -1,13 +1,16 @@
 from __future__ import annotations
 
+import importlib.util
 import tempfile
 import unittest
 from pathlib import Path
 
 import compute_dispatch
-from dynamic_causal_did_planner import DynamicCausalDidError, plan_dynamic_causal_did, run_dynamic_causal_did_ticket
+from dynamic_causal_did_planner import plan_dynamic_causal_did, run_dynamic_causal_did_ticket
 from dynamic_family_router import DynamicFamilyRoutingError, family_runtime_metadata, resolve_dynamic_family
 from tool_registry import managed_runtime_plan, requirement_files_for_ticket
+
+HAS_DOWHY = importlib.util.find_spec("dowhy") is not None
 
 
 def pipeline() -> dict[str, object]:
@@ -97,6 +100,7 @@ class DynamicCausalDidFamilyTests(unittest.TestCase):
         with self.assertRaises(DynamicFamilyRoutingError):
             requirement_files_for_ticket(ticket)
 
+    @unittest.skipUnless(HAS_DOWHY, "requires optional requirements-causal.txt")
     def test_advanced_execution_respects_parallel_trends_gate(self) -> None:
         ticket = base_ticket(task_id="causal-did-execute", advanced=True)
         with tempfile.TemporaryDirectory() as directory:
@@ -112,6 +116,7 @@ class DynamicCausalDidFamilyTests(unittest.TestCase):
         self.assertFalse(result["execution"]["network_used"])
         self.assertEqual(result["execution"]["model_calls"], 0)
 
+    @unittest.skipUnless(HAS_DOWHY, "requires optional requirements-causal.txt")
     def test_failed_parallel_trend_downgrades_to_association(self) -> None:
         ticket = base_ticket(task_id="causal-did-conflict", advanced=True)
         ticket["inputs"]["treated_pre"] = [10.0, 12.0, 14.0, 16.0, 18.0, 20.0]
