@@ -1,5 +1,5 @@
 {
-  "schema_version": "compute-operation-contract-registry-v2",
+  "schema_version": "compute-operation-contract-registry-v1",
   "status": "controlled-preview",
   "contracts": {
     "scenario_compare": {
