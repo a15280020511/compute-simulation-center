@@ -21,6 +21,7 @@ HERE = Path(__file__).resolve().parent
 DYNAMIC_PIPELINE_ID = "dynamic-auto-v1"
 DYNAMIC_STAGE_ID = "dynamic"
 DYNAMIC_REQUIREMENT = HERE / "requirements-ortools.txt"
+DYNAMIC_FAMILY_REQUIREMENT_ALLOWLIST = {"requirements-causal.txt"}
 
 
 def _dynamic_orchestration_requested(ticket: Mapping[str, Any]) -> bool:
@@ -51,14 +52,32 @@ def register_into(target: dict[str, Callable[[Mapping[str, Any]], dict[str, Any]
         raise RuntimeError("GOVERNANCE_RUNTIME_INSTALLATION_FAILED") from exc
 
 
+def _dynamic_requirement_paths(ticket: Mapping[str, Any]) -> list[str]:
+    family = family_runtime_metadata(ticket)
+    if not DYNAMIC_REQUIREMENT.is_file():
+        raise RuntimeError("dynamic orchestration requirement bundle is missing")
+    result = [str(DYNAMIC_REQUIREMENT)]
+    raw_extra = family.get("extra_requirements", [])
+    if not isinstance(raw_extra, list):
+        raise RuntimeError("dynamic family extra_requirements must be an array")
+    for raw_name in raw_extra:
+        name = str(raw_name)
+        if name not in DYNAMIC_FAMILY_REQUIREMENT_ALLOWLIST:
+            raise RuntimeError(f"dynamic family requirement is not allowlisted: {name}")
+        path = HERE / name
+        if not path.is_file():
+            raise RuntimeError(f"dynamic family requirement bundle is missing: {name}")
+        result.append(str(path))
+    if len(result) != len(set(result)):
+        raise RuntimeError("duplicate dynamic family requirement bundle")
+    return result
+
+
 def requirement_files_for_ticket(ticket: Mapping[str, Any]) -> list[str]:
     if _dynamic_orchestration_requested(ticket):
-        # Validate the structured family before installing OR-Tools so unsupported
-        # dynamic operations fail closed at dependency planning time.
-        family_runtime_metadata(ticket)
-        if not DYNAMIC_REQUIREMENT.is_file():
-            raise RuntimeError("dynamic orchestration requirement bundle is missing")
-        return [str(DYNAMIC_REQUIREMENT)]
+        # Family resolution happens before dependency installation. Unknown dynamic
+        # operations and invalid identification contracts therefore fail closed.
+        return _dynamic_requirement_paths(ticket)
     return requirements_for_ticket(ticket)
 
 
@@ -74,19 +93,13 @@ def managed_runtime_plan(ticket: Mapping[str, Any]) -> dict[str, Any]:
             "dynamic_entry_contract": family["entry_contract"],
             "dynamic_policy_file": family["policy_file"],
             "dynamic_graph_file": family["graph_file"],
+            "dynamic_extra_requirements": list(family.get("extra_requirements", [])),
             "requirements": requirement_files_for_ticket(ticket),
             "network_policy": "deny",
             "deterministic": True,
-            "limits": {
-                "max_seconds": 120,
-                "max_memory_mb": 4096,
-                "max_stages": 8,
-            },
+            "limits": {"max_seconds": 120, "max_memory_mb": 4096, "max_stages": 8},
             "maturity": "controlled-preview",
-            "rollback": {
-                "stable_module": "pipeline_engine",
-                "strategy": "disable-dynamic-stage-and-git-revert",
-            },
+            "rollback": {"stable_module": "pipeline_engine", "strategy": "disable-dynamic-stage-and-git-revert"},
             "managed": True,
             "arbitrary_code_allowed": False,
             "arbitrary_requirements_allowed": False,
@@ -115,6 +128,9 @@ def main() -> int:
         matrix = load_systems_matrix()
         if not DYNAMIC_REQUIREMENT.is_file():
             raise SystemExit("dynamic orchestration requirement bundle is missing")
+        for name in sorted(DYNAMIC_FAMILY_REQUIREMENT_ALLOWLIST):
+            if not (HERE / name).is_file():
+                raise SystemExit(f"dynamic family requirement bundle is missing: {name}")
         print(json.dumps({
             "status": "PASS",
             "manager_version": 2,
@@ -125,6 +141,7 @@ def main() -> int:
                 "pipeline_id": DYNAMIC_PIPELINE_ID,
                 "stage_id": DYNAMIC_STAGE_ID,
                 "requirement": DYNAMIC_REQUIREMENT.name,
+                "family_requirement_allowlist": sorted(DYNAMIC_FAMILY_REQUIREMENT_ALLOWLIST),
                 "selection_engine": "ortools-cp-sat",
                 "graph_engine": "networkx",
                 "families": dict(sorted(FAMILY_BY_OPERATION.items())),

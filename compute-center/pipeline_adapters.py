@@ -68,6 +68,20 @@ def _time_series_data(initial_inputs: Mapping[str, Any]) -> list[float]:
     return values
 
 
+def _did_arrays(initial_inputs: Mapping[str, Any]) -> dict[str, list[float]]:
+    result: dict[str, list[float]] = {}
+    for name in ("treated_pre", "treated_post", "control_pre", "control_post"):
+        raw = _sequence(initial_inputs.get(name), f"ticket inputs.{name}")
+        values = [
+            _finite(item, f"ticket inputs.{name}[{index}]")
+            for index, item in enumerate(raw)
+        ]
+        if len(values) < 3:
+            raise PipelineAdapterError(f"{name} requires at least three observations")
+        result[name] = values
+    return result
+
+
 def ticket_inputs(
     initial_inputs: Mapping[str, Any],
     stage_results: Mapping[str, Any],
@@ -283,6 +297,46 @@ def time_series_to_forecast(
     return result
 
 
+def causal_did_screening_inputs(
+    initial_inputs: Mapping[str, Any],
+    stage_results: Mapping[str, Any],
+    stage: Mapping[str, Any],
+) -> dict[str, Any]:
+    del stage_results, stage
+    result: dict[str, Any] = _did_arrays(initial_inputs)
+    for name in ("bootstrap_samples", "seed"):
+        if name in initial_inputs:
+            result[name] = _clone(initial_inputs[name])
+    return result
+
+
+def causal_did_to_policy_evaluation(
+    initial_inputs: Mapping[str, Any],
+    stage_results: Mapping[str, Any],
+    stage: Mapping[str, Any],
+) -> dict[str, Any]:
+    del stage_results, stage
+    arrays = _did_arrays(initial_inputs)
+    if len({len(values) for values in arrays.values()}) != 1:
+        raise PipelineAdapterError(
+            "advanced DID evaluation requires equal-length pre/post treated/control windows"
+        )
+    context = _mapping(initial_inputs.get("dynamic_context"), "ticket inputs.dynamic_context")
+    if context.get("allow_causal_policy_evaluation") is not True:
+        raise PipelineAdapterError("advanced causal policy evaluation was not explicitly authorized")
+    if str(context.get("causal_design") or "") != "difference_in_differences":
+        raise PipelineAdapterError(
+            "advanced causal policy evaluation requires explicit difference_in_differences design"
+        )
+    result: dict[str, Any] = {
+        "mode": "difference_in_differences_refuted",
+        **arrays,
+    }
+    if "pretrend_tolerance" in initial_inputs:
+        result["pretrend_tolerance"] = _clone(initial_inputs["pretrend_tolerance"])
+    return result
+
+
 ADAPTERS: dict[
     str,
     Callable[[Mapping[str, Any], Mapping[str, Any], Mapping[str, Any]], dict[str, Any]],
@@ -297,4 +351,6 @@ ADAPTERS: dict[
     "time_series_to_pattern_discovery": time_series_to_pattern_discovery,
     "time_series_to_assumption_validation": time_series_to_assumption_validation,
     "time_series_to_forecast": time_series_to_forecast,
+    "causal_did_screening_inputs": causal_did_screening_inputs,
+    "causal_did_to_policy_evaluation": causal_did_to_policy_evaluation,
 }

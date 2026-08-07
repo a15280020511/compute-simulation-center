@@ -145,6 +145,43 @@
         },
         "additionalProperties": true
       }
+    },
+    "causal_screening": {
+      "output_schema": {
+        "type": "object",
+        "required": ["method", "effect_estimate", "bootstrap_interval_95", "pretrend_gap", "pretrend_gap_standardized", "status", "warning"],
+        "properties": {
+          "method": {"const": "difference_in_differences_screening"},
+          "effect_estimate": {"type": "number"},
+          "bootstrap_interval_95": {"type": "array", "minItems": 2, "maxItems": 2},
+          "pretrend_gap": {"type": "number"},
+          "pretrend_gap_standardized": {"type": "number"},
+          "status": {"enum": ["SUPPORTED", "WEAK", "CONFLICT", "INSUFFICIENT_DATA"]},
+          "warning": {"type": "string", "minLength": 1}
+        },
+        "additionalProperties": true
+      }
+    },
+    "causal_policy_evaluation": {
+      "output_schema": {
+        "type": "object",
+        "required": ["engine", "mode", "interpretation_boundary"],
+        "properties": {
+          "engine": {
+            "type": "object",
+            "required": ["name", "version", "network_used"],
+            "properties": {
+              "name": {"type": "string"},
+              "version": {"type": "string"},
+              "network_used": {"const": false}
+            },
+            "additionalProperties": true
+          },
+          "mode": {"type": "string", "minLength": 1},
+          "interpretation_boundary": {"type": "string", "minLength": 1}
+        },
+        "additionalProperties": true
+      }
     }
   }
 }
