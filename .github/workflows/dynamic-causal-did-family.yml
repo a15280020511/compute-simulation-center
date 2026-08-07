@@ -42,10 +42,9 @@ jobs:
       - name: Install core, optimization, and isolated causal dependencies
         run: |
           set -euo pipefail
-          python -m pip install --disable-pip-version-check --no-input \
-            -r compute-center/requirements.txt \
-            -r compute-center/requirements-ortools.txt \
-            -r compute-center/requirements-causal.txt
+          python -m pip install --disable-pip-version-check --no-input -r compute-center/requirements.txt
+          python -m pip install --disable-pip-version-check --no-input -r compute-center/requirements-ortools.txt
+          python -m pip install --disable-pip-version-check --no-input -r compute-center/requirements-causal.txt
           python -m pip check
       - name: Compile causal family runtime
         working-directory: compute-center
