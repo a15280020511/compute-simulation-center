@@ -5,7 +5,7 @@ import tempfile
 import unittest
 from pathlib import Path
 
-import compute_runner
+import compute_dispatch
 from dynamic_family_router import DynamicFamilyRoutingError, resolve_dynamic_family
 from dynamic_time_series_planner import plan_dynamic_time_series, run_dynamic_time_series_ticket
 from tool_registry import managed_runtime_plan, requirement_files_for_ticket
@@ -132,7 +132,7 @@ class DynamicTimeSeriesFamilyTests(unittest.TestCase):
         self.assertEqual(runtime["network_policy"], "deny")
 
         with tempfile.TemporaryDirectory() as directory:
-            result = run_dynamic_time_series_ticket(ticket, Path(directory), compute_runner.OPERATIONS)
+            result = run_dynamic_time_series_ticket(ticket, Path(directory), compute_dispatch.OPERATIONS)
             self.assertEqual(result["status"], "success")
             self.assertEqual(result["results"]["dynamic_family"], "time-series")
             self.assertEqual(result["results"]["stage_order"], expected)
