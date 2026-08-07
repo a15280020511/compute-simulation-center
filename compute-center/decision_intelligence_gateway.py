@@ -9,6 +9,7 @@ from compute_runner import ComputeError
 from assurance_operations import HANDLERS as ASSURANCE_HANDLERS
 from finance_operations import finance_decision_analysis as legacy_finance_decision_analysis
 from institutional_expansion_operations import HANDLERS as INSTITUTIONAL_EXPANSION_HANDLERS
+from justice_trend_analysis import justice_trend_analysis
 from operations_research_modes import HANDLERS as OR_HANDLERS
 from professional_forecasting_operations import HANDLERS as FORECAST_HANDLERS
 from quantitative_operations import HANDLERS as QUANT_HANDLERS
@@ -25,6 +26,10 @@ LEGACY_MODES = {
     "strategy_backtest",
 }
 
+JUSTICE_TREND_HANDLERS: dict[str, Callable[[Mapping[str, Any]], dict[str, Any]]] = {
+    "justice_trend_analysis": justice_trend_analysis,
+}
+
 PRODUCTION_HANDLER_MODES = (
     set(QUANT_HANDLERS)
     | set(FORECAST_HANDLERS)
@@ -37,6 +42,7 @@ PREVIEW_MODES = (
     | set(ASSURANCE_HANDLERS)
     | set(INSTITUTIONAL_EXPANSION_HANDLERS)
     | set(UNCERTAINTY_FACTOR_ACCURACY_HANDLERS)
+    | set(JUSTICE_TREND_HANDLERS)
 )
 
 MODE_HANDLERS: dict[str, Callable[[Mapping[str, Any]], dict[str, Any]]] = {
@@ -48,6 +54,7 @@ MODE_HANDLERS: dict[str, Callable[[Mapping[str, Any]], dict[str, Any]]] = {
     **ASSURANCE_HANDLERS,
     **INSTITUTIONAL_EXPANSION_HANDLERS,
     **UNCERTAINTY_FACTOR_ACCURACY_HANDLERS,
+    **JUSTICE_TREND_HANDLERS,
 }
 
 if PRODUCTION_MODES & PREVIEW_MODES:
@@ -63,6 +70,7 @@ if len(MODE_HANDLERS) != sum(
         ASSURANCE_HANDLERS,
         INSTITUTIONAL_EXPANSION_HANDLERS,
         UNCERTAINTY_FACTOR_ACCURACY_HANDLERS,
+        JUSTICE_TREND_HANDLERS,
     )
 ):
     raise RuntimeError("duplicate decision-intelligence mode registration")
