@@ -1,0 +1,45 @@
+{
+  "schema_version": "compute-pipeline-registry-v1",
+  "status": "controlled-preview",
+  "engine": "networkx",
+  "network_policy": "deny",
+  "automatic_parallel_execution": false,
+  "dynamic_stage_injection_allowed": false,
+  "ticket_supplied_adapter_code_allowed": false,
+  "cycles_allowed": false,
+  "maximum_stages": 8,
+  "pipelines": [
+    {
+      "id": "scenario-risk-linear-v1",
+      "title": "Scenario to sensitivity to Monte Carlo linear-risk pipeline",
+      "maturity": "controlled-preview",
+      "entry_operation": "scenario_compare",
+      "result_stage": "risk_simulation",
+      "resume_policy": "hash-gated-manual-resubmit",
+      "stages": [
+        {
+          "id": "scenarios",
+          "operation": "scenario_compare",
+          "depends_on": [],
+          "adapter": "ticket_inputs"
+        },
+        {
+          "id": "sensitivity",
+          "operation": "sensitivity_analysis",
+          "depends_on": ["scenarios"],
+          "adapter": "scenario_ranking_to_sensitivity"
+        },
+        {
+          "id": "risk_simulation",
+          "operation": "monte_carlo",
+          "depends_on": ["sensitivity"],
+          "adapter": "scenario_ranking_to_monte_carlo",
+          "fixed_parameters": {
+            "iterations": 5000,
+            "seed": 20260807
+          }
+        }
+      ]
+    }
+  ]
+}
