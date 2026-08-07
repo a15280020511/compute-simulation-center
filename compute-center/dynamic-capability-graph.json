@@ -21,7 +21,7 @@
     {
       "id": "sensitivity",
       "operation": "sensitivity_analysis",
-      "adapter": "scenario_ranking_to_sensitivity",
+      "adapter": "dynamic_scenario_ranking_to_sensitivity",
       "role": "optional-analysis",
       "capabilities": ["parameter-impact-ranking", "robustness-screening"]
     },
