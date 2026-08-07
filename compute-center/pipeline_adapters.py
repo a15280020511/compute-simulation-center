@@ -72,46 +72,73 @@ def _did_arrays(initial_inputs: Mapping[str, Any]) -> dict[str, list[float]]:
     result: dict[str, list[float]] = {}
     for name in ("treated_pre", "treated_post", "control_pre", "control_post"):
         raw = _sequence(initial_inputs.get(name), f"ticket inputs.{name}")
-        values = [_finite(item, f"ticket inputs.{name}[{index}]") for index, item in enumerate(raw)]
+        values = [
+            _finite(item, f"ticket inputs.{name}[{index}]")
+            for index, item in enumerate(raw)
+        ]
         if len(values) < 3:
             raise PipelineAdapterError(f"{name} requires at least three observations")
         result[name] = values
     return result
 
 
-def ticket_inputs(initial_inputs: Mapping[str, Any], stage_results: Mapping[str, Any], stage: Mapping[str, Any]) -> dict[str, Any]:
+def ticket_inputs(
+    initial_inputs: Mapping[str, Any],
+    stage_results: Mapping[str, Any],
+    stage: Mapping[str, Any],
+) -> dict[str, Any]:
     del stage_results, stage
     return _clone(initial_inputs)
 
 
-def scenario_ranking_to_descriptive_statistics(initial_inputs: Mapping[str, Any], stage_results: Mapping[str, Any], stage: Mapping[str, Any]) -> dict[str, Any]:
+def scenario_ranking_to_descriptive_statistics(
+    initial_inputs: Mapping[str, Any],
+    stage_results: Mapping[str, Any],
+    stage: Mapping[str, Any],
+) -> dict[str, Any]:
     del initial_inputs, stage
     scenario_result = _mapping(stage_results.get("scenarios"), "stage results.scenarios")
     ranking = _sequence(scenario_result.get("ranking"), "stage results.scenarios.ranking")
-    scores = [_finite(_mapping(row, f"ranking[{index}]").get("score"), f"ranking[{index}].score") for index, row in enumerate(ranking)]
+    scores = [
+        _finite(_mapping(row, f"ranking[{index}]").get("score"), f"ranking[{index}].score")
+        for index, row in enumerate(ranking)
+    ]
     if not scores:
         raise PipelineAdapterError("scenario ranking is empty")
     return {"data": scores}
 
 
-def scenario_ranking_to_sensitivity(initial_inputs: Mapping[str, Any], stage_results: Mapping[str, Any], stage: Mapping[str, Any]) -> dict[str, Any]:
+def scenario_ranking_to_sensitivity(
+    initial_inputs: Mapping[str, Any],
+    stage_results: Mapping[str, Any],
+    stage: Mapping[str, Any],
+) -> dict[str, Any]:
     """Stable fixed-pipeline adapter; preserves the original fail-closed contract."""
     del stage
     model, ranking, best_values = _scenario_context(initial_inputs, stage_results)
     coefficients = _mapping(model.get("coefficients"), "model.coefficients")
     variables: list[dict[str, Any]] = []
     for name in coefficients:
-        values = [_finite(_mapping(row.get("values"), f"scenario[{index}].values").get(name), f"scenario[{index}].values[{name}]") for index, row in enumerate(ranking)]
+        values = [
+            _finite(_mapping(row.get("values"), f"scenario[{index}].values").get(name), f"scenario[{index}].values[{name}]")
+            for index, row in enumerate(ranking)
+        ]
         low = min(values)
         high = max(values)
         if low == high:
-            raise PipelineAdapterError(f"scenario-derived sensitivity requires variation for variable {name}")
+            raise PipelineAdapterError(
+                f"scenario-derived sensitivity requires variation for variable {name}"
+            )
         base = _finite(best_values.get(name), f"best scenario value[{name}]")
         variables.append({"name": str(name), "low": low, "base": base, "high": high})
     return {"model": _clone(model), "variables": variables}
 
 
-def dynamic_scenario_ranking_to_sensitivity(initial_inputs: Mapping[str, Any], stage_results: Mapping[str, Any], stage: Mapping[str, Any]) -> dict[str, Any]:
+def dynamic_scenario_ranking_to_sensitivity(
+    initial_inputs: Mapping[str, Any],
+    stage_results: Mapping[str, Any],
+    stage: Mapping[str, Any],
+) -> dict[str, Any]:
     """Dynamic-only adapter that safely conditions on scenario-constant variables."""
     del stage
     model, ranking, best_values = _scenario_context(initial_inputs, stage_results)
@@ -121,7 +148,10 @@ def dynamic_scenario_ranking_to_sensitivity(initial_inputs: Mapping[str, Any], s
     variables: list[dict[str, Any]] = []
     for name, raw_coefficient in coefficients.items():
         coefficient = _finite(raw_coefficient, f"model.coefficients[{name}]")
-        values = [_finite(_mapping(row.get("values"), f"scenario[{index}].values").get(name), f"scenario[{index}].values[{name}]") for index, row in enumerate(ranking)]
+        values = [
+            _finite(_mapping(row.get("values"), f"scenario[{index}].values").get(name), f"scenario[{index}].values[{name}]")
+            for index, row in enumerate(ranking)
+        ]
         low = min(values)
         high = max(values)
         base = _finite(best_values.get(name), f"best scenario value[{name}]")
@@ -132,10 +162,17 @@ def dynamic_scenario_ranking_to_sensitivity(initial_inputs: Mapping[str, Any], s
         variables.append({"name": str(name), "low": low, "base": base, "high": high})
     if not variables:
         raise PipelineAdapterError("scenario-derived sensitivity requires at least one varying variable")
-    return {"model": {"intercept": intercept, "coefficients": reduced_coefficients}, "variables": variables}
+    return {
+        "model": {"intercept": intercept, "coefficients": reduced_coefficients},
+        "variables": variables,
+    }
 
 
-def scenario_ranking_to_monte_carlo(initial_inputs: Mapping[str, Any], stage_results: Mapping[str, Any], stage: Mapping[str, Any]) -> dict[str, Any]:
+def scenario_ranking_to_monte_carlo(
+    initial_inputs: Mapping[str, Any],
+    stage_results: Mapping[str, Any],
+    stage: Mapping[str, Any],
+) -> dict[str, Any]:
     model, ranking, best_values = _scenario_context(initial_inputs, stage_results)
     fixed = _mapping(stage.get("fixed_parameters", {}), "stage.fixed_parameters")
     iterations = int(fixed.get("iterations", 5000))
@@ -143,18 +180,38 @@ def scenario_ranking_to_monte_carlo(initial_inputs: Mapping[str, Any], stage_res
     coefficients = _mapping(model.get("coefficients"), "model.coefficients")
     variables: list[dict[str, Any]] = []
     for name in coefficients:
-        values = [_finite(_mapping(row.get("values"), f"scenario[{index}].values").get(name), f"scenario[{index}].values[{name}]") for index, row in enumerate(ranking)]
+        values = [
+            _finite(_mapping(row.get("values"), f"scenario[{index}].values").get(name), f"scenario[{index}].values[{name}]")
+            for index, row in enumerate(ranking)
+        ]
         low = min(values)
         high = max(values)
         mode = _finite(best_values.get(name), f"best scenario value[{name}]")
         if low == high:
             variables.append({"name": str(name), "distribution": "constant", "value": low})
         else:
-            variables.append({"name": str(name), "distribution": "triangular", "minimum": low, "mode": min(max(mode, low), high), "maximum": high})
-    return {"model": _clone(model), "variables": variables, "iterations": iterations, "seed": seed}
+            variables.append(
+                {
+                    "name": str(name),
+                    "distribution": "triangular",
+                    "minimum": low,
+                    "mode": min(max(mode, low), high),
+                    "maximum": high,
+                }
+            )
+    return {
+        "model": _clone(model),
+        "variables": variables,
+        "iterations": iterations,
+        "seed": seed,
+    }
 
 
-def scenario_ranking_to_constrained_optimization(initial_inputs: Mapping[str, Any], stage_results: Mapping[str, Any], stage: Mapping[str, Any]) -> dict[str, Any]:
+def scenario_ranking_to_constrained_optimization(
+    initial_inputs: Mapping[str, Any],
+    stage_results: Mapping[str, Any],
+    stage: Mapping[str, Any],
+) -> dict[str, Any]:
     del stage
     model, ranking, _best_values = _scenario_context(initial_inputs, stage_results)
     context = _mapping(initial_inputs.get("dynamic_context"), "ticket inputs.dynamic_context")
@@ -170,35 +227,68 @@ def scenario_ranking_to_constrained_optimization(initial_inputs: Mapping[str, An
         raise PipelineAdapterError("controllable_variables must be non-empty and unique")
     if set(controllable) != set(model_names):
         raise PipelineAdapterError("every model variable must be explicitly declared controllable")
+
     bounds: list[list[float]] = []
     objective: list[float] = []
     for name in model_names:
-        values = [_finite(_mapping(row.get("values"), f"scenario[{index}].values").get(name), f"scenario[{index}].values[{name}]") for index, row in enumerate(ranking)]
+        values = [
+            _finite(_mapping(row.get("values"), f"scenario[{index}].values").get(name), f"scenario[{index}].values[{name}]")
+            for index, row in enumerate(ranking)
+        ]
         bounds.append([min(values), max(values)])
         objective.append(_finite(coefficients.get(name), f"model.coefficients[{name}]"))
-    return {"objective": objective, "maximize": True, "variable_names": model_names, "bounds": bounds, "A_ub": [], "b_ub": []}
+    return {
+        "objective": objective,
+        "maximize": True,
+        "variable_names": model_names,
+        "bounds": bounds,
+        "A_ub": [],
+        "b_ub": [],
+    }
 
 
-def time_series_to_descriptive_statistics(initial_inputs: Mapping[str, Any], stage_results: Mapping[str, Any], stage: Mapping[str, Any]) -> dict[str, Any]:
+def time_series_to_descriptive_statistics(
+    initial_inputs: Mapping[str, Any],
+    stage_results: Mapping[str, Any],
+    stage: Mapping[str, Any],
+) -> dict[str, Any]:
     del stage_results, stage
     return {"data": _time_series_data(initial_inputs)}
 
 
-def time_series_to_pattern_discovery(initial_inputs: Mapping[str, Any], stage_results: Mapping[str, Any], stage: Mapping[str, Any]) -> dict[str, Any]:
+def time_series_to_pattern_discovery(
+    initial_inputs: Mapping[str, Any],
+    stage_results: Mapping[str, Any],
+    stage: Mapping[str, Any],
+) -> dict[str, Any]:
     del stage_results, stage
     return {"data": _time_series_data(initial_inputs)}
 
 
-def time_series_to_assumption_validation(initial_inputs: Mapping[str, Any], stage_results: Mapping[str, Any], stage: Mapping[str, Any]) -> dict[str, Any]:
+def time_series_to_assumption_validation(
+    initial_inputs: Mapping[str, Any],
+    stage_results: Mapping[str, Any],
+    stage: Mapping[str, Any],
+) -> dict[str, Any]:
     del stage_results, stage
     result: dict[str, Any] = {"data": _time_series_data(initial_inputs)}
-    for name in ("expected_minimum", "expected_maximum", "expected_mean", "mean_tolerance", "expected_distribution"):
+    for name in (
+        "expected_minimum",
+        "expected_maximum",
+        "expected_mean",
+        "mean_tolerance",
+        "expected_distribution",
+    ):
         if name in initial_inputs:
             result[name] = _clone(initial_inputs[name])
     return result
 
 
-def time_series_to_forecast(initial_inputs: Mapping[str, Any], stage_results: Mapping[str, Any], stage: Mapping[str, Any]) -> dict[str, Any]:
+def time_series_to_forecast(
+    initial_inputs: Mapping[str, Any],
+    stage_results: Mapping[str, Any],
+    stage: Mapping[str, Any],
+) -> dict[str, Any]:
     del stage_results, stage
     result: dict[str, Any] = {"data": _time_series_data(initial_inputs)}
     for name in ("horizon", "holdout"):
@@ -207,7 +297,11 @@ def time_series_to_forecast(initial_inputs: Mapping[str, Any], stage_results: Ma
     return result
 
 
-def causal_did_screening_inputs(initial_inputs: Mapping[str, Any], stage_results: Mapping[str, Any], stage: Mapping[str, Any]) -> dict[str, Any]:
+def causal_did_screening_inputs(
+    initial_inputs: Mapping[str, Any],
+    stage_results: Mapping[str, Any],
+    stage: Mapping[str, Any],
+) -> dict[str, Any]:
     del stage_results, stage
     result: dict[str, Any] = _did_arrays(initial_inputs)
     for name in ("bootstrap_samples", "seed"):
@@ -216,23 +310,37 @@ def causal_did_screening_inputs(initial_inputs: Mapping[str, Any], stage_results
     return result
 
 
-def causal_did_to_policy_evaluation(initial_inputs: Mapping[str, Any], stage_results: Mapping[str, Any], stage: Mapping[str, Any]) -> dict[str, Any]:
+def causal_did_to_policy_evaluation(
+    initial_inputs: Mapping[str, Any],
+    stage_results: Mapping[str, Any],
+    stage: Mapping[str, Any],
+) -> dict[str, Any]:
     del stage_results, stage
     arrays = _did_arrays(initial_inputs)
     if len({len(values) for values in arrays.values()}) != 1:
-        raise PipelineAdapterError("advanced DID evaluation requires equal-length pre/post treated/control windows")
+        raise PipelineAdapterError(
+            "advanced DID evaluation requires equal-length pre/post treated/control windows"
+        )
     context = _mapping(initial_inputs.get("dynamic_context"), "ticket inputs.dynamic_context")
     if context.get("allow_causal_policy_evaluation") is not True:
         raise PipelineAdapterError("advanced causal policy evaluation was not explicitly authorized")
     if str(context.get("causal_design") or "") != "difference_in_differences":
-        raise PipelineAdapterError("advanced causal policy evaluation requires explicit difference_in_differences design")
-    result: dict[str, Any] = {"mode": "difference_in_differences_refuted", **arrays}
+        raise PipelineAdapterError(
+            "advanced causal policy evaluation requires explicit difference_in_differences design"
+        )
+    result: dict[str, Any] = {
+        "mode": "difference_in_differences_refuted",
+        **arrays,
+    }
     if "pretrend_tolerance" in initial_inputs:
         result["pretrend_tolerance"] = _clone(initial_inputs["pretrend_tolerance"])
     return result
 
 
-ADAPTERS: dict[str, Callable[[Mapping[str, Any], Mapping[str, Any], Mapping[str, Any]], dict[str, Any]]] = {
+ADAPTERS: dict[
+    str,
+    Callable[[Mapping[str, Any], Mapping[str, Any], Mapping[str, Any]], dict[str, Any]],
+] = {
     "ticket_inputs": ticket_inputs,
     "scenario_ranking_to_descriptive_statistics": scenario_ranking_to_descriptive_statistics,
     "scenario_ranking_to_sensitivity": scenario_ranking_to_sensitivity,
