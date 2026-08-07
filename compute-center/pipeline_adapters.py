@@ -60,6 +60,14 @@ def _scenario_context(ticket_inputs: Mapping[str, Any], results: Mapping[str, An
     return model, ranking, best_values
 
 
+def _time_series_data(initial_inputs: Mapping[str, Any]) -> list[float]:
+    data = _sequence(initial_inputs.get("data"), "ticket inputs.data")
+    values = [_finite(item, f"ticket inputs.data[{index}]") for index, item in enumerate(data)]
+    if len(values) < 5:
+        raise PipelineAdapterError("time-series dynamic family requires at least five observations")
+    return values
+
+
 def ticket_inputs(
     initial_inputs: Mapping[str, Any],
     stage_results: Mapping[str, Any],
@@ -225,6 +233,56 @@ def scenario_ranking_to_constrained_optimization(
     }
 
 
+def time_series_to_descriptive_statistics(
+    initial_inputs: Mapping[str, Any],
+    stage_results: Mapping[str, Any],
+    stage: Mapping[str, Any],
+) -> dict[str, Any]:
+    del stage_results, stage
+    return {"data": _time_series_data(initial_inputs)}
+
+
+def time_series_to_pattern_discovery(
+    initial_inputs: Mapping[str, Any],
+    stage_results: Mapping[str, Any],
+    stage: Mapping[str, Any],
+) -> dict[str, Any]:
+    del stage_results, stage
+    return {"data": _time_series_data(initial_inputs)}
+
+
+def time_series_to_assumption_validation(
+    initial_inputs: Mapping[str, Any],
+    stage_results: Mapping[str, Any],
+    stage: Mapping[str, Any],
+) -> dict[str, Any]:
+    del stage_results, stage
+    result: dict[str, Any] = {"data": _time_series_data(initial_inputs)}
+    for name in (
+        "expected_minimum",
+        "expected_maximum",
+        "expected_mean",
+        "mean_tolerance",
+        "expected_distribution",
+    ):
+        if name in initial_inputs:
+            result[name] = _clone(initial_inputs[name])
+    return result
+
+
+def time_series_to_forecast(
+    initial_inputs: Mapping[str, Any],
+    stage_results: Mapping[str, Any],
+    stage: Mapping[str, Any],
+) -> dict[str, Any]:
+    del stage_results, stage
+    result: dict[str, Any] = {"data": _time_series_data(initial_inputs)}
+    for name in ("horizon", "holdout"):
+        if name in initial_inputs:
+            result[name] = _clone(initial_inputs[name])
+    return result
+
+
 ADAPTERS: dict[
     str,
     Callable[[Mapping[str, Any], Mapping[str, Any], Mapping[str, Any]], dict[str, Any]],
@@ -235,4 +293,8 @@ ADAPTERS: dict[
     "dynamic_scenario_ranking_to_sensitivity": dynamic_scenario_ranking_to_sensitivity,
     "scenario_ranking_to_monte_carlo": scenario_ranking_to_monte_carlo,
     "scenario_ranking_to_constrained_optimization": scenario_ranking_to_constrained_optimization,
+    "time_series_to_descriptive_statistics": time_series_to_descriptive_statistics,
+    "time_series_to_pattern_discovery": time_series_to_pattern_discovery,
+    "time_series_to_assumption_validation": time_series_to_assumption_validation,
+    "time_series_to_forecast": time_series_to_forecast,
 }
