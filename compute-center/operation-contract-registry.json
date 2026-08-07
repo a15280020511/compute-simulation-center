@@ -1,5 +1,5 @@
 {
-  "schema_version": "compute-operation-contract-registry-v1",
+  "schema_version": "compute-operation-contract-registry-v2",
   "status": "controlled-preview",
   "contracts": {
     "scenario_compare": {
@@ -23,6 +23,22 @@
               "additionalProperties": true
             }
           }
+        },
+        "additionalProperties": true
+      }
+    },
+    "descriptive_statistics": {
+      "output_schema": {
+        "type": "object",
+        "required": ["count", "mean", "median", "standard_deviation_population", "minimum", "maximum", "percentiles"],
+        "properties": {
+          "count": {"type": "integer", "minimum": 1},
+          "mean": {"type": "number"},
+          "median": {"type": "number"},
+          "standard_deviation_population": {"type": "number", "minimum": 0},
+          "minimum": {"type": "number"},
+          "maximum": {"type": "number"},
+          "percentiles": {"type": "object"}
         },
         "additionalProperties": true
       }
@@ -59,6 +75,21 @@
           "maximum": {"type": "number"},
           "percentiles": {"type": "object"},
           "sensitivity": {"type": "array"}
+        },
+        "additionalProperties": true
+      }
+    },
+    "constrained_optimization": {
+      "output_schema": {
+        "type": "object",
+        "required": ["success", "maximize", "objective_value", "solution", "solver_status", "solver_message"],
+        "properties": {
+          "success": {"const": true},
+          "maximize": {"type": "boolean"},
+          "objective_value": {"type": "number"},
+          "solution": {"type": "object", "minProperties": 1},
+          "solver_status": {"type": "integer"},
+          "solver_message": {"type": "string"}
         },
         "additionalProperties": true
       }
