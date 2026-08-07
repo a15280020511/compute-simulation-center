@@ -1,0 +1,34 @@
+{
+  "schema_version": "compute-dynamic-orchestration-policy-v1",
+  "status": "experimental",
+  "engine": "networkx",
+  "network_policy": "deny",
+  "model_calls": 0,
+  "objective_text_routing_allowed": false,
+  "structured_signals_only": true,
+  "dynamic_stage_selection_allowed": true,
+  "dynamic_operation_discovery_allowed": false,
+  "ticket_supplied_code_allowed": false,
+  "automatic_parallel_execution": false,
+  "cycles_allowed": false,
+  "maximum_stages": 8,
+  "allowed_operations": [
+    "scenario_compare",
+    "sensitivity_analysis",
+    "monte_carlo"
+  ],
+  "allowed_adapters": [
+    "ticket_inputs",
+    "scenario_ranking_to_sensitivity",
+    "scenario_ranking_to_monte_carlo"
+  ],
+  "selection_policy": {
+    "sensitivity_min_scenarios": 3,
+    "uncertainty_trigger_count": 2,
+    "monte_carlo_iterations": {
+      "exploratory": 3000,
+      "formal": 5000,
+      "high_stakes": 10000
+    }
+  }
+}
