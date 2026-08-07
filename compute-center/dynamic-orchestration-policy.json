@@ -1,5 +1,5 @@
 {
-  "schema_version": "compute-dynamic-orchestration-policy-v4",
+  "schema_version": "compute-dynamic-orchestration-policy-v5",
   "status": "controlled-preview",
   "planner": "ortools-cp-sat",
   "graph_engine": "networkx",
@@ -20,13 +20,17 @@
   },
   "allowed_operations": [
     "scenario_compare",
+    "descriptive_statistics",
     "sensitivity_analysis",
-    "monte_carlo"
+    "monte_carlo",
+    "constrained_optimization"
   ],
   "allowed_adapters": [
     "ticket_inputs",
+    "scenario_ranking_to_descriptive_statistics",
     "scenario_ranking_to_sensitivity",
-    "scenario_ranking_to_monte_carlo"
+    "scenario_ranking_to_monte_carlo",
+    "scenario_ranking_to_constrained_optimization"
   ],
   "solver_policy": {
     "require_optimal_status": true,
@@ -36,25 +40,63 @@
     "exhaustive_cross_check_max_optional_nodes": 12
   },
   "selection_policy": {
+    "statistics_min_scenarios": 4,
     "sensitivity_min_scenarios": 3,
     "uncertainty_trigger_count": 2,
-    "stage_penalty": {
-      "sensitivity_analysis": 20,
-      "monte_carlo": 30
-    },
-    "benefit": {
-      "sensitivity_from_scenario_structure": 70,
-      "sensitivity_from_uncertainty": 90,
-      "sensitivity_from_formal_decision": 25,
-      "monte_carlo_from_probabilistic_claim": 100,
-      "monte_carlo_from_uncertainty": 90,
-      "monte_carlo_from_formal_decision": 20
-    },
-    "hard_constraints": {
-      "probabilistic_claim_requires_risk_simulation": true,
-      "uncertainty_trigger_requires_risk_simulation": true,
-      "high_stakes_uncertainty_requires_sensitivity": true,
-      "high_stakes_uncertainty_requires_risk_simulation": true
+    "stage_rules": {
+      "scenario_statistics": {
+        "operation": "descriptive_statistics",
+        "penalty": 10,
+        "benefits": {
+          "scenario_summary_eligible": 25,
+          "formal_decision": 5
+        },
+        "eligible_all": ["scenario_summary_eligible"],
+        "required_if_any": [],
+        "required_if_all": []
+      },
+      "sensitivity": {
+        "operation": "sensitivity_analysis",
+        "penalty": 20,
+        "benefits": {
+          "scenario_structure": 70,
+          "uncertainty_trigger": 90,
+          "formal_decision": 25
+        },
+        "eligible_all": ["variable_variation"],
+        "required_if_any": [],
+        "required_if_all": [
+          ["high_stakes_uncertainty", "variable_variation"]
+        ]
+      },
+      "risk_simulation": {
+        "operation": "monte_carlo",
+        "penalty": 30,
+        "benefits": {
+          "probabilistic_claim": 100,
+          "uncertainty_trigger": 90,
+          "formal_decision": 20
+        },
+        "eligible_all": [],
+        "required_if_any": [
+          "probabilistic_claim",
+          "uncertainty_trigger",
+          "high_stakes_uncertainty"
+        ],
+        "required_if_all": []
+      },
+      "decision_optimization": {
+        "operation": "constrained_optimization",
+        "penalty": 35,
+        "benefits": {
+          "continuous_decision_optimization": 100,
+          "formal_decision": 20,
+          "high_stakes_uncertainty": 20
+        },
+        "eligible_all": ["continuous_decision_optimization"],
+        "required_if_any": [],
+        "required_if_all": []
+      }
     },
     "monte_carlo_iterations": {
       "exploratory": 3000,
