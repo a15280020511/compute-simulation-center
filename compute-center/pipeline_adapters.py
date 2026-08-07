@@ -91,6 +91,33 @@ def scenario_ranking_to_sensitivity(
     stage_results: Mapping[str, Any],
     stage: Mapping[str, Any],
 ) -> dict[str, Any]:
+    """Stable fixed-pipeline adapter; preserves the original fail-closed contract."""
+    del stage
+    model, ranking, best_values = _scenario_context(initial_inputs, stage_results)
+    coefficients = _mapping(model.get("coefficients"), "model.coefficients")
+    variables: list[dict[str, Any]] = []
+    for name in coefficients:
+        values = [
+            _finite(_mapping(row.get("values"), f"scenario[{index}].values").get(name), f"scenario[{index}].values[{name}]")
+            for index, row in enumerate(ranking)
+        ]
+        low = min(values)
+        high = max(values)
+        if low == high:
+            raise PipelineAdapterError(
+                f"scenario-derived sensitivity requires variation for variable {name}"
+            )
+        base = _finite(best_values.get(name), f"best scenario value[{name}]")
+        variables.append({"name": str(name), "low": low, "base": base, "high": high})
+    return {"model": _clone(model), "variables": variables}
+
+
+def dynamic_scenario_ranking_to_sensitivity(
+    initial_inputs: Mapping[str, Any],
+    stage_results: Mapping[str, Any],
+    stage: Mapping[str, Any],
+) -> dict[str, Any]:
+    """Dynamic-only adapter that safely conditions on scenario-constant variables."""
     del stage
     model, ranking, best_values = _scenario_context(initial_inputs, stage_results)
     coefficients = _mapping(model.get("coefficients"), "model.coefficients")
@@ -113,8 +140,10 @@ def scenario_ranking_to_sensitivity(
         variables.append({"name": str(name), "low": low, "base": base, "high": high})
     if not variables:
         raise PipelineAdapterError("scenario-derived sensitivity requires at least one varying variable")
-    reduced_model = {"intercept": intercept, "coefficients": reduced_coefficients}
-    return {"model": reduced_model, "variables": variables}
+    return {
+        "model": {"intercept": intercept, "coefficients": reduced_coefficients},
+        "variables": variables,
+    }
 
 
 def scenario_ranking_to_monte_carlo(
@@ -184,9 +213,7 @@ def scenario_ranking_to_constrained_optimization(
             _finite(_mapping(row.get("values"), f"scenario[{index}].values").get(name), f"scenario[{index}].values[{name}]")
             for index, row in enumerate(ranking)
         ]
-        low = min(values)
-        high = max(values)
-        bounds.append([low, high])
+        bounds.append([min(values), max(values)])
         objective.append(_finite(coefficients.get(name), f"model.coefficients[{name}]"))
     return {
         "objective": objective,
@@ -205,6 +232,7 @@ ADAPTERS: dict[
     "ticket_inputs": ticket_inputs,
     "scenario_ranking_to_descriptive_statistics": scenario_ranking_to_descriptive_statistics,
     "scenario_ranking_to_sensitivity": scenario_ranking_to_sensitivity,
+    "dynamic_scenario_ranking_to_sensitivity": dynamic_scenario_ranking_to_sensitivity,
     "scenario_ranking_to_monte_carlo": scenario_ranking_to_monte_carlo,
     "scenario_ranking_to_constrained_optimization": scenario_ranking_to_constrained_optimization,
 }
