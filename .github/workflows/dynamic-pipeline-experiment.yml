@@ -1,9 +1,10 @@
-name: Validate Dynamic NetworkX Orchestration Experiment
+name: Validate Optimized Dynamic Orchestration Experiment
 
 on:
   pull_request:
     paths:
       - "compute-center/dynamic-orchestration-policy.json"
+      - "compute-center/dynamic-capability-graph.json"
       - "compute-center/dynamic_pipeline_planner.py"
       - "compute-center/tests/test_dynamic_pipeline_planner.py"
       - ".github/workflows/dynamic-pipeline-experiment.yml"
@@ -28,19 +29,21 @@ jobs:
         with:
           python-version: "3.12"
           cache: pip
-          cache-dependency-path: compute-center/requirements.txt
-      - name: Install core dependencies
+          cache-dependency-path: |
+            compute-center/requirements.txt
+            compute-center/requirements-finance.txt
+      - name: Install core and pinned optimization dependencies
         run: |
           set -euo pipefail
-          python -m pip install --disable-pip-version-check --no-input -r compute-center/requirements.txt
+          python -m pip install --disable-pip-version-check --no-input -r compute-center/requirements.txt ortools==9.15.6755
           python -m pip check
-      - name: Compile and run dynamic orchestration tests
+      - name: Compile and run optimized dynamic orchestration tests
         working-directory: compute-center
         run: |
           set -euo pipefail
           python -m py_compile dynamic_pipeline_planner.py
           python -m unittest tests.test_dynamic_pipeline_planner -v
-      - name: Verify four distinct plans and safety invariants
+      - name: Verify four distinct optimal plans and safety invariants
         working-directory: compute-center
         run: |
           set -euo pipefail
@@ -73,9 +76,18 @@ jobs:
           plans = [plan_dynamic_pipeline(item) for item in cases]
           orders = [plan["stage_order"] for plan in plans]
           assert len({tuple(order) for order in orders}) == 4, orders
+          assert all(plan["selection_engine"] == "ortools-cp-sat" for plan in plans)
+          assert all(plan["graph_engine"] == "networkx" for plan in plans)
+          assert all(plan["optimization"]["solver_status"] == "OPTIMAL" for plan in plans)
           assert all(plan["objective_text_used"] is False for plan in plans)
           assert all(plan["network_policy"] == "deny" for plan in plans)
           assert all(plan["automatic_parallel_execution"] is False for plan in plans)
           assert all(plan["model_calls"] == 0 for plan in plans)
-          print(json.dumps({"status": "PASS", "stage_orders": orders}, ensure_ascii=False, indent=2))
+          print(json.dumps({
+              "status": "PASS",
+              "selection_engine": "ortools-cp-sat",
+              "graph_engine": "networkx",
+              "stage_orders": orders,
+              "objective_values": [plan["optimization"]["objective_value"] for plan in plans],
+          }, ensure_ascii=False, indent=2))
           PY
