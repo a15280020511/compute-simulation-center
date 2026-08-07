@@ -1,4 +1,4 @@
-name: Validate Optimized Dynamic Orchestration Experiment
+name: Validate Policy-Optimal Dynamic Orchestration Experiment
 
 on:
   pull_request:
@@ -37,13 +37,51 @@ jobs:
           set -euo pipefail
           python -m pip install --disable-pip-version-check --no-input -r compute-center/requirements.txt ortools==9.15.6755
           python -m pip check
-      - name: Compile and run optimized dynamic orchestration tests
+      - name: Compile and run policy-optimal dynamic orchestration tests
         working-directory: compute-center
         run: |
           set -euo pipefail
           python -m py_compile dynamic_pipeline_planner.py
           python -m unittest tests.test_dynamic_pipeline_planner -v
-      - name: Verify four distinct optimal plans and safety invariants
+      - name: Enforce dynamic-planner safety invariants
+        working-directory: compute-center
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import ast
+          import json
+          from pathlib import Path
+
+          source = Path("dynamic_pipeline_planner.py").read_text(encoding="utf-8")
+          for forbidden in (
+              "import requests",
+              "import socket",
+              "urllib.request",
+              "subprocess.",
+              "pickle.loads",
+              "import mcp",
+          ):
+              assert forbidden not in source, forbidden
+          tree = ast.parse(source)
+          direct_calls = {
+              node.func.id
+              for node in ast.walk(tree)
+              if isinstance(node, ast.Call) and isinstance(node.func, ast.Name)
+          }
+          assert {"eval", "exec", "compile"}.isdisjoint(direct_calls)
+
+          policy = json.loads(Path("dynamic-orchestration-policy.json").read_text(encoding="utf-8"))
+          assert policy["planner"] == "ortools-cp-sat"
+          assert policy["graph_engine"] == "networkx"
+          assert policy["solver_policy"]["require_optimal_status"] is True
+          assert policy["solver_policy"]["num_search_workers"] == 1
+          assert policy["objective_text_routing_allowed"] is False
+          assert policy["dynamic_operation_discovery_allowed"] is False
+          assert policy["ticket_supplied_code_allowed"] is False
+          assert policy["automatic_parallel_execution"] is False
+          assert policy["cycles_allowed"] is False
+          PY
+      - name: Verify four distinct globally optimal plans
         working-directory: compute-center
         run: |
           set -euo pipefail
@@ -73,20 +111,29 @@ jobs:
               {"name": "u1", "required": True, "source_type": "proxy", "confidence": "medium"},
               {"name": "u2", "required": True, "source_type": "proxy", "confidence": "medium"},
           ]}; cases.append(d)
+
           plans = [plan_dynamic_pipeline(item) for item in cases]
           orders = [plan["stage_order"] for plan in plans]
           assert len({tuple(order) for order in orders}) == 4, orders
-          assert all(plan["selection_engine"] == "ortools-cp-sat" for plan in plans)
-          assert all(plan["graph_engine"] == "networkx" for plan in plans)
-          assert all(plan["optimization"]["solver_status"] == "OPTIMAL" for plan in plans)
-          assert all(plan["objective_text_used"] is False for plan in plans)
-          assert all(plan["network_policy"] == "deny" for plan in plans)
-          assert all(plan["automatic_parallel_execution"] is False for plan in plans)
-          assert all(plan["model_calls"] == 0 for plan in plans)
+          for plan in plans:
+              optimization = plan["optimization"]
+              cross = optimization["exhaustive_cross_check"]
+              assert plan["selection_engine"] == "ortools-cp-sat"
+              assert plan["graph_engine"] == "networkx"
+              assert optimization["solver_status"] == "OPTIMAL"
+              assert optimization["global_optimal_proven"] is True
+              assert cross["performed"] is True and cross["passed"] is True
+              assert optimization["objective_value"] == cross["best_objective"]
+              assert optimization["solver_policy"]["num_search_workers"] == 1
+              assert plan["objective_text_used"] is False
+              assert plan["network_policy"] == "deny"
+              assert plan["automatic_parallel_execution"] is False
+              assert plan["model_calls"] == 0
           print(json.dumps({
               "status": "PASS",
               "selection_engine": "ortools-cp-sat",
               "graph_engine": "networkx",
+              "global_optimal_proven": True,
               "stage_orders": orders,
               "objective_values": [plan["optimization"]["objective_value"] for plan in plans],
           }, ensure_ascii=False, indent=2))
