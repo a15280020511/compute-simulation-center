@@ -16,6 +16,20 @@ from governance_runtime import install as install_governance_runtime
 from json_normalization import wrap_operation
 from systems_matrix import load_systems_matrix, route_for_ticket
 
+HERE = Path(__file__).resolve().parent
+DYNAMIC_PIPELINE_ID = "dynamic-auto-v1"
+DYNAMIC_STAGE_ID = "dynamic"
+DYNAMIC_REQUIREMENT = HERE / "requirements-ortools.txt"
+
+
+def _dynamic_orchestration_requested(ticket: Mapping[str, Any]) -> bool:
+    pipeline = ticket.get("pipeline")
+    return bool(
+        isinstance(pipeline, Mapping)
+        and str(pipeline.get("pipeline_id") or "") == DYNAMIC_PIPELINE_ID
+        and str(pipeline.get("stage_id") or "") == DYNAMIC_STAGE_ID
+    )
+
 
 def register_into(target: dict[str, Callable[[Mapping[str, Any]], dict[str, Any]]]) -> None:
     for name, handler in load_registered_operations().items():
@@ -37,10 +51,42 @@ def register_into(target: dict[str, Callable[[Mapping[str, Any]], dict[str, Any]
 
 
 def requirement_files_for_ticket(ticket: Mapping[str, Any]) -> list[str]:
+    if _dynamic_orchestration_requested(ticket):
+        if not DYNAMIC_REQUIREMENT.is_file():
+            raise RuntimeError("dynamic orchestration requirement bundle is missing")
+        return [str(DYNAMIC_REQUIREMENT)]
     return requirements_for_ticket(ticket)
 
 
 def managed_runtime_plan(ticket: Mapping[str, Any]) -> dict[str, Any]:
+    if _dynamic_orchestration_requested(ticket):
+        return {
+            "schema_version": "compute-runtime-plan-v2",
+            "operation": str(ticket.get("operation") or ""),
+            "mode": None,
+            "capability_pack": "dynamic-orchestration",
+            "requirements": requirement_files_for_ticket(ticket),
+            "network_policy": "deny",
+            "deterministic": True,
+            "limits": {
+                "max_seconds": 120,
+                "max_memory_mb": 4096,
+                "max_stages": 8,
+            },
+            "maturity": "controlled-preview",
+            "rollback": {
+                "stable_module": "pipeline_engine",
+                "strategy": "disable-dynamic-stage-and-git-revert",
+            },
+            "managed": True,
+            "arbitrary_code_allowed": False,
+            "arbitrary_requirements_allowed": False,
+            "dynamic_operation_discovery_allowed": False,
+            "automatic_parallel_execution": False,
+            "selection_engine": "ortools-cp-sat",
+            "graph_engine": "networkx",
+            "systems_route": route_for_ticket(ticket),
+        }
     plan = runtime_plan(ticket)
     plan["systems_route"] = route_for_ticket(ticket)
     return plan
@@ -58,19 +104,28 @@ def main() -> int:
     if args.command == "validate":
         operations = load_registered_operations()
         matrix = load_systems_matrix()
+        if not DYNAMIC_REQUIREMENT.is_file():
+            raise SystemExit("dynamic orchestration requirement bundle is missing")
         print(json.dumps({
             "status": "PASS",
             "manager_version": 2,
             "registered_operations": sorted(operations),
             "systems_matrix_schema": matrix["schema_version"],
             "systems_matrix_operation_count": len(matrix["routes"]),
+            "dynamic_orchestration": {
+                "pipeline_id": DYNAMIC_PIPELINE_ID,
+                "stage_id": DYNAMIC_STAGE_ID,
+                "requirement": DYNAMIC_REQUIREMENT.name,
+                "selection_engine": "ortools-cp-sat",
+                "graph_engine": "networkx",
+            },
         }, ensure_ascii=False))
         return 0
     ticket = json.loads(Path(args.ticket).read_text(encoding="utf-8"))
     if not isinstance(ticket, Mapping):
         raise SystemExit("ticket must be a JSON object")
     if args.command == "requirements":
-        for requirement in requirements_for_ticket(ticket):
+        for requirement in requirement_files_for_ticket(ticket):
             print(requirement)
         return 0
     print(json.dumps(managed_runtime_plan(ticket), ensure_ascii=False, indent=2))

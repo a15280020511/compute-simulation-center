@@ -37,6 +37,7 @@ jobs:
           cache-dependency-path: |
             compute-center/requirements.txt
             compute-center/requirements-finance.txt
+            compute-center/requirements-ortools.txt
             compute-center/requirements-mesa.txt
             compute-center/requirements-missing-data.txt
             compute-center/requirements-diffusion.txt
