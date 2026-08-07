@@ -1,6 +1,6 @@
+-r requirements-ortools.txt
 PyPortfolioOpt==1.6.0
 vectorbt==1.1.0
 packaging==26.1
 statsmodels==0.14.6
 SALib==1.5.2
-ortools==9.15.6755
