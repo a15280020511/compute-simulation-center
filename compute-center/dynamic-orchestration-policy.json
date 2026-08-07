@@ -1,5 +1,5 @@
 {
-  "schema_version": "compute-dynamic-orchestration-policy-v2",
+  "schema_version": "compute-dynamic-orchestration-policy-v3",
   "status": "experimental",
   "planner": "ortools-cp-sat",
   "graph_engine": "networkx",
@@ -23,6 +23,13 @@
     "scenario_ranking_to_sensitivity",
     "scenario_ranking_to_monte_carlo"
   ],
+  "solver_policy": {
+    "require_optimal_status": true,
+    "max_time_seconds": 2.0,
+    "num_search_workers": 1,
+    "random_seed": 20260807,
+    "exhaustive_cross_check_max_optional_nodes": 12
+  },
   "selection_policy": {
     "sensitivity_min_scenarios": 3,
     "uncertainty_trigger_count": 2,
@@ -37,6 +44,12 @@
       "monte_carlo_from_probabilistic_claim": 100,
       "monte_carlo_from_uncertainty": 90,
       "monte_carlo_from_formal_decision": 20
+    },
+    "hard_constraints": {
+      "probabilistic_claim_requires_risk_simulation": true,
+      "uncertainty_trigger_requires_risk_simulation": true,
+      "high_stakes_uncertainty_requires_sensitivity": true,
+      "high_stakes_uncertainty_requires_risk_simulation": true
     },
     "monte_carlo_iterations": {
       "exploratory": 3000,
