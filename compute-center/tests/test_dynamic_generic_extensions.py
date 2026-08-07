@@ -5,7 +5,7 @@ import unittest
 
 import compute_runner
 from dynamic_pipeline_planner import DynamicPlanningError, execute_dynamic_pipeline, plan_dynamic_pipeline
-from pipeline_adapters import scenario_ranking_to_sensitivity
+from pipeline_adapters import dynamic_scenario_ranking_to_sensitivity
 
 
 BASE = {
@@ -98,7 +98,7 @@ class DynamicGenericExtensionTests(unittest.TestCase):
         self.assertNotIn("decision_optimization", plan["stage_order"])
         self.assertFalse(plan["objective_text_used"])
 
-    def test_constant_model_variable_no_longer_breaks_sensitivity_adapter(self) -> None:
+    def test_constant_model_variable_no_longer_breaks_dynamic_sensitivity_adapter(self) -> None:
         initial_inputs = {
             "model": {
                 "intercept": 1.0,
@@ -113,7 +113,7 @@ class DynamicGenericExtensionTests(unittest.TestCase):
                 ]
             }
         }
-        adapted = scenario_ranking_to_sensitivity(initial_inputs, stage_results, {})
+        adapted = dynamic_scenario_ranking_to_sensitivity(initial_inputs, stage_results, {})
         self.assertEqual(adapted["model"]["coefficients"], {"varying": 2.0})
         self.assertEqual(adapted["model"]["intercept"], 16.0)
         self.assertEqual([row["name"] for row in adapted["variables"]], ["varying"])
