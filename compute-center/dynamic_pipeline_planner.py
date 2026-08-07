@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Experimental policy-optimal dynamic orchestration for the isolated compute center.
+"""Policy-optimal dynamic orchestration for the isolated compute center.
 
 OR-Tools CP-SAT selects the globally optimal feasible subset of allowlisted stages under
 an explicit integer policy objective. NetworkX validates capability precedence and orders
@@ -11,6 +11,8 @@ from __future__ import annotations
 import hashlib
 import itertools
 import json
+import platform
+import time
 from collections.abc import Mapping
 from pathlib import Path
 from typing import Any, Callable
@@ -25,6 +27,8 @@ from pipeline_engine import PipelineEngineError, _validate_output, load_contract
 HERE = Path(__file__).resolve().parent
 POLICY_PATH = HERE / "dynamic-orchestration-policy.json"
 GRAPH_PATH = HERE / "dynamic-capability-graph.json"
+DYNAMIC_PIPELINE_ID = "dynamic-auto-v1"
+DYNAMIC_STAGE_ID = "dynamic"
 
 
 class DynamicPlanningError(ValueError):
@@ -38,12 +42,41 @@ def _load_json(path: Path) -> dict[str, Any]:
     return value
 
 
+def _canonical_sha(value: Any) -> str:
+    raw = json.dumps(
+        value,
+        ensure_ascii=False,
+        sort_keys=True,
+        separators=(",", ":"),
+        allow_nan=False,
+    ).encode("utf-8")
+    return hashlib.sha256(raw).hexdigest()
+
+
+def _write_json(path: Path, value: Any) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(
+        json.dumps(value, ensure_ascii=False, indent=2, allow_nan=False),
+        encoding="utf-8",
+    )
+
+
+def is_dynamic_pipeline_ticket(ticket: Mapping[str, Any]) -> bool:
+    pipeline = ticket.get("pipeline")
+    return bool(
+        isinstance(pipeline, Mapping)
+        and str(pipeline.get("pipeline_id") or "") == DYNAMIC_PIPELINE_ID
+        and str(pipeline.get("stage_id") or "") == DYNAMIC_STAGE_ID
+        and str(ticket.get("operation") or "") == "scenario_compare"
+    )
+
+
 def _load_policy() -> dict[str, Any]:
     value = _load_json(POLICY_PATH)
-    if value.get("schema_version") != "compute-dynamic-orchestration-policy-v3":
+    if value.get("schema_version") != "compute-dynamic-orchestration-policy-v4":
         raise DynamicPlanningError("invalid dynamic orchestration policy schema")
     expected = {
-        "status": "experimental",
+        "status": "controlled-preview",
         "planner": "ortools-cp-sat",
         "graph_engine": "networkx",
         "network_policy": "deny",
@@ -62,6 +95,16 @@ def _load_policy() -> dict[str, Any]:
     if int(value.get("maximum_stages") or 0) != 8:
         raise DynamicPlanningError("maximum_stages must equal 8")
 
+    activation = value.get("production_activation")
+    if not isinstance(activation, Mapping):
+        raise DynamicPlanningError("production_activation is required")
+    if (
+        activation.get("pipeline_id") != DYNAMIC_PIPELINE_ID
+        or activation.get("stage_id") != DYNAMIC_STAGE_ID
+        or activation.get("entry_operation") != "scenario_compare"
+    ):
+        raise DynamicPlanningError("dynamic production activation contract mismatch")
+
     solver_policy = value.get("solver_policy")
     if not isinstance(solver_policy, Mapping):
         raise DynamicPlanningError("solver_policy is required")
@@ -79,8 +122,8 @@ def _load_capability_graph(policy: Mapping[str, Any]) -> dict[str, Any]:
     value = _load_json(GRAPH_PATH)
     if value.get("schema_version") != "compute-dynamic-capability-graph-v1":
         raise DynamicPlanningError("invalid dynamic capability graph schema")
-    if value.get("status") != "experimental":
-        raise DynamicPlanningError("dynamic capability graph must remain experimental")
+    if value.get("status") != "controlled-preview":
+        raise DynamicPlanningError("dynamic capability graph must remain controlled-preview")
     if value.get("graph_engine") != "networkx" or value.get("selection_engine") != "ortools-cp-sat":
         raise DynamicPlanningError("dynamic capability graph engine mismatch")
 
@@ -425,9 +468,7 @@ def plan_dynamic_pipeline(ticket: Mapping[str, Any]) -> dict[str, Any]:
     capability_graph = _load_capability_graph(policy)
     operation = str(ticket.get("operation") or "")
     if operation != "scenario_compare":
-        raise DynamicPlanningError(
-            "experimental optimized planner currently supports scenario_compare entry tickets only"
-        )
+        raise DynamicPlanningError("controlled-preview dynamic planner supports scenario_compare entry tickets only")
 
     scenario_count, varied_variable_count = _scenario_features(ticket)
     uncertainty_count = _uncertainty_count(ticket)
@@ -483,8 +524,8 @@ def plan_dynamic_pipeline(ticket: Mapping[str, Any]) -> dict[str, Any]:
         reasons.append(f"monte_carlo selected with utility={solution['utility']['monte_carlo']}")
 
     return {
-        "id": "dynamic-auto-v3",
-        "maturity": "experimental",
+        "id": DYNAMIC_PIPELINE_ID,
+        "maturity": "controlled-preview",
         "planning_mode": "structured-signal-policy-optimal-dynamic",
         "selection_engine": "ortools-cp-sat",
         "graph_engine": "networkx",
@@ -508,49 +549,115 @@ def plan_dynamic_pipeline(ticket: Mapping[str, Any]) -> dict[str, Any]:
     }
 
 
-def execute_dynamic_pipeline(
+def _execute_plan(
     ticket: Mapping[str, Any],
     operations: Mapping[str, Callable[[Mapping[str, Any]], dict[str, Any]]],
-) -> dict[str, Any]:
+    output_dir: Path | None = None,
+) -> tuple[dict[str, Any], dict[str, dict[str, Any]], list[dict[str, Any]], dict[str, float]]:
     plan = plan_dynamic_pipeline(ticket)
     contracts = load_contracts()
     initial_inputs = ticket.get("inputs")
     if not isinstance(initial_inputs, Mapping):
         raise DynamicPlanningError("ticket inputs must be an object")
+
     stage_results: dict[str, dict[str, Any]] = {}
     receipts: list[dict[str, Any]] = []
+    stage_elapsed: dict[str, float] = {}
+    state: dict[str, Any] | None = None
+    if output_dir is not None:
+        state = {
+            "schema_version": "compute-dynamic-pipeline-state-v1",
+            "pipeline_id": plan["id"],
+            "status": "RUNNING",
+            "planning_mode": plan["planning_mode"],
+            "selection_engine": plan["selection_engine"],
+            "graph_engine": plan["graph_engine"],
+            "automatic_parallel_execution": False,
+            "network_used": False,
+            "model_calls": 0,
+            "plan_sha256": _canonical_sha({
+                "stage_order": plan["stage_order"],
+                "planning_features": plan["planning_features"],
+                "optimization": plan["optimization"],
+            }),
+            "stages": [
+                {
+                    "stage_id": stage_id,
+                    "operation": plan["stage_map"][stage_id]["operation"],
+                    "status": "PENDING",
+                }
+                for stage_id in plan["stage_order"]
+            ],
+        }
+        _write_json(output_dir / "compute-dynamic-pipeline-state.json", state)
 
-    for stage_id in plan["stage_order"]:
-        stage = plan["stage_map"][stage_id]
-        operation = str(stage["operation"])
-        if operation not in operations:
-            raise DynamicPlanningError(f"handler unavailable: {operation}")
-        try:
-            stage_inputs = ADAPTERS[str(stage["adapter"])](initial_inputs, stage_results, stage)
-        except PipelineAdapterError as exc:
-            raise DynamicPlanningError(f"adapter failed at {stage_id}: {exc}") from exc
-        derived_ticket = dict(ticket)
-        derived_ticket["operation"] = operation
-        derived_ticket["inputs"] = stage_inputs
-        validate_operation_inputs(derived_ticket)
-        result = operations[operation](stage_inputs)
-        if not isinstance(result, Mapping):
-            raise DynamicPlanningError(f"stage returned non-object result: {stage_id}")
-        result_dict = dict(result)
-        try:
-            _validate_output(operation, result_dict, contracts)
-        except PipelineEngineError as exc:
-            raise DynamicPlanningError(str(exc)) from exc
-        stage_results[stage_id] = result_dict
-        receipts.append(
-            {
+    try:
+        for index, stage_id in enumerate(plan["stage_order"]):
+            stage = plan["stage_map"][stage_id]
+            operation = str(stage["operation"])
+            if operation not in operations:
+                raise DynamicPlanningError(f"handler unavailable: {operation}")
+            if state is not None:
+                state["stages"][index]["status"] = "RUNNING"
+                _write_json(output_dir / "compute-dynamic-pipeline-state.json", state)
+            try:
+                stage_inputs = ADAPTERS[str(stage["adapter"])](initial_inputs, stage_results, stage)
+            except PipelineAdapterError as exc:
+                raise DynamicPlanningError(f"adapter failed at {stage_id}: {exc}") from exc
+            derived_ticket = dict(ticket)
+            derived_ticket["operation"] = operation
+            derived_ticket["inputs"] = stage_inputs
+            validate_operation_inputs(derived_ticket)
+            input_sha = _canonical_sha(stage_inputs)
+            if output_dir is not None:
+                _write_json(output_dir / "dynamic-pipeline-stages" / f"{index + 1:02d}-{stage_id}-input.json", stage_inputs)
+            started = time.perf_counter()
+            result = operations[operation](stage_inputs)
+            stage_elapsed[stage_id] = round(time.perf_counter() - started, 6)
+            if not isinstance(result, Mapping):
+                raise DynamicPlanningError(f"stage returned non-object result: {stage_id}")
+            result_dict = dict(result)
+            try:
+                _validate_output(operation, result_dict, contracts)
+            except PipelineEngineError as exc:
+                raise DynamicPlanningError(str(exc)) from exc
+            output_sha = _canonical_sha(result_dict)
+            stage_results[stage_id] = result_dict
+            if output_dir is not None:
+                _write_json(output_dir / "dynamic-pipeline-stages" / f"{index + 1:02d}-{stage_id}-output.json", result_dict)
+            receipt = {
                 "stage_id": stage_id,
                 "operation": operation,
                 "adapter": str(stage["adapter"]),
                 "status": "PASS",
+                "input_sha256": input_sha,
+                "output_sha256": output_sha,
             }
-        )
+            receipts.append(receipt)
+            if state is not None:
+                state["stages"][index].update(receipt)
+                _write_json(output_dir / "compute-dynamic-pipeline-state.json", state)
+    except Exception:
+        if state is not None:
+            state["status"] = "FAILED"
+            for row in state["stages"]:
+                if row["status"] == "RUNNING":
+                    row["status"] = "FAILED"
+            _write_json(output_dir / "compute-dynamic-pipeline-state.json", state)
+        raise
 
+    if state is not None:
+        state["status"] = "PASS"
+        state["pipeline_sha256"] = _canonical_sha(receipts)
+        _write_json(output_dir / "compute-dynamic-pipeline-state.json", state)
+    return plan, stage_results, receipts, stage_elapsed
+
+
+def execute_dynamic_pipeline(
+    ticket: Mapping[str, Any],
+    operations: Mapping[str, Callable[[Mapping[str, Any]], dict[str, Any]]],
+) -> dict[str, Any]:
+    plan, stage_results, receipts, _ = _execute_plan(ticket, operations)
     return {
         "status": "PASS",
         "planner": plan["planning_mode"],
@@ -566,6 +673,125 @@ def execute_dynamic_pipeline(
         "model_calls": 0,
         "automatic_parallel_execution": False,
     }
+
+
+def run_dynamic_pipeline_ticket(
+    ticket: Mapping[str, Any],
+    output_dir: Path,
+    operations: Mapping[str, Callable[[Mapping[str, Any]], dict[str, Any]]],
+) -> dict[str, Any]:
+    if not is_dynamic_pipeline_ticket(ticket):
+        raise DynamicPlanningError(
+            f"dynamic production ticket must use pipeline_id={DYNAMIC_PIPELINE_ID} and stage_id={DYNAMIC_STAGE_ID}"
+        )
+    output_dir.mkdir(parents=True, exist_ok=True)
+    started = time.perf_counter()
+    plan, stage_results, receipts, stage_elapsed = _execute_plan(ticket, operations, output_dir)
+    elapsed = time.perf_counter() - started
+
+    import numpy as np
+    import ortools
+    import scipy
+
+    result_data = {
+        "pipeline_id": plan["id"],
+        "pipeline_maturity": plan["maturity"],
+        "planning_mode": plan["planning_mode"],
+        "selection_engine": plan["selection_engine"],
+        "graph_engine": plan["graph_engine"],
+        "automatic_parallel_execution": False,
+        "stage_order": plan["stage_order"],
+        "planning_features": plan["planning_features"],
+        "planning_reasons": plan["planning_reasons"],
+        "optimization": plan["optimization"],
+        "stage_receipts": receipts,
+        "stage_outputs": stage_results,
+        "final_stage": plan["result_stage"],
+        "final_result": stage_results[plan["result_stage"]],
+    }
+    transfer = {
+        "schema_version": "compute-result-v1",
+        "task_id": str(ticket["task_id"]),
+        "status": "success",
+        "operation": str(ticket["operation"]),
+        "objective": ticket.get("objective"),
+        "input_sha256": _canonical_sha(ticket),
+        "assumptions": ticket.get("assumptions", []),
+        "evidence": ticket.get("evidence", []),
+        "limitations": ticket.get("limitations", []),
+        "results": result_data,
+        "maturity_assessment": {
+            "engineering_maturity": "controlled-preview",
+            "evidence_maturity": "controlled-preview",
+        },
+        "software": {
+            "python": platform.python_version(),
+            "networkx": nx.__version__,
+            "ortools": ortools.__version__,
+            "numpy": np.__version__,
+            "scipy": scipy.__version__,
+        },
+        "execution": {
+            "elapsed_seconds": round(elapsed, 6),
+            "stage_elapsed_seconds": stage_elapsed,
+            "network_used": False,
+            "model_calls": 0,
+            "reproducible": True,
+            "automatic_parallel_execution": False,
+        },
+    }
+    transfer["result_sha256"] = _canonical_sha({
+        "schema_version": transfer["schema_version"],
+        "task_id": transfer["task_id"],
+        "operation": transfer["operation"],
+        "input_sha256": transfer["input_sha256"],
+        "assumptions": transfer["assumptions"],
+        "limitations": transfer["limitations"],
+        "results": transfer["results"],
+        "maturity_assessment": transfer["maturity_assessment"],
+        "software": transfer["software"],
+    })
+    _write_json(output_dir / "compute-result.json", transfer)
+    _write_json(
+        output_dir / "compute-audit.json",
+        {
+            "version": 1,
+            "status": "PASS",
+            "task_id": transfer["task_id"],
+            "operation": transfer["operation"],
+            "pipeline_id": plan["id"],
+            "planning_mode": plan["planning_mode"],
+            "selection_engine": plan["selection_engine"],
+            "graph_engine": plan["graph_engine"],
+            "solver_status": plan["optimization"]["solver_status"],
+            "global_optimal_proven": plan["optimization"]["global_optimal_proven"],
+            "input_sha256": transfer["input_sha256"],
+            "result_sha256": transfer["result_sha256"],
+            "elapsed_seconds": transfer["execution"]["elapsed_seconds"],
+            "model_calls": 0,
+            "network_used": False,
+            "automatic_parallel_execution": False,
+            "secret_values_included": False,
+        },
+    )
+    (output_dir / "compute-summary.md").write_text(
+        "# COMPUTE_COMPLETED\n\n"
+        f"- Task ID: `{transfer['task_id']}`\n"
+        f"- Operation: `{transfer['operation']}`\n"
+        f"- Dynamic pipeline: `{plan['id']}`\n"
+        f"- Stage order: `{' -> '.join(plan['stage_order'])}`\n"
+        f"- Selection engine: `{plan['selection_engine']}`\n"
+        f"- Graph engine: `{plan['graph_engine']}`\n"
+        f"- Solver status: `{plan['optimization']['solver_status']}`\n"
+        f"- Global optimum proven: `{str(plan['optimization']['global_optimal_proven']).lower()}`\n"
+        f"- Result SHA256: `{transfer['result_sha256']}`\n"
+        "- Execution policy: `strict-serial`\n"
+        "- Automatic parallel execution: `false`\n"
+        "- Model calls: `0`\n"
+        "- Network used: `false`\n",
+        encoding="utf-8",
+    )
+    return transfer
 
 
 if __name__ == "__main__":
