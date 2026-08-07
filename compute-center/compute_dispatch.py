@@ -64,7 +64,6 @@ def _dynamic_pipeline_requested(ticket: Mapping[str, Any]) -> bool:
         isinstance(pipeline, Mapping)
         and str(pipeline.get("pipeline_id") or "") == DYNAMIC_PIPELINE_ID
         and str(pipeline.get("stage_id") or "") == DYNAMIC_STAGE_ID
-        and str(ticket.get("operation") or "") == "scenario_compare"
     )
 
 
@@ -253,13 +252,13 @@ def main(argv: list[str] | None = None) -> int:
             raise ComputeError(f"PREFLIGHT_BLOCKED:{preflight['status']}; GPTs must resolve data gaps or obtain required user approval")
 
         if _dynamic_pipeline_requested(ticket):
-            # Lazy import keeps OR-Tools out of ordinary compute tasks. The workflow
-            # installs the pinned dependency only after tool_registry resolves the
-            # exact dynamic pipeline contract.
-            from dynamic_pipeline_planner import run_dynamic_pipeline_ticket  # noqa: PLC0415
+            # Lazy family routing keeps OR-Tools out of ordinary compute tasks. The
+            # workflow installs the pinned dependency only after tool_registry has
+            # validated that the dynamic operation belongs to an admitted family.
+            from dynamic_family_router import run_dynamic_family_ticket  # noqa: PLC0415
 
-            stage = "execute_dynamic_pipeline"
-            result = run_dynamic_pipeline_ticket(dict(ticket), output_dir, OPERATIONS)
+            stage = "execute_dynamic_family"
+            result = run_dynamic_family_ticket(dict(ticket), output_dir, OPERATIONS)
         else:
             pipeline_definition = resolve_pipeline_ticket(ticket)
             if pipeline_definition is None:

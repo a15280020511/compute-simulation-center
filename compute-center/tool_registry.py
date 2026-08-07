@@ -12,6 +12,7 @@ from typing import Any
 from jsonschema import Draft202012Validator
 
 from capability_manager import load_registered_operations, requirements_for_ticket, runtime_plan
+from dynamic_family_router import FAMILY_BY_OPERATION, family_runtime_metadata
 from governance_runtime import install as install_governance_runtime
 from json_normalization import wrap_operation
 from systems_matrix import load_systems_matrix, route_for_ticket
@@ -52,6 +53,9 @@ def register_into(target: dict[str, Callable[[Mapping[str, Any]], dict[str, Any]
 
 def requirement_files_for_ticket(ticket: Mapping[str, Any]) -> list[str]:
     if _dynamic_orchestration_requested(ticket):
+        # Validate the structured family before installing OR-Tools so unsupported
+        # dynamic operations fail closed at dependency planning time.
+        family_runtime_metadata(ticket)
         if not DYNAMIC_REQUIREMENT.is_file():
             raise RuntimeError("dynamic orchestration requirement bundle is missing")
         return [str(DYNAMIC_REQUIREMENT)]
@@ -60,11 +64,16 @@ def requirement_files_for_ticket(ticket: Mapping[str, Any]) -> list[str]:
 
 def managed_runtime_plan(ticket: Mapping[str, Any]) -> dict[str, Any]:
     if _dynamic_orchestration_requested(ticket):
+        family = family_runtime_metadata(ticket)
         return {
             "schema_version": "compute-runtime-plan-v2",
             "operation": str(ticket.get("operation") or ""),
             "mode": None,
             "capability_pack": "dynamic-orchestration",
+            "dynamic_family": family["family"],
+            "dynamic_entry_contract": family["entry_contract"],
+            "dynamic_policy_file": family["policy_file"],
+            "dynamic_graph_file": family["graph_file"],
             "requirements": requirement_files_for_ticket(ticket),
             "network_policy": "deny",
             "deterministic": True,
@@ -118,6 +127,7 @@ def main() -> int:
                 "requirement": DYNAMIC_REQUIREMENT.name,
                 "selection_engine": "ortools-cp-sat",
                 "graph_engine": "networkx",
+                "families": dict(sorted(FAMILY_BY_OPERATION.items())),
             },
         }, ensure_ascii=False))
         return 0

@@ -1,0 +1,51 @@
+{
+  "schema_version": "compute-dynamic-time-series-capability-graph-v1",
+  "status": "controlled-preview",
+  "family": "time-series",
+  "graph_engine": "networkx",
+  "selection_engine": "ortools-cp-sat",
+  "nodes": [
+    {
+      "id": "series_statistics",
+      "operation": "descriptive_statistics",
+      "adapter": "time_series_to_descriptive_statistics",
+      "role": "optional-analysis",
+      "capabilities": ["level-dispersion-summary"]
+    },
+    {
+      "id": "pattern_diagnostics",
+      "operation": "pattern_discovery",
+      "adapter": "time_series_to_pattern_discovery",
+      "role": "optional-analysis",
+      "capabilities": ["trend-screening", "autocorrelation-screening", "change-point-candidate", "outlier-screening"]
+    },
+    {
+      "id": "assumption_checks",
+      "operation": "assumption_validation",
+      "adapter": "time_series_to_assumption_validation",
+      "role": "optional-validation",
+      "capabilities": ["declared-assumption-consistency"]
+    },
+    {
+      "id": "forecast",
+      "operation": "time_series_forecast",
+      "adapter": "time_series_to_forecast",
+      "role": "required-result",
+      "capabilities": ["holdout-model-selection", "forecast", "prediction-interval"]
+    }
+  ],
+  "precedence": [
+    ["series_statistics", "pattern_diagnostics"],
+    ["pattern_diagnostics", "assumption_checks"],
+    ["assumption_checks", "forecast"]
+  ],
+  "safety": {
+    "dynamic_operation_discovery_allowed": false,
+    "ticket_supplied_nodes_allowed": false,
+    "ticket_supplied_edges_allowed": false,
+    "cycles_allowed": false,
+    "automatic_parallel_execution": false,
+    "full_graph_must_be_single_serial_chain": true,
+    "forecast_stage_required": true
+  }
+}

@@ -1,0 +1,77 @@
+{
+  "schema_version": "compute-dynamic-time-series-policy-v1",
+  "status": "controlled-preview",
+  "family": "time-series",
+  "declared_operation": "time_series_forecast",
+  "planner": "ortools-cp-sat",
+  "graph_engine": "networkx",
+  "network_policy": "deny",
+  "model_calls": 0,
+  "objective_text_routing_allowed": false,
+  "structured_signals_only": true,
+  "dynamic_operation_discovery_allowed": false,
+  "ticket_supplied_code_allowed": false,
+  "automatic_parallel_execution": false,
+  "cycles_allowed": false,
+  "maximum_stages": 4,
+  "allowed_operations": [
+    "descriptive_statistics",
+    "pattern_discovery",
+    "assumption_validation",
+    "time_series_forecast"
+  ],
+  "allowed_adapters": [
+    "time_series_to_descriptive_statistics",
+    "time_series_to_pattern_discovery",
+    "time_series_to_assumption_validation",
+    "time_series_to_forecast"
+  ],
+  "solver_policy": {
+    "require_optimal_status": true,
+    "max_time_seconds": 2.0,
+    "num_search_workers": 1,
+    "random_seed": 20260807,
+    "exhaustive_cross_check_max_optional_nodes": 10
+  },
+  "selection_policy": {
+    "pattern_min_observations": 10,
+    "long_horizon_threshold": 5,
+    "stage_rules": {
+      "series_statistics": {
+        "operation": "descriptive_statistics",
+        "penalty": 10,
+        "benefits": {
+          "forecast_input_valid": 20,
+          "formal_decision": 5
+        },
+        "eligible_all": ["forecast_input_valid"],
+        "required_if_any": [],
+        "required_if_all": []
+      },
+      "pattern_diagnostics": {
+        "operation": "pattern_discovery",
+        "penalty": 25,
+        "benefits": {
+          "diagnostics_requested": 70,
+          "long_horizon": 20,
+          "formal_decision": 20,
+          "pattern_eligible": 10
+        },
+        "eligible_all": ["pattern_eligible"],
+        "required_if_any": [],
+        "required_if_all": []
+      },
+      "assumption_checks": {
+        "operation": "assumption_validation",
+        "penalty": 15,
+        "benefits": {
+          "assumptions_supplied": 100,
+          "formal_decision": 10
+        },
+        "eligible_all": ["assumptions_supplied"],
+        "required_if_any": ["assumptions_supplied"],
+        "required_if_all": []
+      }
+    }
+  }
+}
