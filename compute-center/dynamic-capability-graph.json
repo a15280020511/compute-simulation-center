@@ -1,6 +1,6 @@
 {
   "schema_version": "compute-dynamic-capability-graph-v1",
-  "status": "experimental",
+  "status": "controlled-preview",
   "graph_engine": "networkx",
   "selection_engine": "ortools-cp-sat",
   "nodes": [
