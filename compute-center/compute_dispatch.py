@@ -33,6 +33,9 @@ validate_ticket = compute_runner.validate_ticket
 ComputeError = compute_runner.ComputeError
 OPERATIONS = compute_runner.OPERATIONS
 
+DYNAMIC_PIPELINE_ID = "dynamic-auto-v1"
+DYNAMIC_STAGE_ID = "dynamic"
+
 
 def _utc_now() -> str:
     return datetime.now(timezone.utc).isoformat()
@@ -53,6 +56,16 @@ def _refresh_manifest(output_dir: Path) -> None:
 
 def _write_json(path: Path, value: Any) -> None:
     path.write_text(json.dumps(value, ensure_ascii=False, indent=2, allow_nan=False), encoding="utf-8")
+
+
+def _dynamic_pipeline_requested(ticket: Mapping[str, Any]) -> bool:
+    pipeline = ticket.get("pipeline")
+    return bool(
+        isinstance(pipeline, Mapping)
+        and str(pipeline.get("pipeline_id") or "") == DYNAMIC_PIPELINE_ID
+        and str(pipeline.get("stage_id") or "") == DYNAMIC_STAGE_ID
+        and str(ticket.get("operation") or "") == "scenario_compare"
+    )
 
 
 def _validate_relayed_material(output_dir: Path, ticket_path: Path) -> dict[str, Any]:
@@ -238,13 +251,24 @@ def main(argv: list[str] | None = None) -> int:
         preflight = _write_preflight(output_dir, ticket)
         if not preflight["execution_allowed"]:
             raise ComputeError(f"PREFLIGHT_BLOCKED:{preflight['status']}; GPTs must resolve data gaps or obtain required user approval")
-        pipeline_definition = resolve_pipeline_ticket(ticket)
-        if pipeline_definition is None:
-            stage = "execute_operation"
-            result = run_ticket(dict(ticket), output_dir)
+
+        if _dynamic_pipeline_requested(ticket):
+            # Lazy import keeps OR-Tools out of ordinary compute tasks. The workflow
+            # installs the pinned dependency only after tool_registry resolves the
+            # exact dynamic pipeline contract.
+            from dynamic_pipeline_planner import run_dynamic_pipeline_ticket  # noqa: PLC0415
+
+            stage = "execute_dynamic_pipeline"
+            result = run_dynamic_pipeline_ticket(dict(ticket), output_dir, OPERATIONS)
         else:
-            stage = "execute_pipeline"
-            result = run_pipeline_ticket(dict(ticket), output_dir, OPERATIONS)
+            pipeline_definition = resolve_pipeline_ticket(ticket)
+            if pipeline_definition is None:
+                stage = "execute_operation"
+                result = run_ticket(dict(ticket), output_dir)
+            else:
+                stage = "execute_pipeline"
+                result = run_pipeline_ticket(dict(ticket), output_dir, OPERATIONS)
+
         result["material_package"] = {
             "status": material_receipt["status"],
             "validation_file": "compute-material-package-validation.json",
