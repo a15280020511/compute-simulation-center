@@ -8,7 +8,7 @@ from typing import Any, Mapping
 
 from jsonschema import Draft202012Validator
 
-from capability_manager import load_registry
+from capability_manager import load_registry, supplemental_operation_registries
 from model_governance import GovernanceError, validate_ticket_governance
 
 HERE = Path(__file__).resolve().parent
@@ -25,10 +25,18 @@ def _managed_schema(operation: str) -> Mapping[str, Any] | None:
         modes = raw.get("modes")
         if not isinstance(modes, Mapping) or not modes:
             raise ValueError(f"managed operation has no mode allowlist: {operation}")
+        allowed_modes = {str(item) for item in modes}
+        for supplemental in supplemental_operation_registries():
+            if supplemental.get("target_operation") != operation:
+                continue
+            supplemental_modes = supplemental.get("modes") or {}
+            if not isinstance(supplemental_modes, Mapping):
+                raise ValueError(f"invalid supplemental mode registry for operation: {operation}")
+            allowed_modes.update(str(item) for item in supplemental_modes)
         return {
             "type": "object",
             "required": ["mode"],
-            "properties": {"mode": {"enum": sorted(str(item) for item in modes)}},
+            "properties": {"mode": {"enum": sorted(allowed_modes)}},
             "additionalProperties": True,
             "maxProperties": 100,
         }
