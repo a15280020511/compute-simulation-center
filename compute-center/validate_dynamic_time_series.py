@@ -27,15 +27,13 @@ def _ticket() -> dict[str, Any]:
             "horizon": 5,
             "expected_mean": sum(data) / len(data),
             "mean_tolerance": 20.0,
-            "dynamic_context": {
-                "time_series_diagnostics": True
-            }
+            "dynamic_context": {"time_series_diagnostics": True},
         },
         "pipeline": {
             "pipeline_id": "dynamic-auto-v1",
             "stage_id": "dynamic",
             "sequence_reason": "time-series family production dispatcher simulation",
-            "upstream_refs": []
+            "upstream_refs": [],
         },
         "preflight_policy": {
             "enforcement": "advisory",
@@ -44,7 +42,7 @@ def _ticket() -> dict[str, Any]:
             "require_user_approval_for_low_confidence": False,
             "max_assumption_ratio": 1.0,
             "small_sample_threshold": 2,
-            "outlier_rate_threshold": 1.0
+            "outlier_rate_threshold": 1.0,
         },
         "quality_profile": {
             "decision_class": "exploratory",
@@ -54,29 +52,18 @@ def _ticket() -> dict[str, Any]:
             "sample_ids": [],
             "rule_ids": [],
             "independent_cross_check_passed": False,
-            "publication_policy": "status_only"
-        }
+            "publication_policy": "status_only",
+        },
     }
 
 
 def _assert_source_safety() -> None:
     for name in ("dynamic_family_router.py", "dynamic_time_series_planner.py"):
         text = (HERE / name).read_text(encoding="utf-8")
-        for forbidden in (
-            "import requests",
-            "import socket",
-            "urllib.request",
-            "subprocess.",
-            "pickle.loads",
-            "import mcp",
-        ):
+        for forbidden in ("import requests", "import socket", "urllib.request", "subprocess.", "pickle.loads", "import mcp"):
             assert forbidden not in text, (name, forbidden)
         tree = ast.parse(text)
-        direct = {
-            node.func.id
-            for node in ast.walk(tree)
-            if isinstance(node, ast.Call) and isinstance(node.func, ast.Name)
-        }
+        direct = {node.func.id for node in ast.walk(tree) if isinstance(node, ast.Call) and isinstance(node.func, ast.Name)}
         assert {"eval", "exec", "compile"}.isdisjoint(direct), name
 
 
@@ -89,8 +76,8 @@ def _assert_fail_closed_router() -> None:
             "pipeline_id": "dynamic-auto-v1",
             "stage_id": "dynamic",
             "sequence_reason": "must fail closed",
-            "upstream_refs": []
-        }
+            "upstream_refs": [],
+        },
     }
     try:
         requirement_files_for_ticket(invalid)
@@ -110,6 +97,7 @@ def main() -> int:
         "entry_contract": "time_series_forecast",
         "policy_file": "dynamic-time-series-policy.json",
         "graph_file": "dynamic-time-series-capability-graph.json",
+        "extra_requirements": [],
     }
     requirements = requirement_files_for_ticket(ticket)
     assert len(requirements) == 1
@@ -118,6 +106,7 @@ def main() -> int:
     assert runtime["capability_pack"] == "dynamic-orchestration"
     assert runtime["dynamic_family"] == "time-series"
     assert runtime["dynamic_entry_contract"] == "time_series_forecast"
+    assert runtime["dynamic_extra_requirements"] == []
     assert runtime["network_policy"] == "deny"
     assert runtime["selection_engine"] == "ortools-cp-sat"
     assert runtime["graph_engine"] == "networkx"
