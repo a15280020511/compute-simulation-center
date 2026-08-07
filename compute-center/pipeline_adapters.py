@@ -69,11 +69,29 @@ def ticket_inputs(
     return _clone(initial_inputs)
 
 
+def scenario_ranking_to_descriptive_statistics(
+    initial_inputs: Mapping[str, Any],
+    stage_results: Mapping[str, Any],
+    stage: Mapping[str, Any],
+) -> dict[str, Any]:
+    del initial_inputs, stage
+    scenario_result = _mapping(stage_results.get("scenarios"), "stage results.scenarios")
+    ranking = _sequence(scenario_result.get("ranking"), "stage results.scenarios.ranking")
+    scores = [
+        _finite(_mapping(row, f"ranking[{index}]").get("score"), f"ranking[{index}].score")
+        for index, row in enumerate(ranking)
+    ]
+    if not scores:
+        raise PipelineAdapterError("scenario ranking is empty")
+    return {"data": scores}
+
+
 def scenario_ranking_to_sensitivity(
     initial_inputs: Mapping[str, Any],
     stage_results: Mapping[str, Any],
     stage: Mapping[str, Any],
 ) -> dict[str, Any]:
+    """Stable fixed-pipeline adapter; preserves the original fail-closed contract."""
     del stage
     model, ranking, best_values = _scenario_context(initial_inputs, stage_results)
     coefficients = _mapping(model.get("coefficients"), "model.coefficients")
@@ -92,6 +110,40 @@ def scenario_ranking_to_sensitivity(
         base = _finite(best_values.get(name), f"best scenario value[{name}]")
         variables.append({"name": str(name), "low": low, "base": base, "high": high})
     return {"model": _clone(model), "variables": variables}
+
+
+def dynamic_scenario_ranking_to_sensitivity(
+    initial_inputs: Mapping[str, Any],
+    stage_results: Mapping[str, Any],
+    stage: Mapping[str, Any],
+) -> dict[str, Any]:
+    """Dynamic-only adapter that safely conditions on scenario-constant variables."""
+    del stage
+    model, ranking, best_values = _scenario_context(initial_inputs, stage_results)
+    coefficients = _mapping(model.get("coefficients"), "model.coefficients")
+    intercept = _finite(model.get("intercept", 0.0), "model.intercept")
+    reduced_coefficients: dict[str, float] = {}
+    variables: list[dict[str, Any]] = []
+    for name, raw_coefficient in coefficients.items():
+        coefficient = _finite(raw_coefficient, f"model.coefficients[{name}]")
+        values = [
+            _finite(_mapping(row.get("values"), f"scenario[{index}].values").get(name), f"scenario[{index}].values[{name}]")
+            for index, row in enumerate(ranking)
+        ]
+        low = min(values)
+        high = max(values)
+        base = _finite(best_values.get(name), f"best scenario value[{name}]")
+        if low == high:
+            intercept += coefficient * low
+            continue
+        reduced_coefficients[str(name)] = coefficient
+        variables.append({"name": str(name), "low": low, "base": base, "high": high})
+    if not variables:
+        raise PipelineAdapterError("scenario-derived sensitivity requires at least one varying variable")
+    return {
+        "model": {"intercept": intercept, "coefficients": reduced_coefficients},
+        "variables": variables,
+    }
 
 
 def scenario_ranking_to_monte_carlo(
@@ -133,11 +185,54 @@ def scenario_ranking_to_monte_carlo(
     }
 
 
+def scenario_ranking_to_constrained_optimization(
+    initial_inputs: Mapping[str, Any],
+    stage_results: Mapping[str, Any],
+    stage: Mapping[str, Any],
+) -> dict[str, Any]:
+    del stage
+    model, ranking, _best_values = _scenario_context(initial_inputs, stage_results)
+    context = _mapping(initial_inputs.get("dynamic_context"), "ticket inputs.dynamic_context")
+    if context.get("continuous_decision_optimization") is not True:
+        raise PipelineAdapterError("continuous decision optimization was not explicitly authorized")
+    if context.get("allow_continuous_interpolation") is not True:
+        raise PipelineAdapterError("continuous interpolation was not explicitly authorized")
+    raw_names = _sequence(context.get("controllable_variables"), "dynamic_context.controllable_variables")
+    controllable = [str(item) for item in raw_names]
+    coefficients = _mapping(model.get("coefficients"), "model.coefficients")
+    model_names = [str(name) for name in coefficients]
+    if not controllable or len(controllable) != len(set(controllable)):
+        raise PipelineAdapterError("controllable_variables must be non-empty and unique")
+    if set(controllable) != set(model_names):
+        raise PipelineAdapterError("every model variable must be explicitly declared controllable")
+
+    bounds: list[list[float]] = []
+    objective: list[float] = []
+    for name in model_names:
+        values = [
+            _finite(_mapping(row.get("values"), f"scenario[{index}].values").get(name), f"scenario[{index}].values[{name}]")
+            for index, row in enumerate(ranking)
+        ]
+        bounds.append([min(values), max(values)])
+        objective.append(_finite(coefficients.get(name), f"model.coefficients[{name}]"))
+    return {
+        "objective": objective,
+        "maximize": True,
+        "variable_names": model_names,
+        "bounds": bounds,
+        "A_ub": [],
+        "b_ub": [],
+    }
+
+
 ADAPTERS: dict[
     str,
     Callable[[Mapping[str, Any], Mapping[str, Any], Mapping[str, Any]], dict[str, Any]],
 ] = {
     "ticket_inputs": ticket_inputs,
+    "scenario_ranking_to_descriptive_statistics": scenario_ranking_to_descriptive_statistics,
     "scenario_ranking_to_sensitivity": scenario_ranking_to_sensitivity,
+    "dynamic_scenario_ranking_to_sensitivity": dynamic_scenario_ranking_to_sensitivity,
     "scenario_ranking_to_monte_carlo": scenario_ranking_to_monte_carlo,
+    "scenario_ranking_to_constrained_optimization": scenario_ranking_to_constrained_optimization,
 }

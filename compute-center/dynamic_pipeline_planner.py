@@ -1,10 +1,12 @@
 #!/usr/bin/env python3
 """Policy-optimal dynamic orchestration for the isolated compute center.
 
-OR-Tools CP-SAT selects the globally optimal feasible subset of allowlisted stages under
-an explicit integer policy objective. NetworkX validates capability precedence and orders
-the selected stages. Free-form objective text never routes tools; only structured ticket
-signals do. Execution remains serial, offline, deterministic, and contract checked.
+OR-Tools CP-SAT selects the globally optimal feasible subset of allowlisted optional
+stages under an explicit integer policy objective. NetworkX validates the repository-
+controlled capability graph and provides deterministic serial precedence. Free-form
+objective text never routes tools; only structured ticket signals do. Execution remains
+serial, offline, deterministic, contract checked, and bounded by the existing compute
+center governance controls.
 """
 from __future__ import annotations
 
@@ -13,7 +15,7 @@ import itertools
 import json
 import platform
 import time
-from collections.abc import Mapping
+from collections.abc import Mapping, Sequence
 from pathlib import Path
 from typing import Any, Callable
 
@@ -29,6 +31,8 @@ POLICY_PATH = HERE / "dynamic-orchestration-policy.json"
 GRAPH_PATH = HERE / "dynamic-capability-graph.json"
 DYNAMIC_PIPELINE_ID = "dynamic-auto-v1"
 DYNAMIC_STAGE_ID = "dynamic"
+ENTRY_OPERATION = "scenario_compare"
+ENTRY_STAGE_ID = "scenarios"
 
 
 class DynamicPlanningError(ValueError):
@@ -67,13 +71,13 @@ def is_dynamic_pipeline_ticket(ticket: Mapping[str, Any]) -> bool:
         isinstance(pipeline, Mapping)
         and str(pipeline.get("pipeline_id") or "") == DYNAMIC_PIPELINE_ID
         and str(pipeline.get("stage_id") or "") == DYNAMIC_STAGE_ID
-        and str(ticket.get("operation") or "") == "scenario_compare"
+        and str(ticket.get("operation") or "") == ENTRY_OPERATION
     )
 
 
 def _load_policy() -> dict[str, Any]:
     value = _load_json(POLICY_PATH)
-    if value.get("schema_version") != "compute-dynamic-orchestration-policy-v4":
+    if value.get("schema_version") != "compute-dynamic-orchestration-policy-v5":
         raise DynamicPlanningError("invalid dynamic orchestration policy schema")
     expected = {
         "status": "controlled-preview",
@@ -101,9 +105,20 @@ def _load_policy() -> dict[str, Any]:
     if (
         activation.get("pipeline_id") != DYNAMIC_PIPELINE_ID
         or activation.get("stage_id") != DYNAMIC_STAGE_ID
-        or activation.get("entry_operation") != "scenario_compare"
+        or activation.get("entry_operation") != ENTRY_OPERATION
     ):
         raise DynamicPlanningError("dynamic production activation contract mismatch")
+
+    allowed_operations = value.get("allowed_operations")
+    allowed_adapters = value.get("allowed_adapters")
+    if not isinstance(allowed_operations, list) or not allowed_operations:
+        raise DynamicPlanningError("allowed_operations must be a non-empty array")
+    if not isinstance(allowed_adapters, list) or not allowed_adapters:
+        raise DynamicPlanningError("allowed_adapters must be a non-empty array")
+    if len(allowed_operations) != len(set(str(item) for item in allowed_operations)):
+        raise DynamicPlanningError("allowed_operations contains duplicates")
+    if len(allowed_adapters) != len(set(str(item) for item in allowed_adapters)):
+        raise DynamicPlanningError("allowed_adapters contains duplicates")
 
     solver_policy = value.get("solver_policy")
     if not isinstance(solver_policy, Mapping):
@@ -115,12 +130,46 @@ def _load_policy() -> dict[str, Any]:
     max_time = solver_policy.get("max_time_seconds")
     if isinstance(max_time, bool) or not isinstance(max_time, (int, float)) or not 0 < float(max_time) <= 10:
         raise DynamicPlanningError("solver max_time_seconds must be in (0,10]")
+    max_optional = int(solver_policy.get("exhaustive_cross_check_max_optional_nodes") or 0)
+    if not 1 <= max_optional <= 16:
+        raise DynamicPlanningError("exhaustive cross-check optional-node limit must be in [1,16]")
+
+    selection = value.get("selection_policy")
+    if not isinstance(selection, Mapping):
+        raise DynamicPlanningError("selection_policy is required")
+    rules = selection.get("stage_rules")
+    if not isinstance(rules, Mapping) or not rules:
+        raise DynamicPlanningError("selection_policy.stage_rules must be a non-empty object")
+    for node_id, raw_rule in rules.items():
+        if not isinstance(raw_rule, Mapping):
+            raise DynamicPlanningError(f"invalid stage rule: {node_id}")
+        if not str(raw_rule.get("operation") or ""):
+            raise DynamicPlanningError(f"stage rule operation missing: {node_id}")
+        penalty = raw_rule.get("penalty")
+        if isinstance(penalty, bool) or not isinstance(penalty, int) or penalty < 0:
+            raise DynamicPlanningError(f"stage rule penalty must be a non-negative integer: {node_id}")
+        benefits = raw_rule.get("benefits")
+        if not isinstance(benefits, Mapping):
+            raise DynamicPlanningError(f"stage rule benefits must be an object: {node_id}")
+        for signal, value_raw in benefits.items():
+            if not str(signal) or isinstance(value_raw, bool) or not isinstance(value_raw, int):
+                raise DynamicPlanningError(f"invalid benefit in stage rule: {node_id}")
+        for field in ("eligible_all", "required_if_any"):
+            raw = raw_rule.get(field, [])
+            if not isinstance(raw, list) or any(not isinstance(item, str) or not item for item in raw):
+                raise DynamicPlanningError(f"{field} must be a string array: {node_id}")
+        required_all = raw_rule.get("required_if_all", [])
+        if not isinstance(required_all, list):
+            raise DynamicPlanningError(f"required_if_all must be an array: {node_id}")
+        for group in required_all:
+            if not isinstance(group, list) or not group or any(not isinstance(item, str) or not item for item in group):
+                raise DynamicPlanningError(f"required_if_all groups must contain signal names: {node_id}")
     return value
 
 
 def _load_capability_graph(policy: Mapping[str, Any]) -> dict[str, Any]:
     value = _load_json(GRAPH_PATH)
-    if value.get("schema_version") != "compute-dynamic-capability-graph-v1":
+    if value.get("schema_version") != "compute-dynamic-capability-graph-v2":
         raise DynamicPlanningError("invalid dynamic capability graph schema")
     if value.get("status") != "controlled-preview":
         raise DynamicPlanningError("dynamic capability graph must remain controlled-preview")
@@ -136,6 +185,7 @@ def _load_capability_graph(policy: Mapping[str, Any]) -> dict[str, Any]:
         "ticket_supplied_edges_allowed": False,
         "cycles_allowed": False,
         "automatic_parallel_execution": False,
+        "full_graph_must_be_single_serial_chain": True,
     }
     for key, expected in expected_safety.items():
         if safety.get(key) != expected:
@@ -163,6 +213,23 @@ def _load_capability_graph(policy: Mapping[str, Any]) -> dict[str, Any]:
             raise DynamicPlanningError(f"capability node adapter not allowlisted: {adapter}")
         nodes[node_id] = node
 
+    if ENTRY_STAGE_ID not in nodes:
+        raise DynamicPlanningError("entry capability node is missing")
+    entry = nodes[ENTRY_STAGE_ID]
+    if entry.get("role") != "entry" or entry.get("operation") != ENTRY_OPERATION or entry.get("adapter") != "ticket_inputs":
+        raise DynamicPlanningError("entry capability node contract mismatch")
+    entry_nodes = [node_id for node_id, node in nodes.items() if node.get("role") == "entry"]
+    if entry_nodes != [ENTRY_STAGE_ID]:
+        raise DynamicPlanningError("dynamic capability graph must contain exactly one entry node")
+
+    rules = policy["selection_policy"]["stage_rules"]
+    optional_ids = set(nodes) - {ENTRY_STAGE_ID}
+    if optional_ids != {str(item) for item in rules}:
+        raise DynamicPlanningError("capability graph optional nodes must exactly match selection stage rules")
+    for node_id in optional_ids:
+        if str(rules[node_id]["operation"]) != str(nodes[node_id]["operation"]):
+            raise DynamicPlanningError(f"stage rule operation mismatch: {node_id}")
+
     precedence = value.get("precedence")
     if not isinstance(precedence, list):
         raise DynamicPlanningError("capability graph precedence must be an array")
@@ -174,12 +241,26 @@ def _load_capability_graph(policy: Mapping[str, Any]) -> dict[str, Any]:
         if left not in nodes or right not in nodes or left == right:
             raise DynamicPlanningError(f"invalid capability graph edge: {left}->{right}")
         edges.append((left, right))
+    if len(edges) != len(set(edges)):
+        raise DynamicPlanningError("duplicate capability graph edge")
+
     graph = nx.DiGraph()
     graph.add_nodes_from(nodes)
     graph.add_edges_from(edges)
     if not nx.is_directed_acyclic_graph(graph):
         raise DynamicPlanningError("capability graph contains a cycle")
-    return {"nodes": nodes, "precedence": edges}
+    full_order = list(nx.topological_sort(graph))
+    if not full_order or full_order[0] != ENTRY_STAGE_ID:
+        raise DynamicPlanningError("entry stage must be first in capability precedence")
+    expected_edges = set(zip(full_order, full_order[1:], strict=False))
+    if set(edges) != expected_edges:
+        raise DynamicPlanningError("full capability graph must be one explicit serial chain")
+    for index, node_id in enumerate(full_order):
+        expected_in = 0 if index == 0 else 1
+        expected_out = 0 if index == len(full_order) - 1 else 1
+        if graph.in_degree(node_id) != expected_in or graph.out_degree(node_id) != expected_out:
+            raise DynamicPlanningError("capability graph branching or disconnected nodes are forbidden")
+    return {"nodes": nodes, "precedence": edges, "full_order": full_order}
 
 
 def _uncertainty_count(ticket: Mapping[str, Any]) -> int:
@@ -206,7 +287,7 @@ def _uncertainty_count(ticket: Mapping[str, Any]) -> int:
     return count
 
 
-def _scenario_features(ticket: Mapping[str, Any]) -> tuple[int, int]:
+def _scenario_features(ticket: Mapping[str, Any]) -> tuple[int, int, dict[str, set[float]]]:
     inputs = ticket.get("inputs")
     if not isinstance(inputs, Mapping):
         raise DynamicPlanningError("ticket inputs must be an object")
@@ -222,7 +303,7 @@ def _scenario_features(ticket: Mapping[str, Any]) -> tuple[int, int]:
                 raise DynamicPlanningError(f"scenario value must be numeric: {name}")
             values_by_name.setdefault(str(name), set()).add(float(raw))
     varied = sum(len(values) > 1 for values in values_by_name.values())
-    return len(scenarios), varied
+    return len(scenarios), varied, values_by_name
 
 
 def _decision_class(ticket: Mapping[str, Any]) -> str:
@@ -234,6 +315,42 @@ def _decision_class(ticket: Mapping[str, Any]) -> str:
 def _probabilistic_claim(ticket: Mapping[str, Any]) -> bool:
     profile = ticket.get("quality_profile")
     return bool(profile.get("probabilistic_claim", False)) if isinstance(profile, Mapping) else False
+
+
+def _continuous_decision_signal(ticket: Mapping[str, Any], values_by_name: Mapping[str, set[float]]) -> bool:
+    inputs = ticket.get("inputs")
+    if not isinstance(inputs, Mapping):
+        return False
+    context = inputs.get("dynamic_context")
+    if context is None:
+        return False
+    if not isinstance(context, Mapping):
+        raise DynamicPlanningError("inputs.dynamic_context must be an object")
+    requested = context.get("continuous_decision_optimization") is True
+    if not requested:
+        return False
+    if context.get("allow_continuous_interpolation") is not True:
+        raise DynamicPlanningError("continuous optimization requires allow_continuous_interpolation=true")
+    raw_names = context.get("controllable_variables")
+    if isinstance(raw_names, (str, bytes)) or not isinstance(raw_names, Sequence):
+        raise DynamicPlanningError("continuous optimization requires controllable_variables array")
+    names = [str(item) for item in raw_names]
+    if not names or len(names) != len(set(names)):
+        raise DynamicPlanningError("controllable_variables must be non-empty and unique")
+    model = inputs.get("model")
+    coefficients = model.get("coefficients") if isinstance(model, Mapping) else None
+    if not isinstance(coefficients, Mapping) or not coefficients:
+        raise DynamicPlanningError("continuous optimization requires model coefficients")
+    model_names = {str(name) for name in coefficients}
+    if set(names) != model_names:
+        raise DynamicPlanningError("every model variable must be explicitly declared controllable")
+    for name in names:
+        values = values_by_name.get(name)
+        if not values or len(values) < 2:
+            raise DynamicPlanningError(
+                f"continuous optimization requires at least two observed scenario values for controllable variable {name}"
+            )
+    return True
 
 
 def _deterministic_seed(ticket: Mapping[str, Any]) -> int:
@@ -257,99 +374,99 @@ def _selection_signals(
     uncertainty_count: int,
     probabilistic: bool,
     decision_class: str,
-) -> dict[str, Any]:
+    continuous_decision: bool,
+) -> dict[str, bool]:
     selection = policy["selection_policy"]
+    variable_variation = varied_variable_count > 0
     return {
+        "variable_variation": variable_variation,
+        "scenario_summary_eligible": scenario_count >= int(selection["statistics_min_scenarios"]),
         "scenario_structure": (
             scenario_count >= int(selection["sensitivity_min_scenarios"])
-            and varied_variable_count > 0
+            and variable_variation
         ),
         "uncertainty_trigger": uncertainty_count >= int(selection["uncertainty_trigger_count"]),
         "formal_decision": decision_class in {"formal", "high_stakes"},
         "high_stakes_uncertainty": decision_class == "high_stakes" and uncertainty_count > 0,
         "probabilistic_claim": probabilistic,
+        "continuous_decision_optimization": continuous_decision,
     }
 
 
-def _stage_utilities(policy: Mapping[str, Any], signals: Mapping[str, Any]) -> dict[str, int]:
-    selection = policy["selection_policy"]
-    benefit = selection["benefit"]
-    penalty = selection["stage_penalty"]
-    sensitivity = -int(penalty["sensitivity_analysis"])
-    sensitivity += int(benefit["sensitivity_from_scenario_structure"]) * int(bool(signals["scenario_structure"]))
-    sensitivity += int(benefit["sensitivity_from_uncertainty"]) * int(bool(signals["uncertainty_trigger"]))
-    sensitivity += int(benefit["sensitivity_from_formal_decision"]) * int(bool(signals["formal_decision"]))
+def _rule_eligible(rule: Mapping[str, Any], signals: Mapping[str, bool]) -> bool:
+    eligible_all = [str(item) for item in rule.get("eligible_all", [])]
+    return all(bool(signals.get(name, False)) for name in eligible_all)
 
-    risk = -int(penalty["monte_carlo"])
-    risk += int(benefit["monte_carlo_from_probabilistic_claim"]) * int(bool(signals["probabilistic_claim"]))
-    risk += int(benefit["monte_carlo_from_uncertainty"]) * int(bool(signals["uncertainty_trigger"]))
-    risk += int(benefit["monte_carlo_from_formal_decision"]) * int(bool(signals["formal_decision"]))
-    return {"sensitivity": sensitivity, "risk_simulation": risk}
+
+def _rule_required(rule: Mapping[str, Any], signals: Mapping[str, bool]) -> bool:
+    if any(bool(signals.get(str(name), False)) for name in rule.get("required_if_any", [])):
+        return True
+    for group in rule.get("required_if_all", []):
+        if all(bool(signals.get(str(name), False)) for name in group):
+            return True
+    return False
+
+
+def _stage_utilities(policy: Mapping[str, Any], signals: Mapping[str, bool]) -> dict[str, int]:
+    rules = policy["selection_policy"]["stage_rules"]
+    utilities: dict[str, int] = {}
+    for node_id, rule in rules.items():
+        score = -int(rule["penalty"])
+        for signal_name, benefit in rule["benefits"].items():
+            score += int(benefit) * int(bool(signals.get(str(signal_name), False)))
+        utilities[str(node_id)] = score
+    return utilities
 
 
 def _selection_feasible(
-    sensitivity: bool,
-    risk: bool,
+    selected: Mapping[str, bool],
     *,
     policy: Mapping[str, Any],
-    signals: Mapping[str, Any],
-    varied_variable_count: int,
+    signals: Mapping[str, bool],
 ) -> bool:
-    hard = policy["selection_policy"]["hard_constraints"]
-    if sensitivity and varied_variable_count == 0:
+    rules = policy["selection_policy"]["stage_rules"]
+    if set(selected) != {str(item) for item in rules}:
         return False
-    if bool(hard["probabilistic_claim_requires_risk_simulation"]) and signals["probabilistic_claim"] and not risk:
-        return False
-    if bool(hard["uncertainty_trigger_requires_risk_simulation"]) and signals["uncertainty_trigger"] and not risk:
-        return False
-    if bool(hard["high_stakes_uncertainty_requires_risk_simulation"]) and signals["high_stakes_uncertainty"] and not risk:
-        return False
-    if (
-        bool(hard["high_stakes_uncertainty_requires_sensitivity"])
-        and signals["high_stakes_uncertainty"]
-        and varied_variable_count > 0
-        and not sensitivity
-    ):
-        return False
+    for node_id, rule in rules.items():
+        chosen = bool(selected[str(node_id)])
+        if chosen and not _rule_eligible(rule, signals):
+            return False
+        if _rule_required(rule, signals) and not chosen:
+            return False
     return True
 
 
 def _exhaustive_cross_check(
     *,
     policy: Mapping[str, Any],
-    signals: Mapping[str, Any],
-    varied_variable_count: int,
+    signals: Mapping[str, bool],
+    optional_ids: list[str],
     utilities: Mapping[str, int],
-    selected: tuple[bool, bool],
+    selected: Mapping[str, bool],
     solver_objective: int,
 ) -> dict[str, Any]:
     max_nodes = int(policy["solver_policy"]["exhaustive_cross_check_max_optional_nodes"])
-    optional_nodes = 2
-    if optional_nodes > max_nodes:
+    if len(optional_ids) > max_nodes:
         return {"performed": False, "reason": "optional-node-count-exceeds-policy"}
     feasible: list[dict[str, Any]] = []
-    for sensitivity, risk in itertools.product((False, True), repeat=2):
-        if not _selection_feasible(
-            sensitivity,
-            risk,
-            policy=policy,
-            signals=signals,
-            varied_variable_count=varied_variable_count,
-        ):
+    for bits in itertools.product((False, True), repeat=len(optional_ids)):
+        candidate = dict(zip(optional_ids, bits, strict=True))
+        if not _selection_feasible(candidate, policy=policy, signals=signals):
             continue
-        score = int(utilities["sensitivity"]) * int(sensitivity) + int(utilities["risk_simulation"]) * int(risk)
-        feasible.append({"selection": [sensitivity, risk], "objective": score})
+        score = sum(int(utilities[node_id]) * int(candidate[node_id]) for node_id in optional_ids)
+        feasible.append({"selection": candidate, "objective": score})
     if not feasible:
         raise DynamicPlanningError("no feasible selections exist during exhaustive cross-check")
     best = max(row["objective"] for row in feasible)
     optimal = [row["selection"] for row in feasible if row["objective"] == best]
-    passed = solver_objective == best and list(selected) in optimal
+    passed = solver_objective == best and dict(selected) in optimal
     if not passed:
         raise DynamicPlanningError(
             f"CP-SAT optimum disagrees with exhaustive cross-check: solver={solver_objective}, exhaustive={best}"
         )
     return {
         "performed": True,
+        "optional_node_count": len(optional_ids),
         "feasible_selection_count": len(feasible),
         "best_objective": best,
         "optimal_selections": optimal,
@@ -360,42 +477,28 @@ def _exhaustive_cross_check(
 def _solve_stage_selection(
     *,
     policy: Mapping[str, Any],
-    scenario_count: int,
-    varied_variable_count: int,
-    uncertainty_count: int,
-    probabilistic: bool,
-    decision_class: str,
+    capability_graph: Mapping[str, Any],
+    signals: Mapping[str, bool],
 ) -> dict[str, Any]:
-    signals = _selection_signals(
-        policy=policy,
-        scenario_count=scenario_count,
-        varied_variable_count=varied_variable_count,
-        uncertainty_count=uncertainty_count,
-        probabilistic=probabilistic,
-        decision_class=decision_class,
-    )
+    rules = policy["selection_policy"]["stage_rules"]
+    optional_ids = [node_id for node_id in capability_graph["full_order"] if node_id != ENTRY_STAGE_ID]
+    if optional_ids != [str(item) for item in rules]:
+        raise DynamicPlanningError("stage rule order must match capability graph precedence")
     utilities = _stage_utilities(policy, signals)
-    hard = policy["selection_policy"]["hard_constraints"]
 
     model = cp_model.CpModel()
-    sensitivity = model.new_bool_var("select_sensitivity")
-    risk = model.new_bool_var("select_risk_simulation")
-    if varied_variable_count == 0:
-        model.add(sensitivity == 0)
-    if bool(hard["probabilistic_claim_requires_risk_simulation"]) and probabilistic:
-        model.add(risk == 1)
-    if bool(hard["uncertainty_trigger_requires_risk_simulation"]) and signals["uncertainty_trigger"]:
-        model.add(risk == 1)
-    if bool(hard["high_stakes_uncertainty_requires_risk_simulation"]) and signals["high_stakes_uncertainty"]:
-        model.add(risk == 1)
-    if (
-        bool(hard["high_stakes_uncertainty_requires_sensitivity"])
-        and signals["high_stakes_uncertainty"]
-        and varied_variable_count > 0
-    ):
-        model.add(sensitivity == 1)
+    variables = {
+        node_id: model.new_bool_var(f"select_{node_id}")
+        for node_id in optional_ids
+    }
+    for node_id in optional_ids:
+        rule = rules[node_id]
+        if not _rule_eligible(rule, signals):
+            model.add(variables[node_id] == 0)
+        if _rule_required(rule, signals):
+            model.add(variables[node_id] == 1)
+    model.maximize(sum(int(utilities[node_id]) * variables[node_id] for node_id in optional_ids))
 
-    model.maximize(int(utilities["sensitivity"]) * sensitivity + int(utilities["risk_simulation"]) * risk)
     solver = cp_model.CpSolver()
     solver_policy = policy["solver_policy"]
     solver.parameters.num_search_workers = int(solver_policy["num_search_workers"])
@@ -408,26 +511,25 @@ def _solve_stage_selection(
     if status not in {cp_model.OPTIMAL, cp_model.FEASIBLE}:
         raise DynamicPlanningError(f"OR-Tools could not find a feasible selection: {status_name}")
 
-    sensitivity_selected = bool(solver.value(sensitivity))
-    risk_selected = bool(solver.value(risk))
+    selected = {node_id: bool(solver.value(variables[node_id])) for node_id in optional_ids}
     objective = int(round(solver.objective_value))
     cross_check = _exhaustive_cross_check(
         policy=policy,
         signals=signals,
-        varied_variable_count=varied_variable_count,
+        optional_ids=optional_ids,
         utilities=utilities,
-        selected=(sensitivity_selected, risk_selected),
+        selected=selected,
         solver_objective=objective,
     )
     return {
-        "sensitivity": sensitivity_selected,
-        "monte_carlo": risk_selected,
+        "selected_nodes": selected,
         "solver_status": status_name,
         "objective_value": objective,
         "global_optimal_proven": status == cp_model.OPTIMAL and bool(cross_check.get("passed", True)),
+        "utility_by_node": {node_id: int(utilities[node_id]) for node_id in optional_ids},
         "utility": {
-            "sensitivity_analysis": int(utilities["sensitivity"]),
-            "monte_carlo": int(utilities["risk_simulation"]),
+            str(rules[node_id]["operation"]): int(utilities[node_id])
+            for node_id in optional_ids
         },
         "signals": dict(signals),
         "solver_policy": {
@@ -437,28 +539,39 @@ def _solve_stage_selection(
             "require_optimal_status": True,
         },
         "exhaustive_cross_check": cross_check,
+        "scenario_statistics": bool(selected.get("scenario_statistics", False)),
+        "sensitivity": bool(selected.get("sensitivity", False)),
+        "monte_carlo": bool(selected.get("risk_simulation", False)),
+        "constrained_optimization": bool(selected.get("decision_optimization", False)),
     }
 
 
-def _build_selected_graph(selected_ids: list[str], capability_graph: Mapping[str, Any]) -> list[str]:
-    selected = set(selected_ids)
-    graph = nx.DiGraph()
-    graph.add_nodes_from(selected_ids)
-    for left, right in capability_graph["precedence"]:
-        if left not in selected or right not in selected:
-            continue
-        if left == "scenarios" and right == "risk_simulation" and "sensitivity" in selected:
-            continue
-        graph.add_edge(left, right)
-    if not nx.is_directed_acyclic_graph(graph):
+def _build_selected_order(
+    solution: Mapping[str, Any],
+    capability_graph: Mapping[str, Any],
+    maximum_stages: int,
+) -> list[str]:
+    selected_optional = solution.get("selected_nodes")
+    if not isinstance(selected_optional, Mapping):
+        raise DynamicPlanningError("selected_nodes missing from solver result")
+    ordered = [
+        node_id
+        for node_id in capability_graph["full_order"]
+        if node_id == ENTRY_STAGE_ID or bool(selected_optional.get(node_id, False))
+    ]
+    if not ordered or ordered[0] != ENTRY_STAGE_ID:
+        raise DynamicPlanningError("selected dynamic plan lost its entry stage")
+    if len(ordered) > maximum_stages:
+        raise DynamicPlanningError("dynamic plan exceeds maximum stages")
+    runtime_graph = nx.DiGraph()
+    runtime_graph.add_nodes_from(ordered)
+    runtime_graph.add_edges_from(zip(ordered, ordered[1:], strict=False))
+    if not nx.is_directed_acyclic_graph(runtime_graph):
         raise DynamicPlanningError("selected dynamic plan contains a cycle")
-    ordered = list(nx.topological_sort(graph))
-    if len(graph.edges) != max(0, len(ordered) - 1):
-        raise DynamicPlanningError("selected dynamic plan must be a single serial chain")
     for index, stage_id in enumerate(ordered):
         expected_in = 0 if index == 0 else 1
         expected_out = 0 if index == len(ordered) - 1 else 1
-        if graph.in_degree(stage_id) != expected_in or graph.out_degree(stage_id) != expected_out:
+        if runtime_graph.in_degree(stage_id) != expected_in or runtime_graph.out_degree(stage_id) != expected_out:
             raise DynamicPlanningError("dynamic branching or disconnected stages are forbidden")
     return ordered
 
@@ -467,30 +580,29 @@ def plan_dynamic_pipeline(ticket: Mapping[str, Any]) -> dict[str, Any]:
     policy = _load_policy()
     capability_graph = _load_capability_graph(policy)
     operation = str(ticket.get("operation") or "")
-    if operation != "scenario_compare":
+    if operation != ENTRY_OPERATION:
         raise DynamicPlanningError("controlled-preview dynamic planner supports scenario_compare entry tickets only")
 
-    scenario_count, varied_variable_count = _scenario_features(ticket)
+    scenario_count, varied_variable_count, values_by_name = _scenario_features(ticket)
     uncertainty_count = _uncertainty_count(ticket)
     probabilistic = _probabilistic_claim(ticket)
     decision_class = _decision_class(ticket)
-    solution = _solve_stage_selection(
+    continuous_decision = _continuous_decision_signal(ticket, values_by_name)
+    signals = _selection_signals(
         policy=policy,
         scenario_count=scenario_count,
         varied_variable_count=varied_variable_count,
         uncertainty_count=uncertainty_count,
         probabilistic=probabilistic,
         decision_class=decision_class,
+        continuous_decision=continuous_decision,
     )
-
-    selected_ids = ["scenarios"]
-    if solution["sensitivity"]:
-        selected_ids.append("sensitivity")
-    if solution["monte_carlo"]:
-        selected_ids.append("risk_simulation")
-    ordered = _build_selected_graph(selected_ids, capability_graph)
-    if len(ordered) > int(policy["maximum_stages"]):
-        raise DynamicPlanningError("dynamic plan exceeds maximum stages")
+    solution = _solve_stage_selection(
+        policy=policy,
+        capability_graph=capability_graph,
+        signals=signals,
+    )
+    ordered = _build_selected_order(solution, capability_graph, int(policy["maximum_stages"]))
 
     nodes = capability_graph["nodes"]
     stage_map: dict[str, dict[str, Any]] = {}
@@ -518,10 +630,19 @@ def plan_dynamic_pipeline(ticket: Mapping[str, Any]) -> dict[str, Any]:
     ]
     if solution["exhaustive_cross_check"].get("performed"):
         reasons.append("independent exhaustive enumeration matched the CP-SAT global optimum")
-    if solution["sensitivity"]:
-        reasons.append(f"sensitivity_analysis selected with utility={solution['utility']['sensitivity_analysis']}")
-    if solution["monte_carlo"]:
-        reasons.append(f"monte_carlo selected with utility={solution['utility']['monte_carlo']}")
+    rules = policy["selection_policy"]["stage_rules"]
+    for stage_id in ordered:
+        if stage_id == ENTRY_STAGE_ID:
+            continue
+        operation_name = str(rules[stage_id]["operation"])
+        reasons.append(
+            f"{operation_name} selected with utility={solution['utility_by_node'][stage_id]}"
+        )
+    if continuous_decision:
+        reasons.append(
+            "constrained optimization eligibility came only from explicit structured authorization: "
+            "continuous_decision_optimization=true, allow_continuous_interpolation=true, and complete controllable_variables"
+        )
 
     return {
         "id": DYNAMIC_PIPELINE_ID,
@@ -540,6 +661,7 @@ def plan_dynamic_pipeline(ticket: Mapping[str, Any]) -> dict[str, Any]:
             "uncertainty_signal_count": uncertainty_count,
             "probabilistic_claim": probabilistic,
             "decision_class": decision_class,
+            "continuous_decision_optimization": continuous_decision,
         },
         "planning_reasons": reasons,
         "optimization": solution,
@@ -566,7 +688,7 @@ def _execute_plan(
     state: dict[str, Any] | None = None
     if output_dir is not None:
         state = {
-            "schema_version": "compute-dynamic-pipeline-state-v1",
+            "schema_version": "compute-dynamic-pipeline-state-v2",
             "pipeline_id": plan["id"],
             "status": "RUNNING",
             "planning_mode": plan["planning_mode"],
