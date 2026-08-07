@@ -1,13 +1,15 @@
 #!/usr/bin/env python3
-"""Experimental optimized dynamic orchestration for the isolated compute center.
+"""Experimental policy-optimal dynamic orchestration for the isolated compute center.
 
-OR-Tools CP-SAT selects the best feasible subset of allowlisted analytical stages under
-an explicit integer objective. NetworkX validates and orders the resulting dependency
-graph. Free-form objective text never routes tools; only structured ticket signals do.
+OR-Tools CP-SAT selects the globally optimal feasible subset of allowlisted stages under
+an explicit integer policy objective. NetworkX validates capability precedence and orders
+the selected stages. Free-form objective text never routes tools; only structured ticket
+signals do. Execution remains serial, offline, deterministic, and contract checked.
 """
 from __future__ import annotations
 
 import hashlib
+import itertools
 import json
 from collections.abc import Mapping
 from pathlib import Path
@@ -38,7 +40,7 @@ def _load_json(path: Path) -> dict[str, Any]:
 
 def _load_policy() -> dict[str, Any]:
     value = _load_json(POLICY_PATH)
-    if value.get("schema_version") != "compute-dynamic-orchestration-policy-v2":
+    if value.get("schema_version") != "compute-dynamic-orchestration-policy-v3":
         raise DynamicPlanningError("invalid dynamic orchestration policy schema")
     expected = {
         "status": "experimental",
@@ -59,6 +61,17 @@ def _load_policy() -> dict[str, Any]:
             raise DynamicPlanningError(f"unsafe dynamic orchestration policy: {key}")
     if int(value.get("maximum_stages") or 0) != 8:
         raise DynamicPlanningError("maximum_stages must equal 8")
+
+    solver_policy = value.get("solver_policy")
+    if not isinstance(solver_policy, Mapping):
+        raise DynamicPlanningError("solver_policy is required")
+    if solver_policy.get("require_optimal_status") is not True:
+        raise DynamicPlanningError("dynamic orchestration must require OPTIMAL solver status")
+    if int(solver_policy.get("num_search_workers") or 0) != 1:
+        raise DynamicPlanningError("dynamic orchestration must use one deterministic CP-SAT worker")
+    max_time = solver_policy.get("max_time_seconds")
+    if isinstance(max_time, bool) or not isinstance(max_time, (int, float)) or not 0 < float(max_time) <= 10:
+        raise DynamicPlanningError("solver max_time_seconds must be in (0,10]")
     return value
 
 
@@ -70,6 +83,7 @@ def _load_capability_graph(policy: Mapping[str, Any]) -> dict[str, Any]:
         raise DynamicPlanningError("dynamic capability graph must remain experimental")
     if value.get("graph_engine") != "networkx" or value.get("selection_engine") != "ortools-cp-sat":
         raise DynamicPlanningError("dynamic capability graph engine mismatch")
+
     safety = value.get("safety")
     if not isinstance(safety, Mapping):
         raise DynamicPlanningError("dynamic capability graph safety policy missing")
@@ -90,6 +104,7 @@ def _load_capability_graph(policy: Mapping[str, Any]) -> dict[str, Any]:
     nodes: dict[str, dict[str, Any]] = {}
     allowed_operations = {str(item) for item in policy["allowed_operations"]}
     allowed_adapters = {str(item) for item in policy["allowed_adapters"]}
+    contracts = load_contracts()
     for raw in raw_nodes:
         if not isinstance(raw, Mapping):
             raise DynamicPlanningError("capability graph node must be an object")
@@ -99,8 +114,8 @@ def _load_capability_graph(policy: Mapping[str, Any]) -> dict[str, Any]:
         adapter = str(node.get("adapter") or "")
         if not node_id or node_id in nodes:
             raise DynamicPlanningError(f"invalid or duplicate capability node: {node_id!r}")
-        if operation not in allowed_operations:
-            raise DynamicPlanningError(f"capability node operation not allowlisted: {operation}")
+        if operation not in allowed_operations or operation not in contracts:
+            raise DynamicPlanningError(f"capability node operation is not contract-allowlisted: {operation}")
         if adapter not in allowed_adapters or adapter not in ADAPTERS:
             raise DynamicPlanningError(f"capability node adapter not allowlisted: {adapter}")
         nodes[node_id] = node
@@ -135,7 +150,9 @@ def _uncertainty_count(ticket: Mapping[str, Any]) -> int:
             confidence = str(row.get("confidence") or "")
             source_type = str(row.get("source_type") or "")
             if confidence in {"low", "medium"} or source_type in {
-                "proxy", "gpts_assumption", "expert_hypothesis",
+                "proxy",
+                "gpts_assumption",
+                "expert_hypothesis",
             }:
                 count += 1
     assumptions = ticket.get("assumptions")
@@ -189,7 +206,7 @@ def _deterministic_seed(ticket: Mapping[str, Any]) -> int:
     return int(hashlib.sha256(raw.encode("utf-8")).hexdigest()[:8], 16)
 
 
-def _solve_stage_selection(
+def _selection_signals(
     *,
     policy: Mapping[str, Any],
     scenario_count: int,
@@ -199,79 +216,197 @@ def _solve_stage_selection(
     decision_class: str,
 ) -> dict[str, Any]:
     selection = policy["selection_policy"]
-    benefit = selection["benefit"]
-    penalty = selection["stage_penalty"]
-    sensitivity_structural_signal = (
-        scenario_count >= int(selection["sensitivity_min_scenarios"])
-        and varied_variable_count > 0
-    )
-    uncertainty_trigger = uncertainty_count >= int(selection["uncertainty_trigger_count"])
-    formal_signal = decision_class in {"formal", "high_stakes"}
-
-    sensitivity_utility = -int(penalty["sensitivity_analysis"])
-    sensitivity_utility += int(benefit["sensitivity_from_scenario_structure"]) * int(sensitivity_structural_signal)
-    sensitivity_utility += int(benefit["sensitivity_from_uncertainty"]) * int(uncertainty_trigger)
-    sensitivity_utility += int(benefit["sensitivity_from_formal_decision"]) * int(formal_signal)
-
-    monte_carlo_utility = -int(penalty["monte_carlo"])
-    monte_carlo_utility += int(benefit["monte_carlo_from_probabilistic_claim"]) * int(probabilistic)
-    monte_carlo_utility += int(benefit["monte_carlo_from_uncertainty"]) * int(uncertainty_trigger)
-    monte_carlo_utility += int(benefit["monte_carlo_from_formal_decision"]) * int(formal_signal)
-
-    model = cp_model.CpModel()
-    sensitivity = model.new_bool_var("select_sensitivity")
-    monte_carlo = model.new_bool_var("select_monte_carlo")
-
-    if varied_variable_count == 0:
-        model.add(sensitivity == 0)
-    if probabilistic:
-        model.add(monte_carlo == 1)
-    if uncertainty_trigger:
-        model.add(monte_carlo == 1)
-    if decision_class == "high_stakes" and uncertainty_count > 0 and varied_variable_count > 0:
-        model.add(sensitivity == 1)
-
-    model.maximize(sensitivity_utility * sensitivity + monte_carlo_utility * monte_carlo)
-    solver = cp_model.CpSolver()
-    solver.parameters.num_search_workers = 1
-    solver.parameters.random_seed = 0
-    solver.parameters.max_time_in_seconds = 1.0
-    status = solver.solve(model)
-    if status not in {cp_model.OPTIMAL, cp_model.FEASIBLE}:
-        raise DynamicPlanningError("OR-Tools could not find a feasible dynamic stage selection")
-
     return {
-        "sensitivity": bool(solver.value(sensitivity)),
-        "monte_carlo": bool(solver.value(monte_carlo)),
-        "solver_status": solver.status_name(status),
-        "objective_value": int(round(solver.objective_value)),
-        "utility": {
-            "sensitivity_analysis": sensitivity_utility,
-            "monte_carlo": monte_carlo_utility,
-        },
-        "signals": {
-            "sensitivity_structural_signal": sensitivity_structural_signal,
-            "uncertainty_trigger": uncertainty_trigger,
-            "formal_signal": formal_signal,
-        },
+        "scenario_structure": (
+            scenario_count >= int(selection["sensitivity_min_scenarios"])
+            and varied_variable_count > 0
+        ),
+        "uncertainty_trigger": uncertainty_count >= int(selection["uncertainty_trigger_count"]),
+        "formal_decision": decision_class in {"formal", "high_stakes"},
+        "high_stakes_uncertainty": decision_class == "high_stakes" and uncertainty_count > 0,
+        "probabilistic_claim": probabilistic,
     }
 
 
-def _build_selected_graph(
-    selected_ids: list[str],
-    capability_graph: Mapping[str, Any],
-) -> list[str]:
+def _stage_utilities(policy: Mapping[str, Any], signals: Mapping[str, Any]) -> dict[str, int]:
+    selection = policy["selection_policy"]
+    benefit = selection["benefit"]
+    penalty = selection["stage_penalty"]
+    sensitivity = -int(penalty["sensitivity_analysis"])
+    sensitivity += int(benefit["sensitivity_from_scenario_structure"]) * int(bool(signals["scenario_structure"]))
+    sensitivity += int(benefit["sensitivity_from_uncertainty"]) * int(bool(signals["uncertainty_trigger"]))
+    sensitivity += int(benefit["sensitivity_from_formal_decision"]) * int(bool(signals["formal_decision"]))
+
+    risk = -int(penalty["monte_carlo"])
+    risk += int(benefit["monte_carlo_from_probabilistic_claim"]) * int(bool(signals["probabilistic_claim"]))
+    risk += int(benefit["monte_carlo_from_uncertainty"]) * int(bool(signals["uncertainty_trigger"]))
+    risk += int(benefit["monte_carlo_from_formal_decision"]) * int(bool(signals["formal_decision"]))
+    return {"sensitivity": sensitivity, "risk_simulation": risk}
+
+
+def _selection_feasible(
+    sensitivity: bool,
+    risk: bool,
+    *,
+    policy: Mapping[str, Any],
+    signals: Mapping[str, Any],
+    varied_variable_count: int,
+) -> bool:
+    hard = policy["selection_policy"]["hard_constraints"]
+    if sensitivity and varied_variable_count == 0:
+        return False
+    if bool(hard["probabilistic_claim_requires_risk_simulation"]) and signals["probabilistic_claim"] and not risk:
+        return False
+    if bool(hard["uncertainty_trigger_requires_risk_simulation"]) and signals["uncertainty_trigger"] and not risk:
+        return False
+    if bool(hard["high_stakes_uncertainty_requires_risk_simulation"]) and signals["high_stakes_uncertainty"] and not risk:
+        return False
+    if (
+        bool(hard["high_stakes_uncertainty_requires_sensitivity"])
+        and signals["high_stakes_uncertainty"]
+        and varied_variable_count > 0
+        and not sensitivity
+    ):
+        return False
+    return True
+
+
+def _exhaustive_cross_check(
+    *,
+    policy: Mapping[str, Any],
+    signals: Mapping[str, Any],
+    varied_variable_count: int,
+    utilities: Mapping[str, int],
+    selected: tuple[bool, bool],
+    solver_objective: int,
+) -> dict[str, Any]:
+    max_nodes = int(policy["solver_policy"]["exhaustive_cross_check_max_optional_nodes"])
+    optional_nodes = 2
+    if optional_nodes > max_nodes:
+        return {"performed": False, "reason": "optional-node-count-exceeds-policy"}
+    feasible: list[dict[str, Any]] = []
+    for sensitivity, risk in itertools.product((False, True), repeat=2):
+        if not _selection_feasible(
+            sensitivity,
+            risk,
+            policy=policy,
+            signals=signals,
+            varied_variable_count=varied_variable_count,
+        ):
+            continue
+        score = int(utilities["sensitivity"]) * int(sensitivity) + int(utilities["risk_simulation"]) * int(risk)
+        feasible.append({"selection": [sensitivity, risk], "objective": score})
+    if not feasible:
+        raise DynamicPlanningError("no feasible selections exist during exhaustive cross-check")
+    best = max(row["objective"] for row in feasible)
+    optimal = [row["selection"] for row in feasible if row["objective"] == best]
+    passed = solver_objective == best and list(selected) in optimal
+    if not passed:
+        raise DynamicPlanningError(
+            f"CP-SAT optimum disagrees with exhaustive cross-check: solver={solver_objective}, exhaustive={best}"
+        )
+    return {
+        "performed": True,
+        "feasible_selection_count": len(feasible),
+        "best_objective": best,
+        "optimal_selections": optimal,
+        "passed": True,
+    }
+
+
+def _solve_stage_selection(
+    *,
+    policy: Mapping[str, Any],
+    scenario_count: int,
+    varied_variable_count: int,
+    uncertainty_count: int,
+    probabilistic: bool,
+    decision_class: str,
+) -> dict[str, Any]:
+    signals = _selection_signals(
+        policy=policy,
+        scenario_count=scenario_count,
+        varied_variable_count=varied_variable_count,
+        uncertainty_count=uncertainty_count,
+        probabilistic=probabilistic,
+        decision_class=decision_class,
+    )
+    utilities = _stage_utilities(policy, signals)
+    hard = policy["selection_policy"]["hard_constraints"]
+
+    model = cp_model.CpModel()
+    sensitivity = model.new_bool_var("select_sensitivity")
+    risk = model.new_bool_var("select_risk_simulation")
+    if varied_variable_count == 0:
+        model.add(sensitivity == 0)
+    if bool(hard["probabilistic_claim_requires_risk_simulation"]) and probabilistic:
+        model.add(risk == 1)
+    if bool(hard["uncertainty_trigger_requires_risk_simulation"]) and signals["uncertainty_trigger"]:
+        model.add(risk == 1)
+    if bool(hard["high_stakes_uncertainty_requires_risk_simulation"]) and signals["high_stakes_uncertainty"]:
+        model.add(risk == 1)
+    if (
+        bool(hard["high_stakes_uncertainty_requires_sensitivity"])
+        and signals["high_stakes_uncertainty"]
+        and varied_variable_count > 0
+    ):
+        model.add(sensitivity == 1)
+
+    model.maximize(int(utilities["sensitivity"]) * sensitivity + int(utilities["risk_simulation"]) * risk)
+    solver = cp_model.CpSolver()
+    solver_policy = policy["solver_policy"]
+    solver.parameters.num_search_workers = int(solver_policy["num_search_workers"])
+    solver.parameters.random_seed = int(solver_policy["random_seed"])
+    solver.parameters.max_time_in_seconds = float(solver_policy["max_time_seconds"])
+    status = solver.solve(model)
+    status_name = solver.status_name(status)
+    if solver_policy["require_optimal_status"] and status != cp_model.OPTIMAL:
+        raise DynamicPlanningError(f"CP-SAT must prove OPTIMAL; observed status={status_name}")
+    if status not in {cp_model.OPTIMAL, cp_model.FEASIBLE}:
+        raise DynamicPlanningError(f"OR-Tools could not find a feasible selection: {status_name}")
+
+    sensitivity_selected = bool(solver.value(sensitivity))
+    risk_selected = bool(solver.value(risk))
+    objective = int(round(solver.objective_value))
+    cross_check = _exhaustive_cross_check(
+        policy=policy,
+        signals=signals,
+        varied_variable_count=varied_variable_count,
+        utilities=utilities,
+        selected=(sensitivity_selected, risk_selected),
+        solver_objective=objective,
+    )
+    return {
+        "sensitivity": sensitivity_selected,
+        "monte_carlo": risk_selected,
+        "solver_status": status_name,
+        "objective_value": objective,
+        "global_optimal_proven": status == cp_model.OPTIMAL and bool(cross_check.get("passed", True)),
+        "utility": {
+            "sensitivity_analysis": int(utilities["sensitivity"]),
+            "monte_carlo": int(utilities["risk_simulation"]),
+        },
+        "signals": dict(signals),
+        "solver_policy": {
+            "num_search_workers": int(solver_policy["num_search_workers"]),
+            "random_seed": int(solver_policy["random_seed"]),
+            "max_time_seconds": float(solver_policy["max_time_seconds"]),
+            "require_optimal_status": True,
+        },
+        "exhaustive_cross_check": cross_check,
+    }
+
+
+def _build_selected_graph(selected_ids: list[str], capability_graph: Mapping[str, Any]) -> list[str]:
     selected = set(selected_ids)
     graph = nx.DiGraph()
     graph.add_nodes_from(selected_ids)
-    precedence = list(capability_graph["precedence"])
-    for left, right in precedence:
-        if left in selected and right in selected:
-            # Add only transitive-reduction-compatible precedence. If sensitivity is
-            # selected between scenarios and risk, avoid a direct scenarios->risk edge.
-            if left == "scenarios" and right == "risk_simulation" and "sensitivity" in selected:
-                continue
-            graph.add_edge(left, right)
+    for left, right in capability_graph["precedence"]:
+        if left not in selected or right not in selected:
+            continue
+        if left == "scenarios" and right == "risk_simulation" and "sensitivity" in selected:
+            continue
+        graph.add_edge(left, right)
     if not nx.is_directed_acyclic_graph(graph):
         raise DynamicPlanningError("selected dynamic plan contains a cycle")
     ordered = list(nx.topological_sort(graph))
@@ -318,13 +453,13 @@ def plan_dynamic_pipeline(ticket: Mapping[str, Any]) -> dict[str, Any]:
 
     nodes = capability_graph["nodes"]
     stage_map: dict[str, dict[str, Any]] = {}
-    for stage_id in ordered:
+    for index, stage_id in enumerate(ordered):
         node = nodes[stage_id]
-        stage = {
+        stage: dict[str, Any] = {
             "id": stage_id,
             "operation": str(node["operation"]),
             "adapter": str(node["adapter"]),
-            "depends_on": [] if stage_id == ordered[0] else [ordered[ordered.index(stage_id) - 1]],
+            "depends_on": [] if index == 0 else [ordered[index - 1]],
         }
         if stage_id == "risk_simulation":
             stage["fixed_parameters"] = {
@@ -336,25 +471,21 @@ def plan_dynamic_pipeline(ticket: Mapping[str, Any]) -> dict[str, Any]:
     reasons = [
         "scenario_compare is the declared entry operation",
         (
-            "OR-Tools CP-SAT selected the optimal feasible optional-stage subset under "
-            f"the explicit policy objective; status={solution['solver_status']}, objective={solution['objective_value']}"
+            "OR-Tools CP-SAT proved the policy-optimal feasible optional-stage subset; "
+            f"status={solution['solver_status']}, objective={solution['objective_value']}"
         ),
     ]
+    if solution["exhaustive_cross_check"].get("performed"):
+        reasons.append("independent exhaustive enumeration matched the CP-SAT global optimum")
     if solution["sensitivity"]:
-        reasons.append(
-            "sensitivity_analysis selected with utility="
-            f"{solution['utility']['sensitivity_analysis']}"
-        )
+        reasons.append(f"sensitivity_analysis selected with utility={solution['utility']['sensitivity_analysis']}")
     if solution["monte_carlo"]:
-        reasons.append(
-            "monte_carlo selected with utility="
-            f"{solution['utility']['monte_carlo']}"
-        )
+        reasons.append(f"monte_carlo selected with utility={solution['utility']['monte_carlo']}")
 
     return {
-        "id": "dynamic-auto-v2",
+        "id": "dynamic-auto-v3",
         "maturity": "experimental",
-        "planning_mode": "structured-signal-optimized-dynamic",
+        "planning_mode": "structured-signal-policy-optimal-dynamic",
         "selection_engine": "ortools-cp-sat",
         "graph_engine": "networkx",
         "objective_text_used": False,
@@ -369,8 +500,8 @@ def plan_dynamic_pipeline(ticket: Mapping[str, Any]) -> dict[str, Any]:
             "probabilistic_claim": probabilistic,
             "decision_class": decision_class,
         },
-        "optimization": solution,
         "planning_reasons": reasons,
+        "optimization": solution,
         "network_policy": "deny",
         "automatic_parallel_execution": False,
         "model_calls": 0,
@@ -411,22 +542,24 @@ def execute_dynamic_pipeline(
         except PipelineEngineError as exc:
             raise DynamicPlanningError(str(exc)) from exc
         stage_results[stage_id] = result_dict
-        receipts.append({
-            "stage_id": stage_id,
-            "operation": operation,
-            "adapter": str(stage["adapter"]),
-            "status": "PASS",
-        })
+        receipts.append(
+            {
+                "stage_id": stage_id,
+                "operation": operation,
+                "adapter": str(stage["adapter"]),
+                "status": "PASS",
+            }
+        )
 
     return {
         "status": "PASS",
-        "planner": "structured-signal-optimized-dynamic",
-        "selection_engine": "ortools-cp-sat",
-        "graph_engine": "networkx",
+        "planner": plan["planning_mode"],
+        "selection_engine": plan["selection_engine"],
+        "graph_engine": plan["graph_engine"],
         "stage_order": plan["stage_order"],
         "planning_features": plan["planning_features"],
-        "optimization": plan["optimization"],
         "planning_reasons": plan["planning_reasons"],
+        "optimization": plan["optimization"],
         "receipts": receipts,
         "final_result": stage_results[plan["result_stage"]],
         "network_used": False,
