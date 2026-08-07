@@ -1,6 +1,6 @@
 {
-  "schema_version": "compute-dynamic-orchestration-policy-v3",
-  "status": "experimental",
+  "schema_version": "compute-dynamic-orchestration-policy-v4",
+  "status": "controlled-preview",
   "planner": "ortools-cp-sat",
   "graph_engine": "networkx",
   "network_policy": "deny",
@@ -13,6 +13,11 @@
   "automatic_parallel_execution": false,
   "cycles_allowed": false,
   "maximum_stages": 8,
+  "production_activation": {
+    "pipeline_id": "dynamic-auto-v1",
+    "stage_id": "dynamic",
+    "entry_operation": "scenario_compare"
+  },
   "allowed_operations": [
     "scenario_compare",
     "sensitivity_analysis",
