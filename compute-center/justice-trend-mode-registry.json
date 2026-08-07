@@ -1,0 +1,25 @@
+{
+  "schema_version": "justice-trend-mode-registry-v1",
+  "target_operation": "finance_decision_analysis",
+  "capability_pack": "justice-trend-analysis",
+  "status": "controlled-preview",
+  "network_policy": "deny",
+  "arbitrary_code_allowed": false,
+  "mode_requirements": {
+    "justice_trend_analysis": []
+  },
+  "modes": {
+    "justice_trend_analysis": {
+      "maturity": "controlled-preview",
+      "network_policy": "deny",
+      "deterministic": true,
+      "limits": {
+        "max_signal_rows": 100000,
+        "max_capability_rows": 5000,
+        "max_outcome_rows": 100000,
+        "max_time_windows": 20
+      },
+      "interpretation": "Quantifies only supplied public verified evidence. Scores are evidence indices, not secret-capability estimates or nationwide deployment percentages."
+    }
+  }
+}
