@@ -21,6 +21,7 @@ HERE = Path(__file__).resolve().parent
 REGISTRY_PATH = HERE / "tool-registry.json"
 THINK_TANK_REGISTRY_PATH = HERE / "think-tank-mode-registry.json"
 INSTITUTIONAL_EXPANSION_PATH = HERE / "institutional-expansion-mode-registry.json"
+JUSTICE_TREND_EXPANSION_PATH = HERE / "justice-trend-mode-registry.json"
 MODULE_RE = re.compile(r"^[a-z][a-z0-9_]{2,63}$")
 REQUIREMENT_RE = re.compile(r"^requirements-[a-z0-9-]+\.txt$")
 MODE_RE = re.compile(r"^[a-z][a-z0-9_]{2,63}$")
@@ -77,47 +78,82 @@ def _requirement_files(rows: Any, group_id: str) -> list[str]:
     return result
 
 
-def load_institutional_expansion() -> dict[str, Any]:
-    if not INSTITUTIONAL_EXPANSION_PATH.is_file():
+def _load_supplemental_operation_registry(
+    path: Path,
+    *,
+    schema_version: str,
+    capability_pack: str,
+) -> dict[str, Any]:
+    if not path.is_file():
         return {
-            "schema_version": "institutional-expansion-mode-registry-v1",
+            "schema_version": schema_version,
             "target_operation": "finance_decision_analysis",
-            "capability_pack": "institutional-expansion",
+            "capability_pack": capability_pack,
             "network_policy": "deny",
             "arbitrary_code_allowed": False,
             "modes": {},
             "mode_requirements": {},
         }
-    value = json.loads(INSTITUTIONAL_EXPANSION_PATH.read_text(encoding="utf-8"))
-    if not isinstance(value, Mapping) or value.get("schema_version") != "institutional-expansion-mode-registry-v1":
-        raise RuntimeError("invalid institutional expansion registry schema")
+    value = json.loads(path.read_text(encoding="utf-8"))
+    if not isinstance(value, Mapping) or value.get("schema_version") != schema_version:
+        raise RuntimeError(f"invalid supplemental registry schema: {path.name}")
     if value.get("target_operation") != "finance_decision_analysis":
-        raise RuntimeError("institutional expansion target operation is invalid")
+        raise RuntimeError(f"supplemental target operation is invalid: {path.name}")
     if value.get("network_policy") != "deny" or value.get("arbitrary_code_allowed") is not False:
-        raise RuntimeError("institutional expansion violates offline or arbitrary-code policy")
+        raise RuntimeError(f"supplemental registry violates offline or arbitrary-code policy: {path.name}")
     modes = value.get("modes")
     requirements = value.get("mode_requirements")
     if not isinstance(modes, Mapping) or not modes or not isinstance(requirements, Mapping):
-        raise RuntimeError("institutional expansion registry is incomplete")
+        raise RuntimeError(f"supplemental registry is incomplete: {path.name}")
     if set(modes) != set(requirements):
-        raise RuntimeError("institutional expansion mode and requirement keys differ")
+        raise RuntimeError(f"supplemental mode and requirement keys differ: {path.name}")
     validated_modes = {}
     validated_requirements = {}
     for mode, raw in modes.items():
         name = str(mode)
         if not MODE_RE.fullmatch(name) or not isinstance(raw, Mapping):
-            raise RuntimeError(f"invalid institutional expansion mode: {name}")
+            raise RuntimeError(f"invalid supplemental mode: {name}")
         metadata = dict(raw)
         if metadata.get("maturity") != "controlled-preview":
-            raise RuntimeError(f"institutional expansion mode must remain controlled-preview: {name}")
+            raise RuntimeError(f"supplemental mode must remain controlled-preview: {name}")
         if metadata.get("network_policy") != "deny" or metadata.get("deterministic") is not True:
-            raise RuntimeError(f"unsafe institutional expansion metadata: {name}")
+            raise RuntimeError(f"unsafe supplemental mode metadata: {name}")
         limits = metadata.get("limits")
-        if not isinstance(limits, Mapping) or not limits or any(not isinstance(item, int) or item <= 0 for item in limits.values()):
-            raise RuntimeError(f"institutional expansion mode limits are invalid: {name}")
+        if not isinstance(limits, Mapping) or not limits or any(
+            not isinstance(item, int) or item <= 0 for item in limits.values()
+        ):
+            raise RuntimeError(f"supplemental mode limits are invalid: {name}")
         validated_modes[name] = metadata
-        validated_requirements[name] = _requirement_files(requirements[name], "institutional-expansion")
+        validated_requirements[name] = _requirement_files(requirements[name], capability_pack)
     return {**dict(value), "modes": validated_modes, "mode_requirements": validated_requirements}
+
+
+def load_institutional_expansion() -> dict[str, Any]:
+    return _load_supplemental_operation_registry(
+        INSTITUTIONAL_EXPANSION_PATH,
+        schema_version="institutional-expansion-mode-registry-v1",
+        capability_pack="institutional-expansion",
+    )
+
+
+def load_justice_trend_expansion() -> dict[str, Any]:
+    return _load_supplemental_operation_registry(
+        JUSTICE_TREND_EXPANSION_PATH,
+        schema_version="justice-trend-mode-registry-v1",
+        capability_pack="justice-trend-analysis",
+    )
+
+
+def supplemental_operation_registries() -> list[dict[str, Any]]:
+    registries = [load_institutional_expansion(), load_justice_trend_expansion()]
+    seen_modes: set[str] = set()
+    for registry in registries:
+        modes = set(str(mode) for mode in registry.get("modes", {}))
+        duplicate = sorted(seen_modes & modes)
+        if duplicate:
+            raise RuntimeError(f"supplemental mode registered more than once: {duplicate}")
+        seen_modes |= modes
+    return registries
 
 
 def load_registry() -> dict[str, Any]:
@@ -247,12 +283,19 @@ def group_for_operation(operation: str) -> dict[str, Any] | None:
     return None
 
 
+def _supplemental_for_ticket(operation: str, mode: str) -> dict[str, Any] | None:
+    for registry in supplemental_operation_registries():
+        if operation == registry.get("target_operation") and mode in registry.get("modes", {}):
+            return registry
+    return None
+
+
 def requirements_for_ticket(ticket: Mapping[str, Any]) -> list[str]:
     operation = str(ticket.get("operation") or "")
     inputs = ticket.get("inputs")
     mode = str(inputs.get("mode") or "") if isinstance(inputs, Mapping) else ""
-    supplemental = load_institutional_expansion()
-    if operation == supplemental.get("target_operation") and mode in supplemental.get("mode_requirements", {}):
+    supplemental = _supplemental_for_ticket(operation, mode)
+    if supplemental is not None:
         return [str(HERE / filename) for filename in supplemental["mode_requirements"][mode]]
     group = group_for_operation(operation)
     if group is None:
@@ -268,18 +311,18 @@ def runtime_plan(ticket: Mapping[str, Any]) -> dict[str, Any]:
     operation = str(ticket.get("operation") or "")
     inputs = ticket.get("inputs")
     mode = str(inputs.get("mode") or "") if isinstance(inputs, Mapping) else ""
-    supplemental = load_institutional_expansion()
-    supplemental_metadata = supplemental.get("modes", {}).get(mode) if operation == supplemental.get("target_operation") else None
-    if isinstance(supplemental_metadata, Mapping):
+    supplemental = _supplemental_for_ticket(operation, mode)
+    if supplemental is not None:
+        metadata = supplemental["modes"][mode]
         return {
             "schema_version": "compute-runtime-plan-v2",
             "operation": operation,
             "mode": mode,
-            "capability_pack": supplemental.get("capability_pack", "institutional-expansion"),
+            "capability_pack": supplemental.get("capability_pack", "supplemental"),
             "requirements": requirements_for_ticket(ticket),
             "network_policy": "deny",
             "deterministic": True,
-            "limits": dict(supplemental_metadata["limits"]),
+            "limits": dict(metadata["limits"]),
             "maturity": "controlled-preview",
             "rollback": {"stable_module": "decision_intelligence_gateway", "strategy": "git-revert"},
             "managed": True,
@@ -327,12 +370,16 @@ def main() -> int:
     args = parser.parse_args()
     if args.command == "validate":
         operations = load_registered_operations()
-        supplemental = load_institutional_expansion()
+        supplemental_modes = sorted(
+            mode
+            for registry in supplemental_operation_registries()
+            for mode in registry.get("modes", {})
+        )
         print(json.dumps({
             "status": "PASS",
             "manager_version": 2,
             "registered_operations": sorted(operations),
-            "supplemental_modes": sorted(supplemental.get("modes", {})),
+            "supplemental_modes": supplemental_modes,
         }))
         return 0
     ticket = json.loads(Path(args.ticket).read_text(encoding="utf-8"))
