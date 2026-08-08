@@ -45,17 +45,16 @@ def optimization_ticket_to_primary(
 ) -> dict[str, Any]:
     del stage_results, stage
     variables, constraints, maximize = _problem(initial_inputs)
-    result = {
+    return {
         "mode": "mixed_integer_optimization",
         "variables": [dict(row) for row in variables],
         "constraints": [dict(row) for row in constraints],
         "maximize": maximize,
         "time_limit_seconds": int(initial_inputs.get("time_limit_seconds", 20)),
     }
-    return result
 
 
-def optimization_problem_to_highs_relaxation(
+def optimization_problem_to_gekko_relaxation(
     initial_inputs: Mapping[str, Any],
     stage_results: Mapping[str, Mapping[str, Any]],
     stage: Mapping[str, Any],
@@ -123,8 +122,6 @@ def optimization_problem_to_highs_relaxation(
         bounds.append(upper)
 
     if not matrix:
-        # algebraic_resource_optimization requires a non-empty matrix; a very loose
-        # deterministic row preserves the original feasible region for bounded tickets.
         matrix.append([0.0] * len(names))
         bounds.append(0.0)
 
@@ -134,7 +131,7 @@ def optimization_problem_to_highs_relaxation(
         "constraint_matrix": matrix,
         "constraint_bounds": bounds,
         "maximize": maximize,
-        "solver_engine": "highs",
+        "solver_engine": "gekko",
     }
 
 
@@ -199,7 +196,7 @@ def optimization_primary_to_external_benchmark(
 def install_optimization_adapters() -> None:
     adapters = {
         "optimization_ticket_to_primary": optimization_ticket_to_primary,
-        "optimization_problem_to_highs_relaxation": optimization_problem_to_highs_relaxation,
+        "optimization_problem_to_gekko_relaxation": optimization_problem_to_gekko_relaxation,
         "optimization_primary_relaxation_to_bound_audit": optimization_primary_relaxation_to_bound_audit,
         "optimization_primary_to_external_benchmark": optimization_primary_to_external_benchmark,
     }
