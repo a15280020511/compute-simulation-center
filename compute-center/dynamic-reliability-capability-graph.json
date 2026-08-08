@@ -1,0 +1,66 @@
+{
+  "schema_version": "compute-dynamic-reliability-capability-graph-v1",
+  "status": "controlled-preview",
+  "family": "reliability",
+  "selection_engine": "ortools-cp-sat",
+  "graph_engine": "networkx",
+  "safety": {
+    "dynamic_operation_discovery_allowed": false,
+    "ticket_supplied_nodes_allowed": false,
+    "ticket_supplied_edges_allowed": false,
+    "ticket_supplied_code_allowed": false,
+    "cycles_allowed": false,
+    "automatic_parallel_execution": false,
+    "branching_allowed": true,
+    "execution_remains_strict_serial": true
+  },
+  "node_order": [
+    "sample_statistics",
+    "analytic_reliability",
+    "monte_carlo_validation",
+    "analytic_mc_agreement",
+    "external_benchmark"
+  ],
+  "nodes": {
+    "sample_statistics": {
+      "operation": "descriptive_statistics",
+      "adapter": "reliability_ticket_to_statistics",
+      "required": true,
+      "result_required": false
+    },
+    "analytic_reliability": {
+      "operation": "finance_decision_analysis",
+      "mode": "openturns_reliability_probability",
+      "adapter": "statistics_to_openturns_reliability",
+      "required": true,
+      "result_required": true
+    },
+    "monte_carlo_validation": {
+      "operation": "monte_carlo",
+      "adapter": "statistics_to_reliability_monte_carlo",
+      "required": false,
+      "result_required": false
+    },
+    "analytic_mc_agreement": {
+      "operation": "finance_decision_analysis",
+      "mode": "benchmark_comparison",
+      "adapter": "analytic_mc_to_benchmark",
+      "required": false,
+      "result_required": false
+    },
+    "external_benchmark": {
+      "operation": "finance_decision_analysis",
+      "mode": "benchmark_comparison",
+      "adapter": "analytic_reliability_to_external_benchmark",
+      "required": false,
+      "result_required": false
+    }
+  },
+  "precedence": [
+    ["sample_statistics", "analytic_reliability"],
+    ["sample_statistics", "monte_carlo_validation"],
+    ["analytic_reliability", "analytic_mc_agreement"],
+    ["monte_carlo_validation", "analytic_mc_agreement"],
+    ["analytic_reliability", "external_benchmark"]
+  ]
+}
