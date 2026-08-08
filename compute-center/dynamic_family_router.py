@@ -30,6 +30,7 @@ FAMILY_BY_OPERATION_MODE = {
     ("finance_decision_analysis", "mixed_integer_optimization"): "optimization",
     ("finance_decision_analysis", "open_spiel_policy_evaluation"): "game-theory",
     ("finance_decision_analysis", "evidently_data_drift"): "drift",
+    ("finance_decision_analysis", "policy_microsimulation"): "policy-simulation",
 }
 INDIRECT_INTELLIGENCE_REQUIREMENTS = [
     "requirements-ortools.txt",
@@ -246,6 +247,20 @@ def resolve_dynamic_family(ticket: Mapping[str, Any]) -> str:
             raise DynamicFamilyRoutingError("drift_context must be an object when supplied")
         return family
 
+    if family == "policy-simulation":
+        if operation != "finance_decision_analysis" or mode != "policy_microsimulation":
+            raise DynamicFamilyRoutingError("policy-simulation family requires finance_decision_analysis:policy_microsimulation")
+        incomes = _sequence(inputs.get("incomes"), "inputs.incomes")
+        if not 10 <= len(incomes) <= 100_000:
+            raise DynamicFamilyRoutingError("policy-simulation family requires 10 to 100000 incomes")
+        brackets = _sequence(inputs.get("tax_brackets"), "inputs.tax_brackets")
+        if len(brackets) > 100:
+            raise DynamicFamilyRoutingError("policy-simulation family admits at most 100 tax brackets")
+        context = inputs.get("policy_context")
+        if context is not None and not isinstance(context, Mapping):
+            raise DynamicFamilyRoutingError("policy_context must be an object when supplied")
+        return family
+
     raise DynamicFamilyRoutingError(f"unsupported dynamic family: {family}")
 
 
@@ -274,6 +289,8 @@ def family_runtime_metadata(ticket: Mapping[str, Any]) -> dict[str, Any]:
     if family == "drift":
         requirements = ["requirements-ortools.txt", *drift_requirements(), "requirements-thinktank-econometrics.txt"]
         return {"family": family, "entry_contract": "finance_decision_analysis:evidently_data_drift", "policy_file": "dynamic-drift-policy.json", "graph_file": "dynamic-drift-capability-graph.json", "python_version": "3.12", "requirements": requirements}
+    if family == "policy-simulation":
+        return {"family": family, "entry_contract": "finance_decision_analysis:policy_microsimulation", "policy_file": "dynamic-policy-simulation-policy.json", "graph_file": "dynamic-policy-simulation-capability-graph.json", "python_version": "3.12", "requirements": ["requirements-ortools.txt"]}
     raise DynamicFamilyRoutingError(f"unsupported dynamic family: {family}")
 
 
@@ -312,4 +329,7 @@ def run_dynamic_family_ticket(ticket: Mapping[str, Any], output_dir: Path, opera
     if family == "drift":
         from dynamic_drift_planner import run_dynamic_drift_ticket
         return run_dynamic_drift_ticket(ticket, output_dir, operations)
+    if family == "policy-simulation":
+        from dynamic_policy_simulation_planner import run_dynamic_policy_simulation_ticket
+        return run_dynamic_policy_simulation_ticket(ticket, output_dir, operations)
     raise DynamicFamilyRoutingError(f"unsupported dynamic family: {family}")
