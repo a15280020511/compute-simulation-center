@@ -1,0 +1,58 @@
+{
+  "schema_version": "compute-dynamic-drift-capability-graph-v1",
+  "status": "controlled-preview",
+  "family": "drift",
+  "selection_engine": "ortools-cp-sat",
+  "graph_engine": "networkx",
+  "safety": {
+    "dynamic_operation_discovery_allowed": false,
+    "ticket_supplied_nodes_allowed": false,
+    "ticket_supplied_edges_allowed": false,
+    "ticket_supplied_code_allowed": false,
+    "cycles_allowed": false,
+    "automatic_parallel_execution": false,
+    "branching_allowed": true,
+    "execution_remains_strict_serial": true
+  },
+  "node_order": [
+    "distribution_drift",
+    "adwin_cross_check",
+    "change_point_cross_check",
+    "drift_share_audit"
+  ],
+  "nodes": {
+    "distribution_drift": {
+      "operation": "finance_decision_analysis",
+      "mode": "evidently_data_drift",
+      "adapter": "drift_ticket_to_evidently",
+      "required": true,
+      "result_required": true
+    },
+    "adwin_cross_check": {
+      "operation": "finance_decision_analysis",
+      "mode": "river_adwin_drift",
+      "adapter": "evidently_to_adwin",
+      "required": false,
+      "result_required": false
+    },
+    "change_point_cross_check": {
+      "operation": "finance_decision_analysis",
+      "mode": "change_point_detection",
+      "adapter": "evidently_to_change_point",
+      "required": false,
+      "result_required": false
+    },
+    "drift_share_audit": {
+      "operation": "finance_decision_analysis",
+      "mode": "benchmark_comparison",
+      "adapter": "evidently_to_drift_share_audit",
+      "required": false,
+      "result_required": false
+    }
+  },
+  "precedence": [
+    ["distribution_drift", "adwin_cross_check"],
+    ["distribution_drift", "change_point_cross_check"],
+    ["distribution_drift", "drift_share_audit"]
+  ]
+}
