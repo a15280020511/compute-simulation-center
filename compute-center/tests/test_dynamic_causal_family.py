@@ -6,6 +6,7 @@ import unittest
 from pathlib import Path
 
 import compute_dispatch
+from causal_policy_gateway import INTERPRETER
 from dynamic_causal_policy_planner import (
     DynamicCausalPolicyError,
     causal_quality_gate,
@@ -171,6 +172,8 @@ class DynamicCausalFamilyTests(unittest.TestCase):
         self.assertFalse(gate["causal_claim_allowed"])
 
     def test_real_dowhy_execution_runs_full_high_stakes_family_serially(self) -> None:
+        if not INTERPRETER.is_file():
+            self.skipTest("isolated DoWhy runtime is exercised in the dedicated dynamic causal workflow")
         ticket = causal_ticket(
             task_id="causal-real-full",
             decision_class="high_stakes",
