@@ -1,0 +1,78 @@
+{
+  "schema_version": "compute-dynamic-calibration-policy-v1",
+  "status": "controlled-preview",
+  "family": "calibration",
+  "declared_operation": "finance_decision_analysis",
+  "declared_mode": "lmfit_exponential_calibration",
+  "planner": "ortools-cp-sat",
+  "graph_engine": "networkx",
+  "network_policy": "deny",
+  "model_calls": 0,
+  "objective_text_routing_allowed": false,
+  "structured_signals_only": true,
+  "dynamic_operation_discovery_allowed": false,
+  "ticket_supplied_code_allowed": false,
+  "automatic_parallel_execution": false,
+  "cycles_allowed": false,
+  "branching_allowed": true,
+  "maximum_stages": 5,
+  "allowed_operations": ["finance_decision_analysis", "descriptive_statistics"],
+  "allowed_entry_modes": ["lmfit_exponential_calibration"],
+  "allowed_adapters": [
+    "calibration_ticket_to_lmfit",
+    "calibration_to_residual_statistics",
+    "residual_statistics_to_rmse_audit",
+    "residual_statistics_to_bias_audit",
+    "calibration_to_parameter_target_audit"
+  ],
+  "solver_policy": {
+    "require_optimal_status": true,
+    "num_search_workers": 1,
+    "random_seed": 0,
+    "max_time_seconds": 5.0,
+    "exhaustive_cross_check_max_optional_nodes": 8
+  },
+  "selection_policy": {
+    "stage_rules": {
+      "residual_statistics": {
+        "penalty": 10,
+        "benefits": {
+          "residual_profile_requested": 90,
+          "rmse_consistency_requested": 120,
+          "residual_bias_target_available": 120,
+          "formal_or_high_stakes": 25
+        },
+        "required_if_any": ["residual_profile_requested", "rmse_consistency_requested", "residual_bias_target_available"]
+      },
+      "rmse_consistency_audit": {
+        "penalty": 5,
+        "benefits": {
+          "rmse_consistency_requested": 150,
+          "formal_or_high_stakes": 30
+        },
+        "eligible_all": ["rmse_consistency_requested"],
+        "required_if_any": ["rmse_consistency_requested"],
+        "requires_selected": ["residual_statistics"]
+      },
+      "residual_bias_audit": {
+        "penalty": 5,
+        "benefits": {
+          "residual_bias_target_available": 140,
+          "formal_or_high_stakes": 20
+        },
+        "eligible_all": ["residual_bias_target_available"],
+        "required_if_any": ["residual_bias_target_available"],
+        "requires_selected": ["residual_statistics"]
+      },
+      "parameter_target_audit": {
+        "penalty": 5,
+        "benefits": {
+          "parameter_targets_available": 150,
+          "formal_or_high_stakes": 20
+        },
+        "eligible_all": ["parameter_targets_available"],
+        "required_if_any": ["parameter_targets_available"]
+      }
+    }
+  }
+}
