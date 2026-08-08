@@ -11,7 +11,7 @@ from dynamic_assignment_optimization_planner import (
     plan_dynamic_assignment_optimization,
     run_dynamic_assignment_optimization_ticket,
 )
-from dynamic_family_router import family_runtime_metadata, resolve_dynamic_family
+from dynamic_family_router import DynamicFamilyRoutingError, family_runtime_metadata, resolve_dynamic_family
 
 PIPELINE = {"pipeline_id": "dynamic-auto-v1", "stage_id": "dynamic", "sequence_reason": "assignment dynamic-family test", "upstream_refs": []}
 COSTS = [[9.0, 2.0, 7.0], [6.0, 4.0, 3.0], [5.0, 8.0, 1.0], [7.0, 6.0, 9.0]]
@@ -67,12 +67,12 @@ class DynamicAssignmentOptimizationFamilyTests(unittest.TestCase):
 
     def test_require_all_tasks_false_fails_closed(self) -> None:
         ticket = assignment_ticket(); ticket["inputs"]["require_all_tasks"] = False
-        with self.assertRaises(DynamicAssignmentOptimizationError):
+        with self.assertRaises(DynamicFamilyRoutingError):
             plan_dynamic_assignment_optimization(ticket)
 
     def test_workers_less_than_tasks_fails_closed(self) -> None:
         ticket = assignment_ticket(); ticket["inputs"]["workers"] = ["A", "B"]; ticket["inputs"]["costs"] = COSTS[:2]
-        with self.assertRaises(DynamicAssignmentOptimizationError):
+        with self.assertRaises(DynamicFamilyRoutingError):
             plan_dynamic_assignment_optimization(ticket)
 
     def test_unknown_context_fails_closed(self) -> None:
