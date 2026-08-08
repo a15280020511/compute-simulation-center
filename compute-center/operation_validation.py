@@ -9,11 +9,19 @@ from typing import Any, Mapping
 from jsonschema import Draft202012Validator
 
 from capability_manager import load_registry
+from game_theory_registry import game_theory_modes, load_game_theory_registry
 from model_governance import GovernanceError, validate_ticket_governance
 
 HERE = Path(__file__).resolve().parent
 CATALOG = json.loads((HERE / "operation-input-schemas.json").read_text(encoding="utf-8"))
 REGISTRY = load_registry()
+GAME_REGISTRY = load_game_theory_registry()
+
+
+def _controlled_preview_modes(operation: str) -> set[str]:
+    if str(GAME_REGISTRY.get("target_operation") or "") != operation:
+        return set()
+    return set(game_theory_modes())
 
 
 def _managed_schema(operation: str) -> Mapping[str, Any] | None:
@@ -25,10 +33,12 @@ def _managed_schema(operation: str) -> Mapping[str, Any] | None:
         modes = raw.get("modes")
         if not isinstance(modes, Mapping) or not modes:
             raise ValueError(f"managed operation has no mode allowlist: {operation}")
+        allowed_modes = {str(item) for item in modes}
+        allowed_modes.update(_controlled_preview_modes(operation))
         return {
             "type": "object",
             "required": ["mode"],
-            "properties": {"mode": {"enum": sorted(str(item) for item in modes)}},
+            "properties": {"mode": {"enum": sorted(allowed_modes)}},
             "additionalProperties": True,
             "maxProperties": 100,
         }

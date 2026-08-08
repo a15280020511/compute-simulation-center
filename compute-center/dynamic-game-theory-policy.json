@@ -1,0 +1,66 @@
+{
+  "schema_version": "compute-dynamic-game-theory-policy-v1",
+  "status": "controlled-preview",
+  "family": "game-theory",
+  "declared_operation": "finance_decision_analysis",
+  "declared_mode": "open_spiel_policy_evaluation",
+  "planner": "ortools-cp-sat",
+  "graph_engine": "networkx",
+  "network_policy": "deny",
+  "model_calls": 0,
+  "objective_text_routing_allowed": false,
+  "structured_signals_only": true,
+  "dynamic_operation_discovery_allowed": false,
+  "ticket_supplied_code_allowed": false,
+  "automatic_parallel_execution": false,
+  "cycles_allowed": false,
+  "branching_allowed": true,
+  "maximum_stages": 4,
+  "allowed_operations": ["finance_decision_analysis"],
+  "allowed_games": ["matrix_rps", "matrix_pd"],
+  "allowed_adapters": [
+    "game_ticket_to_open_spiel",
+    "open_spiel_to_pygambit",
+    "pure_equilibria_to_count_audit",
+    "policy_evaluation_to_utility_audit"
+  ],
+  "solver_policy": {
+    "require_optimal_status": true,
+    "num_search_workers": 1,
+    "random_seed": 0,
+    "max_time_seconds": 5.0,
+    "exhaustive_cross_check_max_optional_nodes": 8
+  },
+  "selection_policy": {
+    "stage_rules": {
+      "pure_equilibria": {
+        "penalty": 25,
+        "benefits": {
+          "equilibrium_analysis_requested": 120,
+          "expected_equilibrium_count_available": 100,
+          "formal_or_high_stakes": 45
+        },
+        "required_if_any": ["equilibrium_analysis_requested", "expected_equilibrium_count_available"]
+      },
+      "equilibrium_count_audit": {
+        "penalty": 5,
+        "benefits": {
+          "expected_equilibrium_count_available": 140,
+          "formal_or_high_stakes": 15
+        },
+        "eligible_all": ["expected_equilibrium_count_available"],
+        "required_if_any": ["expected_equilibrium_count_available"],
+        "requires_selected": ["pure_equilibria"]
+      },
+      "expected_utility_audit": {
+        "penalty": 5,
+        "benefits": {
+          "expected_policy_utility_available": 140,
+          "formal_or_high_stakes": 15
+        },
+        "eligible_all": ["expected_policy_utility_available"],
+        "required_if_any": ["expected_policy_utility_available"]
+      }
+    }
+  }
+}

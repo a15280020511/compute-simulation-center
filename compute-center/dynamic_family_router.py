@@ -26,6 +26,7 @@ FAMILY_BY_OPERATION_MODE = {
     ("finance_decision_analysis", "indirect_intelligence_analysis"): "indirect-intelligence",
     ("finance_decision_analysis", "bounded_linear_kalman_filter"): "state-estimation",
     ("finance_decision_analysis", "mixed_integer_optimization"): "optimization",
+    ("finance_decision_analysis", "open_spiel_policy_evaluation"): "game-theory",
 }
 INDIRECT_INTELLIGENCE_REQUIREMENTS = [
     "requirements-ortools.txt",
@@ -206,131 +207,72 @@ def resolve_dynamic_family(ticket: Mapping[str, Any]) -> str:
             raise DynamicFamilyRoutingError("system-dynamics family requires steps from 1 to 10000")
         return family
 
+    if family == "game-theory":
+        if operation != "finance_decision_analysis" or mode != "open_spiel_policy_evaluation":
+            raise DynamicFamilyRoutingError("game-theory family requires finance_decision_analysis:open_spiel_policy_evaluation")
+        game_id = str(inputs.get("game_id") or "matrix_rps")
+        if game_id not in {"matrix_rps", "matrix_pd"}:
+            raise DynamicFamilyRoutingError("game-theory family admits only matrix_rps and matrix_pd")
+        return family
+
     raise DynamicFamilyRoutingError(f"unsupported dynamic family: {family}")
 
 
 def family_runtime_metadata(ticket: Mapping[str, Any]) -> dict[str, Any]:
     family = resolve_dynamic_family(ticket)
     if family == "scenario-decision":
-        return {
-            "family": family,
-            "entry_contract": "scenario_compare",
-            "policy_file": "dynamic-orchestration-policy.json",
-            "graph_file": "dynamic-capability-graph.json",
-        }
+        return {"family": family, "entry_contract": "scenario_compare", "policy_file": "dynamic-orchestration-policy.json", "graph_file": "dynamic-capability-graph.json"}
     if family == "time-series":
-        return {
-            "family": family,
-            "entry_contract": "time_series_forecast",
-            "policy_file": "dynamic-time-series-policy.json",
-            "graph_file": "dynamic-time-series-capability-graph.json",
-        }
+        return {"family": family, "entry_contract": "time_series_forecast", "policy_file": "dynamic-time-series-policy.json", "graph_file": "dynamic-time-series-capability-graph.json"}
     if family == "causal-policy":
-        return {
-            "family": family,
-            "entry_contract": "causal_policy_evaluation",
-            "policy_file": "dynamic-causal-policy.json",
-            "graph_file": "dynamic-causal-capability-graph.json",
-            "python_version": "3.13",
-            "requirements": ["requirements-causal.txt"],
-        }
+        return {"family": family, "entry_contract": "causal_policy_evaluation", "policy_file": "dynamic-causal-policy.json", "graph_file": "dynamic-causal-capability-graph.json", "python_version": "3.13", "requirements": ["requirements-causal.txt"]}
     if family == "bayesian-network":
-        return {
-            "family": family,
-            "entry_contract": "bayesian_network_inference",
-            "policy_file": "dynamic-bayesian-policy.json",
-            "graph_file": "dynamic-bayesian-capability-graph.json",
-            "python_version": "3.12",
-            "requirements": ["requirements-bayesian-network.txt"],
-        }
+        return {"family": family, "entry_contract": "bayesian_network_inference", "policy_file": "dynamic-bayesian-policy.json", "graph_file": "dynamic-bayesian-capability-graph.json", "python_version": "3.12", "requirements": ["requirements-bayesian-network.txt"]}
     if family == "indirect-intelligence":
-        return {
-            "family": family,
-            "entry_contract": "finance_decision_analysis:indirect_intelligence_analysis",
-            "policy_file": "indirect-intelligence-mode-registry.json",
-            "graph_file": "dynamic-indirect-intelligence-capability-graph.json",
-            "python_version": "3.12",
-            "requirements": list(INDIRECT_INTELLIGENCE_REQUIREMENTS),
-        }
+        return {"family": family, "entry_contract": "finance_decision_analysis:indirect_intelligence_analysis", "policy_file": "indirect-intelligence-mode-registry.json", "graph_file": "dynamic-indirect-intelligence-capability-graph.json", "python_version": "3.12", "requirements": list(INDIRECT_INTELLIGENCE_REQUIREMENTS)}
     if family == "state-estimation":
-        return {
-            "family": family,
-            "entry_contract": "finance_decision_analysis:bounded_linear_kalman_filter",
-            "policy_file": "dynamic-state-estimation-policy.json",
-            "graph_file": "dynamic-state-estimation-capability-graph.json",
-            "python_version": "3.12",
-            "requirements": [],
-        }
+        return {"family": family, "entry_contract": "finance_decision_analysis:bounded_linear_kalman_filter", "policy_file": "dynamic-state-estimation-policy.json", "graph_file": "dynamic-state-estimation-capability-graph.json", "python_version": "3.12", "requirements": []}
     if family == "reliability":
-        return {
-            "family": family,
-            "entry_contract": "descriptive_statistics:sample-normal-reliability",
-            "policy_file": "dynamic-reliability-policy.json",
-            "graph_file": "dynamic-reliability-capability-graph.json",
-            "python_version": "3.12",
-            "requirements": ["requirements-global-openturns.txt"],
-        }
+        return {"family": family, "entry_contract": "descriptive_statistics:sample-normal-reliability", "policy_file": "dynamic-reliability-policy.json", "graph_file": "dynamic-reliability-capability-graph.json", "python_version": "3.12", "requirements": ["requirements-global-openturns.txt"]}
     if family == "optimization":
-        return {
-            "family": family,
-            "entry_contract": "finance_decision_analysis:mixed_integer_optimization",
-            "policy_file": "dynamic-optimization-policy.json",
-            "graph_file": "dynamic-optimization-capability-graph.json",
-            "python_version": "3.12",
-            "requirements": ["requirements-ortools.txt", "requirements-thinktank-decision.txt"],
-        }
+        return {"family": family, "entry_contract": "finance_decision_analysis:mixed_integer_optimization", "policy_file": "dynamic-optimization-policy.json", "graph_file": "dynamic-optimization-capability-graph.json", "python_version": "3.12", "requirements": ["requirements-ortools.txt", "requirements-thinktank-decision.txt"]}
     if family == "system-dynamics":
-        return {
-            "family": family,
-            "entry_contract": "system_dynamics_simulation:<fixed-mode>",
-            "policy_file": "dynamic-system-dynamics-policy.json",
-            "graph_file": "dynamic-system-dynamics-capability-graph.json",
-            "python_version": "3.12",
-            "requirements": ["requirements-ortools.txt"],
-        }
+        return {"family": family, "entry_contract": "system_dynamics_simulation:<fixed-mode>", "policy_file": "dynamic-system-dynamics-policy.json", "graph_file": "dynamic-system-dynamics-capability-graph.json", "python_version": "3.12", "requirements": ["requirements-ortools.txt"]}
+    if family == "game-theory":
+        return {"family": family, "entry_contract": "finance_decision_analysis:open_spiel_policy_evaluation", "policy_file": "dynamic-game-theory-policy.json", "graph_file": "dynamic-game-theory-capability-graph.json", "python_version": "3.12", "requirements": ["requirements-ortools.txt", "requirements-strategy-open-spiel.txt", "requirements-strategy-pygambit.txt"]}
     raise DynamicFamilyRoutingError(f"unsupported dynamic family: {family}")
 
 
-def run_dynamic_family_ticket(
-    ticket: Mapping[str, Any],
-    output_dir: Path,
-    operations: Mapping[str, Callable[[Mapping[str, Any]], dict[str, Any]]],
-) -> dict[str, Any]:
+def run_dynamic_family_ticket(ticket: Mapping[str, Any], output_dir: Path, operations: Mapping[str, Callable[[Mapping[str, Any]], dict[str, Any]]]) -> dict[str, Any]:
     family = resolve_dynamic_family(ticket)
     if family == "scenario-decision":
         from dynamic_pipeline_planner import run_dynamic_pipeline_ticket
-
         return run_dynamic_pipeline_ticket(ticket, output_dir, operations)
     if family == "time-series":
         from dynamic_time_series_planner import run_dynamic_time_series_ticket
-
         return run_dynamic_time_series_ticket(ticket, output_dir, operations)
     if family == "causal-policy":
         from dynamic_causal_policy_planner import run_dynamic_causal_policy_ticket
-
         return run_dynamic_causal_policy_ticket(ticket, output_dir, operations)
     if family == "bayesian-network":
         from dynamic_bayesian_network_planner import run_dynamic_bayesian_network_ticket
-
         return run_dynamic_bayesian_network_ticket(ticket, output_dir, operations)
     if family == "indirect-intelligence":
         from dynamic_indirect_intelligence_planner import run_dynamic_indirect_intelligence_ticket
-
         return run_dynamic_indirect_intelligence_ticket(ticket, output_dir, operations)
     if family == "state-estimation":
         from dynamic_state_estimation_planner import run_dynamic_state_estimation_ticket
-
         return run_dynamic_state_estimation_ticket(ticket, output_dir, operations)
     if family == "reliability":
         from dynamic_reliability_planner import run_dynamic_reliability_ticket
-
         return run_dynamic_reliability_ticket(ticket, output_dir, operations)
     if family == "optimization":
         from dynamic_optimization_planner import run_dynamic_optimization_ticket
-
         return run_dynamic_optimization_ticket(ticket, output_dir, operations)
     if family == "system-dynamics":
         from dynamic_system_dynamics_planner import run_dynamic_system_dynamics_ticket
-
         return run_dynamic_system_dynamics_ticket(ticket, output_dir, operations)
+    if family == "game-theory":
+        from dynamic_game_theory_planner import run_dynamic_game_theory_ticket
+        return run_dynamic_game_theory_ticket(ticket, output_dir, operations)
     raise DynamicFamilyRoutingError(f"unsupported dynamic family: {family}")
