@@ -67,15 +67,18 @@ def core_requirement_files(ticket: Mapping[str, Any], requirement_files: list[st
     if metadata is None:
         return requirement_files
     isolated = {Path(item).resolve() for item in metadata["requirements"]}
-    result = [item for item in requirement_files if Path(item).resolve() not in isolated]
-    return result
+    return [item for item in requirement_files if Path(item).resolve() not in isolated]
 
 
 def _run_checked(command: list[str]) -> None:
-    completed = subprocess.run(command, check=False)
+    completed = subprocess.run(command, check=False, capture_output=True, text=True)
     if completed.returncode != 0:
+        diagnostic = (completed.stderr or completed.stdout).strip()
+        if len(diagnostic) > 4000:
+            diagnostic = diagnostic[-4000:]
         raise CapabilityEnvironmentError(
-            f"isolated environment command failed with exit code {completed.returncode}: {command[0]}"
+            f"isolated environment command failed with exit code {completed.returncode}: "
+            f"{command[0]}: {diagnostic or 'no diagnostic output'}"
         )
 
 
@@ -107,10 +110,9 @@ def prepare(ticket: Mapping[str, Any], *, reset: bool = True) -> dict[str, Any]:
             str(interpreter),
             "-c",
             (
-                "import json; import dowhy, numpy, scipy, networkx, jsonschema; "
-                "print(json.dumps({'dowhy': dowhy.__version__, 'numpy': numpy.__version__, "
-                "'scipy': scipy.__version__, 'networkx': networkx.__version__, "
-                "'jsonschema': jsonschema.__version__}, sort_keys=True))"
+                "import json; from importlib.metadata import version; "
+                "print(json.dumps({name: version(name) for name in "
+                "['dowhy','numpy','scipy','networkx','jsonschema']}, sort_keys=True))"
             ),
         ],
         check=False,
