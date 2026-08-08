@@ -69,6 +69,7 @@ jobs:
             compute-center/requirements-global-pydoe3.txt
             compute-center/requirements-global-pysd.txt
             compute-center/requirements-global-rsome.txt
+            compute-center/requirements-global-salib.txt
             compute-center/requirements-global-skgstat.txt
             compute-center/requirements-global-smt.txt
             compute-center/requirements-global-spreg.txt
