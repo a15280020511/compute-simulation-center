@@ -1,0 +1,48 @@
+{
+  "schema_version": "compute-dynamic-process-mining-capability-graph-v1",
+  "status": "controlled-preview",
+  "family": "process-mining",
+  "node_order": [
+    "directly_follows_discovery",
+    "workflow_graph_summary",
+    "topology_consistency_audit",
+    "process_target_audit"
+  ],
+  "nodes": {
+    "directly_follows_discovery": {
+      "operation": "finance_decision_analysis",
+      "mode": "pm4py_directly_follows",
+      "adapter": "process_ticket_to_pm4py"
+    },
+    "workflow_graph_summary": {
+      "operation": "large_scale_data_intelligence",
+      "mode": "large_graph_summary",
+      "adapter": "dfg_to_graph_summary"
+    },
+    "topology_consistency_audit": {
+      "operation": "finance_decision_analysis",
+      "mode": "benchmark_comparison",
+      "adapter": "process_graph_to_consistency_audit"
+    },
+    "process_target_audit": {
+      "operation": "finance_decision_analysis",
+      "mode": "benchmark_comparison",
+      "adapter": "process_to_target_audit"
+    }
+  },
+  "precedence": [
+    ["directly_follows_discovery", "workflow_graph_summary"],
+    ["workflow_graph_summary", "topology_consistency_audit"],
+    ["directly_follows_discovery", "process_target_audit"]
+  ],
+  "safety": {
+    "dynamic_operation_discovery_allowed": false,
+    "ticket_supplied_nodes_allowed": false,
+    "ticket_supplied_edges_allowed": false,
+    "ticket_supplied_code_allowed": false,
+    "cycles_allowed": false,
+    "automatic_parallel_execution": false,
+    "branching_allowed": true,
+    "execution_remains_strict_serial": true
+  }
+}
