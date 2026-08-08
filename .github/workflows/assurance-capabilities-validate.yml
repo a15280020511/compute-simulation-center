@@ -7,6 +7,7 @@ on:
       - "compute-center/validate_assurance_pack.py"
       - "compute-center/decision_intelligence_gateway.py"
       - "compute-center/think-tank-mode-registry.json"
+      - "compute-center/indirect-intelligence-mode-registry.json"
       - "compute-center/compute-capabilities.json"
       - "CENTER_CAPABILITY_OWNERSHIP.json"
       - ".github/workflows/assurance-capabilities-validate.yml"
@@ -17,6 +18,7 @@ on:
       - "compute-center/validate_assurance_pack.py"
       - "compute-center/decision_intelligence_gateway.py"
       - "compute-center/think-tank-mode-registry.json"
+      - "compute-center/indirect-intelligence-mode-registry.json"
       - "compute-center/compute-capabilities.json"
       - "CENTER_CAPABILITY_OWNERSHIP.json"
       - ".github/workflows/assurance-capabilities-validate.yml"
@@ -116,14 +118,19 @@ jobs:
           from capability_manager import load_registry
           from decision_intelligence_gateway import ALL_SUPPORTED_MODES
           extension = json.loads(Path('compute-center/think-tank-mode-registry.json').read_text(encoding='utf-8'))
+          indirect = json.loads(Path('compute-center/indirect-intelligence-mode-registry.json').read_text(encoding='utf-8'))
           catalog = json.loads(Path('compute-center/compute-capabilities.json').read_text(encoding='utf-8'))
           ownership = json.loads(Path('CENTER_CAPABILITY_OWNERSHIP.json').read_text(encoding='utf-8'))
           effective = load_registry()
           effective_mode_count = sum(len(group.get('modes') or {}) for group in effective['groups'])
+          finance = next(row for row in catalog['operations'] if row.get('id') == 'finance_decision_analysis')
+          static_finance_modes = set(finance.get('modes') or [])
+          indirect_overlay_modes = set(indirect.get('modes') or [])
+          overlay_delta = len(indirect_overlay_modes - static_finance_modes)
           assert set(HANDLERS) <= set(ALL_SUPPORTED_MODES)
           assert set(HANDLERS) <= set(extension['modes'])
           assert catalog['extension_mode_count'] == 61
-          assert catalog['effective_managed_mode_count'] == effective_mode_count
+          assert catalog['effective_managed_mode_count'] + overlay_delta == effective_mode_count
           assert ownership['direct_center_to_center_calls_allowed'] is False
           assert 'real-time person or military target tracking' in ownership['prohibited_everywhere']
           PY
