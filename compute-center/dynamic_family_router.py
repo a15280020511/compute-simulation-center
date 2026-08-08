@@ -34,6 +34,7 @@ FAMILY_BY_OPERATION_MODE = {
     ("finance_decision_analysis", "control_step_response"): "control-response",
     ("finance_decision_analysis", "lmfit_exponential_calibration"): "calibration",
     ("finance_decision_analysis", "pm4py_directly_follows"): "process-mining",
+    ("finance_decision_analysis", "rsome_robust_allocation"): "robust-allocation",
 }
 INDIRECT_INTELLIGENCE_REQUIREMENTS = [
     "requirements-ortools.txt",
@@ -125,15 +126,12 @@ def resolve_dynamic_family(ticket: Mapping[str, Any]) -> str:
         admitted_modes = {"backdoor_adjustment", "propensity_weighting"}
         if mode not in admitted_modes:
             raise DynamicFamilyRoutingError(
-                "causal-policy dynamic family currently admits only "
-                "backdoor_adjustment or propensity_weighting"
+                "causal-policy dynamic family currently admits only backdoor_adjustment or propensity_weighting"
             )
         treatment = _sequence(inputs.get("treatment"), "inputs.treatment")
         outcome = _sequence(inputs.get("outcome"), "inputs.outcome")
         if len(treatment) < 8 or len(treatment) != len(outcome):
-            raise DynamicFamilyRoutingError(
-                "causal-policy family requires equal treatment/outcome arrays with at least eight observations"
-            )
+            raise DynamicFamilyRoutingError("causal-policy family requires equal treatment/outcome arrays with at least eight observations")
         confounders = inputs.get("confounders")
         if not isinstance(confounders, Mapping) or not confounders:
             raise DynamicFamilyRoutingError("causal-policy family requires at least one declared confounder")
@@ -141,9 +139,7 @@ def resolve_dynamic_family(ticket: Mapping[str, Any]) -> str:
 
     if family == "bayesian-network":
         if mode != "bayesian_parameter_estimation":
-            raise DynamicFamilyRoutingError(
-                "bayesian-network dynamic family currently admits only bayesian_parameter_estimation as the entry mode"
-            )
+            raise DynamicFamilyRoutingError("bayesian-network dynamic family currently admits only bayesian_parameter_estimation as the entry mode")
         data = inputs.get("data")
         if not isinstance(data, Mapping) or not data:
             raise DynamicFamilyRoutingError("bayesian-network family requires a non-empty data object")
@@ -162,19 +158,15 @@ def resolve_dynamic_family(ticket: Mapping[str, Any]) -> str:
                 raise DynamicFamilyRoutingError("bayesian-network edges must contain source and target")
             left, right = str(edge[0]), str(edge[1])
             if left not in data_nodes or right not in data_nodes:
-                raise DynamicFamilyRoutingError(
-                    "bayesian-network dependency nodes must have observed data columns for parameter estimation"
-                )
+                raise DynamicFamilyRoutingError("bayesian-network dependency nodes must have observed data columns for parameter estimation")
         return family
 
     if family == "indirect-intelligence":
         if operation != "finance_decision_analysis" or mode != "indirect_intelligence_analysis":
             raise DynamicFamilyRoutingError("indirect-intelligence family requires its exact operation/mode pair")
-        hypothesis = str(inputs.get("hypothesis") or "").strip()
-        if not hypothesis:
+        if not str(inputs.get("hypothesis") or "").strip():
             raise DynamicFamilyRoutingError("indirect-intelligence family requires a non-empty hypothesis")
-        evidence = _sequence(inputs.get("evidence"), "inputs.evidence")
-        if not evidence:
+        if not _sequence(inputs.get("evidence"), "inputs.evidence"):
             raise DynamicFamilyRoutingError("indirect-intelligence family requires non-empty structured evidence")
         return family
 
@@ -182,32 +174,24 @@ def resolve_dynamic_family(ticket: Mapping[str, Any]) -> str:
         if operation != "finance_decision_analysis" or mode != "bounded_linear_kalman_filter":
             raise DynamicFamilyRoutingError("state-estimation family requires its exact operation/mode pair")
         for name in (
-            "transition_matrix",
-            "observation_matrix",
-            "process_covariance",
-            "observation_covariance",
-            "initial_covariance",
-            "initial_state",
-            "observations",
+            "transition_matrix", "observation_matrix", "process_covariance", "observation_covariance",
+            "initial_covariance", "initial_state", "observations",
         ):
-            value = inputs.get(name)
-            if not _sequence(value, f"inputs.{name}"):
+            if not _sequence(inputs.get(name), f"inputs.{name}"):
                 raise DynamicFamilyRoutingError(f"state-estimation family requires non-empty {name}")
         return family
 
     if family == "reliability":
         if operation != "descriptive_statistics":
             raise DynamicFamilyRoutingError("reliability family requires descriptive_statistics as the exact entry operation")
-        data = _sequence(inputs.get("data"), "inputs.data")
-        if len(data) < 2:
+        if len(_sequence(inputs.get("data"), "inputs.data")) < 2:
             raise DynamicFamilyRoutingError("reliability family requires at least two sample observations")
         context = inputs.get("reliability_context")
         if not isinstance(context, Mapping):
             raise DynamicFamilyRoutingError("reliability family requires structured reliability_context")
         if "threshold" not in context:
             raise DynamicFamilyRoutingError("reliability_context.threshold is required")
-        tail = str(context.get("tail") or "lower").lower()
-        if tail not in {"lower", "upper"}:
+        if str(context.get("tail") or "lower").lower() not in {"lower", "upper"}:
             raise DynamicFamilyRoutingError("reliability_context.tail must be lower or upper")
         return family
 
@@ -217,8 +201,7 @@ def resolve_dynamic_family(ticket: Mapping[str, Any]) -> str:
         variables = _sequence(inputs.get("variables"), "inputs.variables")
         if not 1 <= len(variables) <= 200:
             raise DynamicFamilyRoutingError("optimization family requires 1 to 200 variables")
-        constraints = _sequence(inputs.get("constraints", []), "inputs.constraints")
-        if len(constraints) > 1000:
+        if len(_sequence(inputs.get("constraints", []), "inputs.constraints")) > 1000:
             raise DynamicFamilyRoutingError("optimization family admits at most 1000 constraints")
         return family
 
@@ -233,8 +216,7 @@ def resolve_dynamic_family(ticket: Mapping[str, Any]) -> str:
     if family == "game-theory":
         if operation != "finance_decision_analysis" or mode != "open_spiel_policy_evaluation":
             raise DynamicFamilyRoutingError("game-theory family requires finance_decision_analysis:open_spiel_policy_evaluation")
-        game_id = str(inputs.get("game_id") or "matrix_rps")
-        if game_id not in {"matrix_rps", "matrix_pd"}:
+        if str(inputs.get("game_id") or "matrix_rps") not in {"matrix_rps", "matrix_pd"}:
             raise DynamicFamilyRoutingError("game-theory family admits only matrix_rps and matrix_pd")
         return family
 
@@ -256,8 +238,7 @@ def resolve_dynamic_family(ticket: Mapping[str, Any]) -> str:
         incomes = _sequence(inputs.get("incomes"), "inputs.incomes")
         if not 10 <= len(incomes) <= 100_000:
             raise DynamicFamilyRoutingError("policy-simulation family requires 10 to 100000 incomes")
-        brackets = _sequence(inputs.get("tax_brackets"), "inputs.tax_brackets")
-        if len(brackets) > 100:
+        if len(_sequence(inputs.get("tax_brackets"), "inputs.tax_brackets")) > 100:
             raise DynamicFamilyRoutingError("policy-simulation family admits at most 100 tax brackets")
         context = inputs.get("policy_context")
         if context is not None and not isinstance(context, Mapping):
@@ -312,6 +293,26 @@ def resolve_dynamic_family(ticket: Mapping[str, Any]) -> str:
             raise DynamicFamilyRoutingError("process_context must be an object when supplied")
         return family
 
+    if family == "robust-allocation":
+        if operation != "finance_decision_analysis" or mode != "rsome_robust_allocation":
+            raise DynamicFamilyRoutingError("robust-allocation family requires finance_decision_analysis:rsome_robust_allocation")
+        rows = _sequence(inputs.get("scenario_returns"), "inputs.scenario_returns")
+        if not 2 <= len(rows) <= 500:
+            raise DynamicFamilyRoutingError("robust-allocation family requires 2 to 500 scenarios")
+        width: int | None = None
+        for index, raw_row in enumerate(rows):
+            row = _sequence(raw_row, f"inputs.scenario_returns[{index}]")
+            if width is None:
+                width = len(row)
+            if len(row) != width:
+                raise DynamicFamilyRoutingError("robust-allocation scenario_returns must be rectangular")
+        if width is None or not 2 <= width <= 50:
+            raise DynamicFamilyRoutingError("robust-allocation family requires 2 to 50 assets")
+        context = inputs.get("robust_allocation_context")
+        if context is not None and not isinstance(context, Mapping):
+            raise DynamicFamilyRoutingError("robust_allocation_context must be an object when supplied")
+        return family
+
     raise DynamicFamilyRoutingError(f"unsupported dynamic family: {family}")
 
 
@@ -348,6 +349,8 @@ def family_runtime_metadata(ticket: Mapping[str, Any]) -> dict[str, Any]:
         return {"family": family, "entry_contract": "finance_decision_analysis:lmfit_exponential_calibration", "policy_file": "dynamic-calibration-policy.json", "graph_file": "dynamic-calibration-capability-graph.json", "python_version": "3.12", "requirements": ["requirements-ortools.txt", "requirements-global-lmfit.txt"]}
     if family == "process-mining":
         return {"family": family, "entry_contract": "finance_decision_analysis:pm4py_directly_follows", "policy_file": "dynamic-process-mining-policy.json", "graph_file": "dynamic-process-mining-capability-graph.json", "python_version": "3.12", "requirements": ["requirements-ortools.txt", "requirements-global-pm4py.txt"]}
+    if family == "robust-allocation":
+        return {"family": family, "entry_contract": "finance_decision_analysis:rsome_robust_allocation", "policy_file": "dynamic-robust-allocation-policy.json", "graph_file": "dynamic-robust-allocation-capability-graph.json", "python_version": "3.12", "requirements": ["requirements-ortools.txt", "requirements-global-rsome.txt"]}
     raise DynamicFamilyRoutingError(f"unsupported dynamic family: {family}")
 
 
@@ -402,4 +405,7 @@ def run_dynamic_family_ticket(
     if family == "process-mining":
         from dynamic_process_mining_planner import run_dynamic_process_mining_ticket
         return run_dynamic_process_mining_ticket(ticket, output_dir, operations)
+    if family == "robust-allocation":
+        from dynamic_robust_allocation_planner import run_dynamic_robust_allocation_ticket
+        return run_dynamic_robust_allocation_ticket(ticket, output_dir, operations)
     raise DynamicFamilyRoutingError(f"unsupported dynamic family: {family}")
