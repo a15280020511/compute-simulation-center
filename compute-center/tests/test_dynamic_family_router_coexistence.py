@@ -61,6 +61,32 @@ class DynamicFamilyRouterCoexistenceTests(unittest.TestCase):
         self.assertEqual(metadata["python_version"], "3.12")
         self.assertEqual(metadata["requirements"], ["requirements-bayesian-network.txt"])
 
+    def test_state_estimation_mode_specific_route_coexists_with_indirect_route(self) -> None:
+        ticket = {
+            "task_id": "router-state-estimation-coexistence",
+            "operation": "finance_decision_analysis",
+            "inputs": {
+                "mode": "bounded_linear_kalman_filter",
+                "transition_matrix": [[1.0]],
+                "observation_matrix": [[1.0]],
+                "process_covariance": [[0.05]],
+                "observation_covariance": [[0.2]],
+                "initial_covariance": [[1.0]],
+                "initial_state": [0.0],
+                "observations": [[1.0], [1.4], [1.9], [2.3]],
+            },
+            "pipeline": dict(PIPELINE),
+        }
+        self.assertEqual(resolve_dynamic_family(ticket), "state-estimation")
+        metadata = family_runtime_metadata(ticket)
+        self.assertEqual(metadata["family"], "state-estimation")
+        self.assertEqual(metadata["python_version"], "3.12")
+        self.assertEqual(metadata["requirements"], [])
+        self.assertEqual(
+            metadata["entry_contract"],
+            "finance_decision_analysis:bounded_linear_kalman_filter",
+        )
+
 
 if __name__ == "__main__":
     unittest.main()
