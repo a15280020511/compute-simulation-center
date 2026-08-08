@@ -14,6 +14,7 @@ on:
       - "compute-center/requirements-bayesian-network.txt"
       - "compute-center/validate_dynamic_bayesian_network.py"
       - "compute-center/tests/test_dynamic_bayesian_network_family.py"
+      - "compute-center/tests/test_dynamic_family_router_coexistence.py"
       - ".github/workflows/compute-ticket.yml"
       - ".github/workflows/dynamic-bayesian-network-family.yml"
   workflow_dispatch:
@@ -33,7 +34,7 @@ jobs:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
         with:
           persist-credentials: false
-      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065
+      - uses: actions/setup-python@a26af69be951213d495a4c3e4e4022e16d87065
         with:
           python-version: "3.12"
           cache: pip
@@ -67,13 +68,15 @@ jobs:
             compute_dispatch.py \
             tool_registry.py \
             validate_dynamic_bayesian_network.py \
-            tests/test_dynamic_bayesian_network_family.py
+            tests/test_dynamic_bayesian_network_family.py \
+            tests/test_dynamic_family_router_coexistence.py
       - name: Run Bayesian and existing dynamic-family regressions
         working-directory: compute-center
         run: |
           set -euo pipefail
           python -m unittest \
             tests.test_dynamic_bayesian_network_family \
+            tests.test_dynamic_family_router_coexistence \
             tests.test_dynamic_time_series_family \
             tests.test_dynamic_pipeline_planner \
             tests.test_dynamic_runtime_integration \
