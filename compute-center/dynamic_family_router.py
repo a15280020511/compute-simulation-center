@@ -20,6 +20,7 @@ FAMILY_BY_OPERATION = {
     "causal_policy_evaluation": "causal-policy",
     "bayesian_network_inference": "bayesian-network",
     "descriptive_statistics": "reliability",
+    "system_dynamics_simulation": "system-dynamics",
 }
 FAMILY_BY_OPERATION_MODE = {
     ("finance_decision_analysis", "indirect_intelligence_analysis"): "indirect-intelligence",
@@ -39,6 +40,14 @@ INDIRECT_INTELLIGENCE_REQUIREMENTS = [
     "requirements-bayesian-network.txt",
     "requirements-intelligence-problog.txt",
 ]
+SYSTEM_DYNAMICS_MODES = {
+    "stock_flow",
+    "feedback_delay",
+    "policy_switch",
+    "coupled_capacity",
+    "resource_depletion",
+    "adoption_saturation",
+}
 
 
 class DynamicFamilyRoutingError(ValueError):
@@ -189,6 +198,14 @@ def resolve_dynamic_family(ticket: Mapping[str, Any]) -> str:
             raise DynamicFamilyRoutingError("optimization family admits at most 1000 constraints")
         return family
 
+    if family == "system-dynamics":
+        if operation != "system_dynamics_simulation" or mode not in SYSTEM_DYNAMICS_MODES:
+            raise DynamicFamilyRoutingError("system-dynamics family requires system_dynamics_simulation and an admitted fixed mode")
+        steps = inputs.get("steps", 100)
+        if isinstance(steps, bool) or not isinstance(steps, int) or not 1 <= steps <= 10_000:
+            raise DynamicFamilyRoutingError("system-dynamics family requires steps from 1 to 10000")
+        return family
+
     raise DynamicFamilyRoutingError(f"unsupported dynamic family: {family}")
 
 
@@ -262,6 +279,15 @@ def family_runtime_metadata(ticket: Mapping[str, Any]) -> dict[str, Any]:
             "python_version": "3.12",
             "requirements": ["requirements-ortools.txt", "requirements-thinktank-decision.txt"],
         }
+    if family == "system-dynamics":
+        return {
+            "family": family,
+            "entry_contract": "system_dynamics_simulation:<fixed-mode>",
+            "policy_file": "dynamic-system-dynamics-policy.json",
+            "graph_file": "dynamic-system-dynamics-capability-graph.json",
+            "python_version": "3.12",
+            "requirements": ["requirements-ortools.txt"],
+        }
     raise DynamicFamilyRoutingError(f"unsupported dynamic family: {family}")
 
 
@@ -303,4 +329,8 @@ def run_dynamic_family_ticket(
         from dynamic_optimization_planner import run_dynamic_optimization_ticket
 
         return run_dynamic_optimization_ticket(ticket, output_dir, operations)
+    if family == "system-dynamics":
+        from dynamic_system_dynamics_planner import run_dynamic_system_dynamics_ticket
+
+        return run_dynamic_system_dynamics_ticket(ticket, output_dir, operations)
     raise DynamicFamilyRoutingError(f"unsupported dynamic family: {family}")
