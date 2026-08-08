@@ -19,6 +19,7 @@ FAMILY_BY_OPERATION = {
     "time_series_forecast": "time-series",
     "causal_policy_evaluation": "causal-policy",
     "bayesian_network_inference": "bayesian-network",
+    "descriptive_statistics": "reliability",
 }
 FAMILY_BY_OPERATION_MODE = {
     ("finance_decision_analysis", "indirect_intelligence_analysis"): "indirect-intelligence",
@@ -156,11 +157,24 @@ def resolve_dynamic_family(ticket: Mapping[str, Any]) -> str:
             "observations",
         ):
             value = inputs.get(name)
-            if name == "initial_state":
-                if not _sequence(value, f"inputs.{name}"):
-                    raise DynamicFamilyRoutingError(f"state-estimation family requires non-empty {name}")
-            elif not _sequence(value, f"inputs.{name}"):
+            if not _sequence(value, f"inputs.{name}"):
                 raise DynamicFamilyRoutingError(f"state-estimation family requires non-empty {name}")
+        return family
+
+    if family == "reliability":
+        if operation != "descriptive_statistics":
+            raise DynamicFamilyRoutingError("reliability family requires descriptive_statistics as the exact entry operation")
+        data = _sequence(inputs.get("data"), "inputs.data")
+        if len(data) < 2:
+            raise DynamicFamilyRoutingError("reliability family requires at least two sample observations")
+        context = inputs.get("reliability_context")
+        if not isinstance(context, Mapping):
+            raise DynamicFamilyRoutingError("reliability family requires structured reliability_context")
+        if "threshold" not in context:
+            raise DynamicFamilyRoutingError("reliability_context.threshold is required")
+        tail = str(context.get("tail") or "lower").lower()
+        if tail not in {"lower", "upper"}:
+            raise DynamicFamilyRoutingError("reliability_context.tail must be lower or upper")
         return family
 
     raise DynamicFamilyRoutingError(f"unsupported dynamic family: {family}")
@@ -218,6 +232,15 @@ def family_runtime_metadata(ticket: Mapping[str, Any]) -> dict[str, Any]:
             "python_version": "3.12",
             "requirements": [],
         }
+    if family == "reliability":
+        return {
+            "family": family,
+            "entry_contract": "descriptive_statistics:sample-normal-reliability",
+            "policy_file": "dynamic-reliability-policy.json",
+            "graph_file": "dynamic-reliability-capability-graph.json",
+            "python_version": "3.12",
+            "requirements": ["requirements-global-openturns.txt"],
+        }
     raise DynamicFamilyRoutingError(f"unsupported dynamic family: {family}")
 
 
@@ -251,4 +274,8 @@ def run_dynamic_family_ticket(
         from dynamic_state_estimation_planner import run_dynamic_state_estimation_ticket
 
         return run_dynamic_state_estimation_ticket(ticket, output_dir, operations)
+    if family == "reliability":
+        from dynamic_reliability_planner import run_dynamic_reliability_ticket
+
+        return run_dynamic_reliability_ticket(ticket, output_dir, operations)
     raise DynamicFamilyRoutingError(f"unsupported dynamic family: {family}")
