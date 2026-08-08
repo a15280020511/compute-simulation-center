@@ -1,0 +1,58 @@
+{
+  "schema_version": "compute-dynamic-game-theory-capability-graph-v1",
+  "status": "controlled-preview",
+  "family": "game-theory",
+  "selection_engine": "ortools-cp-sat",
+  "graph_engine": "networkx",
+  "safety": {
+    "dynamic_operation_discovery_allowed": false,
+    "ticket_supplied_nodes_allowed": false,
+    "ticket_supplied_edges_allowed": false,
+    "ticket_supplied_code_allowed": false,
+    "cycles_allowed": false,
+    "automatic_parallel_execution": false,
+    "branching_allowed": true,
+    "execution_remains_strict_serial": true
+  },
+  "node_order": [
+    "policy_evaluation",
+    "pure_equilibria",
+    "equilibrium_count_audit",
+    "expected_utility_audit"
+  ],
+  "nodes": {
+    "policy_evaluation": {
+      "operation": "finance_decision_analysis",
+      "mode": "open_spiel_policy_evaluation",
+      "adapter": "game_ticket_to_open_spiel",
+      "required": true,
+      "result_required": true
+    },
+    "pure_equilibria": {
+      "operation": "finance_decision_analysis",
+      "mode": "pygambit_pure_equilibria",
+      "adapter": "open_spiel_to_pygambit",
+      "required": false,
+      "result_required": false
+    },
+    "equilibrium_count_audit": {
+      "operation": "finance_decision_analysis",
+      "mode": "benchmark_comparison",
+      "adapter": "pure_equilibria_to_count_audit",
+      "required": false,
+      "result_required": false
+    },
+    "expected_utility_audit": {
+      "operation": "finance_decision_analysis",
+      "mode": "benchmark_comparison",
+      "adapter": "policy_evaluation_to_utility_audit",
+      "required": false,
+      "result_required": false
+    }
+  },
+  "precedence": [
+    ["policy_evaluation", "pure_equilibria"],
+    ["pure_equilibria", "equilibrium_count_audit"],
+    ["policy_evaluation", "expected_utility_audit"]
+  ]
+}
