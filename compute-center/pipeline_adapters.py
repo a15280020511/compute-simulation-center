@@ -68,6 +68,28 @@ def _time_series_data(initial_inputs: Mapping[str, Any]) -> list[float]:
     return values
 
 
+def _causal_vectors(initial_inputs: Mapping[str, Any]) -> tuple[list[float], list[float], dict[str, list[float]]]:
+    treatment_raw = _sequence(initial_inputs.get("treatment"), "ticket inputs.treatment")
+    outcome_raw = _sequence(initial_inputs.get("outcome"), "ticket inputs.outcome")
+    treatment = [_finite(item, f"ticket inputs.treatment[{index}]") for index, item in enumerate(treatment_raw)]
+    outcome = [_finite(item, f"ticket inputs.outcome[{index}]") for index, item in enumerate(outcome_raw)]
+    if len(treatment) < 8 or len(treatment) != len(outcome):
+        raise PipelineAdapterError("causal family requires equal treatment/outcome arrays with at least eight observations")
+    if any(item not in {0.0, 1.0} for item in treatment):
+        raise PipelineAdapterError("causal family treatment must be binary")
+    raw_confounders = initial_inputs.get("confounders", {})
+    confounders: dict[str, list[float]] = {}
+    if raw_confounders is not None:
+        mapped = _mapping(raw_confounders, "ticket inputs.confounders")
+        for name in sorted(str(key) for key in mapped):
+            values_raw = _sequence(mapped[name], f"ticket inputs.confounders.{name}")
+            values = [_finite(item, f"ticket inputs.confounders.{name}[{index}]") for index, item in enumerate(values_raw)]
+            if len(values) != len(treatment):
+                raise PipelineAdapterError("all causal confounders must match treatment length")
+            confounders[name] = values
+    return treatment, outcome, confounders
+
+
 def ticket_inputs(
     initial_inputs: Mapping[str, Any],
     stage_results: Mapping[str, Any],
@@ -283,6 +305,68 @@ def time_series_to_forecast(
     return result
 
 
+def causal_outcome_to_descriptive_statistics(
+    initial_inputs: Mapping[str, Any],
+    stage_results: Mapping[str, Any],
+    stage: Mapping[str, Any],
+) -> dict[str, Any]:
+    del stage_results, stage
+    _treatment, outcome, _confounders = _causal_vectors(initial_inputs)
+    return {"data": outcome}
+
+
+def causal_ticket_to_estimate(
+    initial_inputs: Mapping[str, Any],
+    stage_results: Mapping[str, Any],
+    stage: Mapping[str, Any],
+) -> dict[str, Any]:
+    del stage_results, stage
+    treatment, outcome, confounders = _causal_vectors(initial_inputs)
+    mode = str(initial_inputs.get("mode") or "")
+    if mode not in {"backdoor_adjustment", "propensity_weighting"}:
+        raise PipelineAdapterError("dynamic causal estimate admits only backdoor_adjustment or propensity_weighting")
+    if not confounders:
+        raise PipelineAdapterError("dynamic causal estimation requires at least one declared confounder")
+    result: dict[str, Any] = {
+        "mode": mode,
+        "treatment": treatment,
+        "outcome": outcome,
+        "confounders": confounders,
+    }
+    if mode == "propensity_weighting" and "propensity_clip" in initial_inputs:
+        result["propensity_clip"] = _clone(initial_inputs["propensity_clip"])
+    return result
+
+
+def causal_ticket_to_placebo_refutation(
+    initial_inputs: Mapping[str, Any],
+    stage_results: Mapping[str, Any],
+    stage: Mapping[str, Any],
+) -> dict[str, Any]:
+    del stage_results
+    treatment, outcome, confounders = _causal_vectors(initial_inputs)
+    fixed = _mapping(stage.get("fixed_parameters", {}), "stage.fixed_parameters")
+    repetitions = fixed.get("repetitions", 200)
+    seed = fixed.get("seed", 0)
+    alpha = fixed.get("alpha", 0.05)
+    if isinstance(repetitions, bool) or not isinstance(repetitions, int) or not 20 <= repetitions <= 2000:
+        raise PipelineAdapterError("causal placebo repetitions must be an integer between 20 and 2000")
+    if isinstance(seed, bool) or not isinstance(seed, int) or not 0 <= seed <= 2**32 - 1:
+        raise PipelineAdapterError("causal placebo seed is out of range")
+    alpha_value = _finite(alpha, "stage.fixed_parameters.alpha")
+    if not 0 < alpha_value < 1:
+        raise PipelineAdapterError("causal placebo alpha must be within (0,1)")
+    return {
+        "mode": "placebo_policy_test",
+        "treatment": treatment,
+        "outcome": outcome,
+        "confounders": confounders,
+        "repetitions": repetitions,
+        "seed": seed,
+        "alpha": alpha_value,
+    }
+
+
 ADAPTERS: dict[
     str,
     Callable[[Mapping[str, Any], Mapping[str, Any], Mapping[str, Any]], dict[str, Any]],
@@ -297,4 +381,7 @@ ADAPTERS: dict[
     "time_series_to_pattern_discovery": time_series_to_pattern_discovery,
     "time_series_to_assumption_validation": time_series_to_assumption_validation,
     "time_series_to_forecast": time_series_to_forecast,
+    "causal_outcome_to_descriptive_statistics": causal_outcome_to_descriptive_statistics,
+    "causal_ticket_to_estimate": causal_ticket_to_estimate,
+    "causal_ticket_to_placebo_refutation": causal_ticket_to_placebo_refutation,
 }
