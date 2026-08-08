@@ -11,7 +11,7 @@ from typing import Any
 
 from jsonschema import Draft202012Validator
 
-from capability_environment import core_requirement_files, metadata_for_ticket
+from capability_environment import core_requirement_files, metadata_for_ticket, prepare as prepare_capability_environment
 from capability_manager import load_registered_operations, requirements_for_ticket, runtime_plan
 from dynamic_family_router import FAMILY_BY_OPERATION, family_runtime_metadata
 from governance_runtime import install as install_governance_runtime
@@ -136,8 +136,8 @@ def main() -> int:
     sub = parser.add_subparsers(dest="command", required=True)
     requirements = sub.add_parser("requirements")
     requirements.add_argument("--ticket", required=True)
-    plan = sub.add_parser("plan")
-    plan.add_argument("--ticket", required=True)
+    plan_parser = sub.add_parser("plan")
+    plan_parser.add_argument("--ticket", required=True)
     sub.add_parser("validate")
     args = parser.parse_args()
     if args.command == "validate":
@@ -172,7 +172,10 @@ def main() -> int:
         for requirement in requirement_files_for_ticket(ticket):
             print(requirement)
         return 0
-    print(json.dumps(managed_runtime_plan(ticket), ensure_ascii=False, indent=2))
+    environment_preparation = prepare_capability_environment(ticket)
+    plan = managed_runtime_plan(ticket)
+    plan["capability_environment_preparation"] = environment_preparation
+    print(json.dumps(plan, ensure_ascii=False, indent=2))
     return 0
 
 
