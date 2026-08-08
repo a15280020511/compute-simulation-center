@@ -124,10 +124,7 @@ def main() -> int:
         "graph_file": "dynamic-causal-capability-graph.json",
     }
     requirements = requirement_files_for_ticket(ticket)
-    assert [Path(item).name for item in requirements] == [
-        "requirements-ortools.txt",
-        "requirements-causal.txt",
-    ]
+    assert [Path(item).name for item in requirements] == ["requirements-ortools.txt"]
     runtime = managed_runtime_plan(ticket)
     assert runtime["capability_pack"] == "dynamic-orchestration"
     assert runtime["dynamic_family"] == "causal-policy"
@@ -136,6 +133,11 @@ def main() -> int:
     assert runtime["selection_engine"] == "ortools-cp-sat"
     assert runtime["graph_engine"] == "networkx"
     assert runtime["automatic_parallel_execution"] is False
+    isolated = runtime["isolated_environment"]
+    assert isolated["name"] == "causal-policy"
+    assert [Path(item).name for item in isolated["requirements"]] == ["requirements-causal.txt"]
+    assert isolated["network_policy"] == "inherit-deny-at-execution"
+    assert isolated["ticket_supplied_requirements_allowed"] is False
 
     plan = plan_dynamic_causal_policy(ticket)
     expected = ["outcome_statistics", "alternate_estimate", "placebo_refutation", "primary_effect"]
@@ -170,6 +172,8 @@ def main() -> int:
         assert result["results"]["optimization"]["exhaustive_cross_check"]["passed"] is True
         assert result["results"]["final_stage"] == "primary_effect"
         assert result["results"]["final_result"]["mode"] == "backdoor_adjustment"
+        assert result["results"]["final_result"]["engine"]["runtime_isolation"] == "fixed-venv"
+        assert result["results"]["final_result"]["engine"]["scipy_version"] == "1.15.3"
         assert len(result["results"]["stage_receipts"]) == 4
         assert all(row["status"] == "PASS" for row in result["results"]["stage_receipts"])
         assert result["results"]["quality_gate"]["status"] in {"PASS", "WARN", "REJECT_CAUSAL_CLAIM"}
@@ -195,6 +199,8 @@ def main() -> int:
             "objective_value": optimization["objective_value"],
             "exhaustive_best_objective": cross["best_objective"],
             "global_optimal_proven": optimization["global_optimal_proven"],
+            "causal_runtime_isolation": result["results"]["final_result"]["engine"]["runtime_isolation"],
+            "causal_runtime_scipy": result["results"]["final_result"]["engine"]["scipy_version"],
             "causal_quality_gate": result["results"]["quality_gate"],
             "network_used": result["execution"]["network_used"],
             "model_calls": result["execution"]["model_calls"],
