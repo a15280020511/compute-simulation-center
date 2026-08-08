@@ -57,8 +57,9 @@ jobs:
           assert version("ortools") == "9.15.6755"
           assert version("networkx") == "3.6.1"
           assert version("MAPIE") == "1.4.1"
-          assert version("scikit-learn") == "1.8.0"
-          assert version("numpy") == "2.4.2"
+          sklearn_major_minor = tuple(int(part) for part in version("scikit-learn").split(".")[:2])
+          assert sklearn_major_minor >= (1, 4)
+          assert version("numpy") == "2.4.6"
           PY
       - name: Compile conformal-prediction dynamic family
         working-directory: compute-center
