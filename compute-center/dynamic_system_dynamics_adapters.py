@@ -116,17 +116,19 @@ def _trajectory(initial_inputs: Mapping[str, Any], result: Mapping[str, Any]) ->
                 raise PipelineAdapterError("stock trajectory width changed across history")
             values.append(_finite(raw[index], "result.history[].stocks[]"))
         return values
-    history_key = {
-        "feedback_delay": "state",
-        "policy_switch": "state",
-        "coupled_capacity": {
+    if mode == "coupled_capacity":
+        history_key = {
             "final_demand": "demand",
             "final_capacity": "capacity",
             "final_backlog": "backlog",
-        }[metric],
-        "resource_depletion": "stock",
-        "adoption_saturation": "adoption",
-    }[mode]
+        }[metric]
+    else:
+        history_key = {
+            "feedback_delay": "state",
+            "policy_switch": "state",
+            "resource_depletion": "stock",
+            "adoption_saturation": "adoption",
+        }[mode]
     for row in rows:
         values.append(_finite(row.get(history_key), f"result.history[].{history_key}"))
     if not values:
