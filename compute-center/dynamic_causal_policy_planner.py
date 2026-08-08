@@ -172,6 +172,7 @@ def causal_quality_gate(
         raise DynamicCausalPolicyError("primary causal result is missing")
     primary_effect = _effect(primary, REQUIRED_STAGE_ID)
     primary_allowed = primary.get("causal_claim_allowed") is True
+    high_stakes = plan.get("planning_features", {}).get("decision_class") == "high_stakes"
     reasons: list[str] = []
     warnings: list[str] = []
     causal_claim_allowed = primary_allowed
@@ -185,21 +186,26 @@ def causal_quality_gate(
         same_sign = primary_effect == 0.0 or alternate_effect == 0.0 or (primary_effect > 0) == (alternate_effect > 0)
         relative_difference = abs(alternate_effect - primary_effect) / max(abs(primary_effect), 1e-12)
         threshold = float(policy["quality_gate"]["alternate_relative_difference_warn"])
+        alternate_allowed = alternate.get("causal_claim_allowed") is True
         alternate_payload = {
             "primary_effect": primary_effect,
             "alternate_effect": alternate_effect,
             "effect_sign_consistent": same_sign,
             "relative_difference": relative_difference,
             "warning_threshold": threshold,
-            "alternate_causal_claim_allowed": alternate.get("causal_claim_allowed") is True,
+            "alternate_causal_claim_allowed": alternate_allowed,
         }
         if not same_sign:
             causal_claim_allowed = False
             reasons.append("primary and alternate estimators disagree on effect sign")
         elif relative_difference > threshold:
             warnings.append("primary and alternate estimators materially differ in effect magnitude")
-        if alternate.get("causal_claim_allowed") is not True:
-            warnings.append("alternate estimator did not pass its own causal-claim gate")
+        if not alternate_allowed:
+            if high_stakes:
+                causal_claim_allowed = False
+                reasons.append("high-stakes task requires the alternate estimator to pass its own causal-claim gate")
+            else:
+                warnings.append("alternate estimator did not pass its own causal-claim gate")
 
     placebo_payload: dict[str, Any] | None = None
     placebo = stage_results.get("placebo_refutation")
