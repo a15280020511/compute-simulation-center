@@ -87,6 +87,23 @@ class DynamicFamilyRouterCoexistenceTests(unittest.TestCase):
             "finance_decision_analysis:bounded_linear_kalman_filter",
         )
 
+    def test_reliability_operation_route_coexists_with_existing_families(self) -> None:
+        ticket = {
+            "task_id": "router-reliability-coexistence",
+            "operation": "descriptive_statistics",
+            "inputs": {
+                "data": [8.0, 9.0, 10.0, 11.0, 12.0, 8.5, 9.5, 10.5],
+                "reliability_context": {"threshold": 8.0, "tail": "lower"},
+            },
+            "pipeline": dict(PIPELINE),
+        }
+        self.assertEqual(resolve_dynamic_family(ticket), "reliability")
+        metadata = family_runtime_metadata(ticket)
+        self.assertEqual(metadata["family"], "reliability")
+        self.assertEqual(metadata["python_version"], "3.12")
+        self.assertEqual(metadata["requirements"], ["requirements-global-openturns.txt"])
+        self.assertEqual(metadata["entry_contract"], "descriptive_statistics:sample-normal-reliability")
+
 
 if __name__ == "__main__":
     unittest.main()
