@@ -1,0 +1,48 @@
+{
+  "schema_version": "compute-dynamic-factor-regression-capability-graph-v1",
+  "status": "controlled-preview",
+  "family": "factor-regression",
+  "node_order": [
+    "factor_regression",
+    "numpy_exact_regression_audit",
+    "r_squared_target_audit",
+    "residual_volatility_target_audit"
+  ],
+  "nodes": {
+    "factor_regression": {
+      "operation": "finance_decision_analysis",
+      "mode": "factor_regression",
+      "adapter": "factor_ticket_to_statsmodels"
+    },
+    "numpy_exact_regression_audit": {
+      "operation": "finance_decision_analysis",
+      "mode": "benchmark_comparison",
+      "adapter": "factor_to_numpy_exact_audit"
+    },
+    "r_squared_target_audit": {
+      "operation": "finance_decision_analysis",
+      "mode": "benchmark_comparison",
+      "adapter": "factor_to_r_squared_target_audit"
+    },
+    "residual_volatility_target_audit": {
+      "operation": "finance_decision_analysis",
+      "mode": "benchmark_comparison",
+      "adapter": "factor_to_residual_target_audit"
+    }
+  },
+  "precedence": [
+    ["factor_regression", "numpy_exact_regression_audit"],
+    ["factor_regression", "r_squared_target_audit"],
+    ["factor_regression", "residual_volatility_target_audit"]
+  ],
+  "safety": {
+    "dynamic_operation_discovery_allowed": false,
+    "ticket_supplied_nodes_allowed": false,
+    "ticket_supplied_edges_allowed": false,
+    "ticket_supplied_code_allowed": false,
+    "cycles_allowed": false,
+    "automatic_parallel_execution": false,
+    "branching_allowed": true,
+    "execution_remains_strict_serial": true
+  }
+}

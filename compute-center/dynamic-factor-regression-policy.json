@@ -1,0 +1,55 @@
+{
+  "schema_version": "compute-dynamic-factor-regression-policy-v1",
+  "status": "controlled-preview",
+  "family": "factor-regression",
+  "declared_operation": "finance_decision_analysis",
+  "declared_mode": "factor_regression",
+  "planner": "ortools-cp-sat",
+  "graph_engine": "networkx",
+  "network_policy": "deny",
+  "model_calls": 0,
+  "objective_text_routing_allowed": false,
+  "structured_signals_only": true,
+  "dynamic_operation_discovery_allowed": false,
+  "ticket_supplied_code_allowed": false,
+  "automatic_parallel_execution": false,
+  "cycles_allowed": false,
+  "branching_allowed": true,
+  "maximum_stages": 4,
+  "allowed_operations": ["finance_decision_analysis"],
+  "allowed_entry_modes": ["factor_regression"],
+  "allowed_adapters": [
+    "factor_ticket_to_statsmodels",
+    "factor_to_numpy_exact_audit",
+    "factor_to_r_squared_target_audit",
+    "factor_to_residual_target_audit"
+  ],
+  "solver_policy": {
+    "require_optimal_status": true,
+    "num_search_workers": 1,
+    "random_seed": 0,
+    "max_time_seconds": 5.0,
+    "exhaustive_cross_check_max_optional_nodes": 8
+  },
+  "selection_policy": {
+    "stage_rules": {
+      "numpy_exact_regression_audit": {
+        "penalty": 5,
+        "benefits": {"exact_regression_consistency_required": 220},
+        "required_if_any": ["exact_regression_consistency_required"]
+      },
+      "r_squared_target_audit": {
+        "penalty": 5,
+        "benefits": {"r_squared_target_available": 140},
+        "eligible_all": ["r_squared_target_available"],
+        "required_if_any": ["r_squared_target_available"]
+      },
+      "residual_volatility_target_audit": {
+        "penalty": 5,
+        "benefits": {"residual_target_available": 120},
+        "eligible_all": ["residual_target_available"],
+        "required_if_any": ["residual_target_available"]
+      }
+    }
+  }
+}
