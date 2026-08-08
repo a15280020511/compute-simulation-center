@@ -158,6 +158,9 @@ def main() -> int:
         result = json.loads((root / "compute-result.json").read_text(encoding="utf-8"))
         state = json.loads((root / "compute-dynamic-pipeline-state.json").read_text(encoding="utf-8"))
         audit = json.loads((root / "compute-audit.json").read_text(encoding="utf-8"))
+        feedback_input = json.loads(
+            (root / "dynamic-pipeline-stages" / "02-realized_feedback-input.json").read_text(encoding="utf-8")
+        )
         assert result["status"] == "success"
         assert result["operation"] == "finance_decision_analysis"
         assert result["results"]["dynamic_family"] == "state-estimation"
@@ -173,6 +176,12 @@ def main() -> int:
         assert result["results"]["final_stage"] == "state_estimation"
         assert result["results"]["final_result"]["mode"] == "bounded_linear_kalman_filter"
         assert result["results"]["final_result"]["fixed_offline_generic_state_estimation"] is True
+        filtered = result["results"]["final_result"]["filtered_states"]
+        expected_one_step = [0.0] + [row[0] for row in filtered[:-1]]
+        assert len(feedback_input["predicted"]) == len(expected_one_step)
+        for actual, expected_value in zip(feedback_input["predicted"], expected_one_step, strict=True):
+            assert abs(float(actual) - float(expected_value)) <= 1e-12
+        assert abs(float(feedback_input["predicted"][0]) - float(filtered[0][0])) > 1e-12
         assert result["results"]["validation_results"]["realized_feedback"]["mode"] == "realized_outcome_feedback"
         assert result["results"]["validation_results"]["benchmark_check"]["mode"] == "benchmark_comparison"
         assert len(result["results"]["stage_receipts"]) == 3
@@ -202,6 +211,7 @@ def main() -> int:
             "python_version": runtime["python_version"],
             "stage_order": expected,
             "stage_dependencies": result["results"]["stage_dependencies"],
+            "feedback_prediction_semantics": "strict-one-step-ahead-before-observation-assimilation",
             "solver_status": optimization["solver_status"],
             "objective_value": optimization["objective_value"],
             "exhaustive_best_objective": cross["best_objective"],
