@@ -1,0 +1,76 @@
+{
+  "schema_version": "compute-dynamic-bayesian-policy-v1",
+  "status": "controlled-preview",
+  "family": "bayesian-network",
+  "declared_operation": "bayesian_network_inference",
+  "planner": "ortools-cp-sat",
+  "graph_engine": "networkx",
+  "network_policy": "deny",
+  "model_calls": 0,
+  "objective_text_routing_allowed": false,
+  "structured_signals_only": true,
+  "dynamic_operation_discovery_allowed": false,
+  "ticket_supplied_code_allowed": false,
+  "automatic_parallel_execution": false,
+  "cycles_allowed": false,
+  "branching_allowed": true,
+  "maximum_stages": 4,
+  "allowed_operations": [
+    "bayesian_network_inference"
+  ],
+  "allowed_adapters": [
+    "bayesian_ticket_to_parameter_estimation",
+    "bayesian_estimate_to_fixed_inference",
+    "bayesian_estimate_to_evidence_sensitivity",
+    "bayesian_estimate_to_virtual_evidence"
+  ],
+  "solver_policy": {
+    "require_optimal_status": true,
+    "max_time_seconds": 2.0,
+    "num_search_workers": 1,
+    "random_seed": 20260808,
+    "exhaustive_cross_check_max_optional_nodes": 10
+  },
+  "selection_policy": {
+    "minimum_dynamic_rows": 20,
+    "high_stakes_minimum_sensitivity_scenarios": 2,
+    "stage_rules": {
+      "evidence_sensitivity": {
+        "operation": "bayesian_network_inference",
+        "penalty": 25,
+        "benefits": {
+          "sensitivity_requested": 80,
+          "formal_decision": 30,
+          "high_stakes": 50,
+          "multiple_sensitivity_scenarios": 15
+        },
+        "eligible_all": [
+          "bayesian_input_valid",
+          "sensitivity_scenarios_present"
+        ],
+        "required_if_any": [
+          "sensitivity_requested",
+          "high_stakes"
+        ],
+        "required_if_all": []
+      },
+      "virtual_evidence_update": {
+        "operation": "bayesian_network_inference",
+        "penalty": 25,
+        "benefits": {
+          "virtual_evidence_requested": 80,
+          "virtual_evidence_present": 10,
+          "high_stakes": 10
+        },
+        "eligible_all": [
+          "bayesian_input_valid",
+          "virtual_evidence_present"
+        ],
+        "required_if_any": [
+          "virtual_evidence_requested"
+        ],
+        "required_if_all": []
+      }
+    }
+  }
+}
