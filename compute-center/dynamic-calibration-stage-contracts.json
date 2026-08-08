@@ -1,0 +1,84 @@
+{
+  "schema_version": "compute-dynamic-calibration-stage-contracts-v1",
+  "status": "controlled-preview",
+  "family": "calibration",
+  "contracts": {
+    "exponential_calibration": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "type": "object",
+      "required": ["mode", "observations", "parameters", "chi_square", "reduced_chi_square", "aic", "bic", "rmse", "engine"],
+      "properties": {
+        "mode": {"const": "lmfit_exponential_calibration"},
+        "observations": {"type": "integer", "minimum": 5},
+        "parameters": {"type": "object", "required": ["amplitude", "decay", "offset"]},
+        "chi_square": {"type": "number", "minimum": 0.0},
+        "reduced_chi_square": {"type": "number", "minimum": 0.0},
+        "aic": {"type": "number"},
+        "bic": {"type": "number"},
+        "rmse": {"type": "number", "minimum": 0.0},
+        "engine": {"type": "object"}
+      },
+      "additionalProperties": true
+    },
+    "residual_statistics": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "type": "object",
+      "required": ["count", "mean", "median", "standard_deviation_population", "minimum", "maximum", "percentiles"],
+      "properties": {
+        "count": {"type": "integer", "minimum": 5},
+        "mean": {"type": "number"},
+        "median": {"type": "number"},
+        "standard_deviation_population": {"type": "number", "minimum": 0.0},
+        "minimum": {"type": "number"},
+        "maximum": {"type": "number"},
+        "percentiles": {"type": "object"}
+      },
+      "additionalProperties": true
+    },
+    "rmse_consistency_audit": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "type": "object",
+      "required": ["mode", "candidate_count", "passed", "failed", "status", "rows", "decision_support_only"],
+      "properties": {
+        "mode": {"const": "benchmark_comparison"},
+        "candidate_count": {"const": 1},
+        "passed": {"type": "integer", "minimum": 0, "maximum": 1},
+        "failed": {"type": "integer", "minimum": 0, "maximum": 1},
+        "status": {"enum": ["PASS", "FAIL"]},
+        "rows": {"type": "array", "minItems": 1, "maxItems": 1},
+        "decision_support_only": {"const": true}
+      },
+      "additionalProperties": true
+    },
+    "residual_bias_audit": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "type": "object",
+      "required": ["mode", "candidate_count", "passed", "failed", "status", "rows", "decision_support_only"],
+      "properties": {
+        "mode": {"const": "benchmark_comparison"},
+        "candidate_count": {"const": 1},
+        "passed": {"type": "integer", "minimum": 0, "maximum": 1},
+        "failed": {"type": "integer", "minimum": 0, "maximum": 1},
+        "status": {"enum": ["PASS", "FAIL"]},
+        "rows": {"type": "array", "minItems": 1, "maxItems": 1},
+        "decision_support_only": {"const": true}
+      },
+      "additionalProperties": true
+    },
+    "parameter_target_audit": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "type": "object",
+      "required": ["mode", "candidate_count", "passed", "failed", "status", "rows", "decision_support_only"],
+      "properties": {
+        "mode": {"const": "benchmark_comparison"},
+        "candidate_count": {"type": "integer", "minimum": 1, "maximum": 3},
+        "passed": {"type": "integer", "minimum": 0, "maximum": 3},
+        "failed": {"type": "integer", "minimum": 0, "maximum": 3},
+        "status": {"enum": ["PASS", "FAIL"]},
+        "rows": {"type": "array", "minItems": 1, "maxItems": 3},
+        "decision_support_only": {"const": true}
+      },
+      "additionalProperties": true
+    }
+  }
+}

@@ -1,0 +1,66 @@
+{
+  "schema_version": "compute-dynamic-calibration-capability-graph-v1",
+  "status": "controlled-preview",
+  "family": "calibration",
+  "selection_engine": "ortools-cp-sat",
+  "graph_engine": "networkx",
+  "safety": {
+    "dynamic_operation_discovery_allowed": false,
+    "ticket_supplied_nodes_allowed": false,
+    "ticket_supplied_edges_allowed": false,
+    "ticket_supplied_code_allowed": false,
+    "cycles_allowed": false,
+    "automatic_parallel_execution": false,
+    "branching_allowed": true,
+    "execution_remains_strict_serial": true
+  },
+  "node_order": [
+    "exponential_calibration",
+    "residual_statistics",
+    "rmse_consistency_audit",
+    "residual_bias_audit",
+    "parameter_target_audit"
+  ],
+  "nodes": {
+    "exponential_calibration": {
+      "operation": "finance_decision_analysis",
+      "mode": "lmfit_exponential_calibration",
+      "adapter": "calibration_ticket_to_lmfit",
+      "required": true,
+      "result_required": true
+    },
+    "residual_statistics": {
+      "operation": "descriptive_statistics",
+      "adapter": "calibration_to_residual_statistics",
+      "required": false,
+      "result_required": false
+    },
+    "rmse_consistency_audit": {
+      "operation": "finance_decision_analysis",
+      "mode": "benchmark_comparison",
+      "adapter": "residual_statistics_to_rmse_audit",
+      "required": false,
+      "result_required": false
+    },
+    "residual_bias_audit": {
+      "operation": "finance_decision_analysis",
+      "mode": "benchmark_comparison",
+      "adapter": "residual_statistics_to_bias_audit",
+      "required": false,
+      "result_required": false
+    },
+    "parameter_target_audit": {
+      "operation": "finance_decision_analysis",
+      "mode": "benchmark_comparison",
+      "adapter": "calibration_to_parameter_target_audit",
+      "required": false,
+      "result_required": false
+    }
+  },
+  "precedence": [
+    ["exponential_calibration", "residual_statistics"],
+    ["residual_statistics", "rmse_consistency_audit"],
+    ["residual_statistics", "residual_bias_audit"],
+    ["exponential_calibration", "parameter_target_audit"]
+  ]
+}

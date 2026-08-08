@@ -32,6 +32,7 @@ FAMILY_BY_OPERATION_MODE = {
     ("finance_decision_analysis", "evidently_data_drift"): "drift",
     ("finance_decision_analysis", "policy_microsimulation"): "policy-simulation",
     ("finance_decision_analysis", "control_step_response"): "control-response",
+    ("finance_decision_analysis", "lmfit_exponential_calibration"): "calibration",
 }
 INDIRECT_INTELLIGENCE_REQUIREMENTS = [
     "requirements-ortools.txt",
@@ -277,6 +278,18 @@ def resolve_dynamic_family(ticket: Mapping[str, Any]) -> str:
             raise DynamicFamilyRoutingError("control_context must be an object when supplied")
         return family
 
+    if family == "calibration":
+        if operation != "finance_decision_analysis" or mode != "lmfit_exponential_calibration":
+            raise DynamicFamilyRoutingError("calibration family requires finance_decision_analysis:lmfit_exponential_calibration")
+        x = _sequence(inputs.get("x"), "inputs.x")
+        y = _sequence(inputs.get("y"), "inputs.y")
+        if len(x) != len(y) or not 5 <= len(x) <= 5000:
+            raise DynamicFamilyRoutingError("calibration family requires aligned x/y arrays with 5 to 5000 observations")
+        context = inputs.get("calibration_context")
+        if context is not None and not isinstance(context, Mapping):
+            raise DynamicFamilyRoutingError("calibration_context must be an object when supplied")
+        return family
+
     raise DynamicFamilyRoutingError(f"unsupported dynamic family: {family}")
 
 
@@ -309,6 +322,8 @@ def family_runtime_metadata(ticket: Mapping[str, Any]) -> dict[str, Any]:
         return {"family": family, "entry_contract": "finance_decision_analysis:policy_microsimulation", "policy_file": "dynamic-policy-simulation-policy.json", "graph_file": "dynamic-policy-simulation-capability-graph.json", "python_version": "3.12", "requirements": ["requirements-ortools.txt"]}
     if family == "control-response":
         return {"family": family, "entry_contract": "finance_decision_analysis:control_step_response", "policy_file": "dynamic-control-response-policy.json", "graph_file": "dynamic-control-response-capability-graph.json", "python_version": "3.12", "requirements": ["requirements-ortools.txt", "requirements-global-control.txt"]}
+    if family == "calibration":
+        return {"family": family, "entry_contract": "finance_decision_analysis:lmfit_exponential_calibration", "policy_file": "dynamic-calibration-policy.json", "graph_file": "dynamic-calibration-capability-graph.json", "python_version": "3.12", "requirements": ["requirements-ortools.txt", "requirements-global-lmfit.txt"]}
     raise DynamicFamilyRoutingError(f"unsupported dynamic family: {family}")
 
 
@@ -353,4 +368,7 @@ def run_dynamic_family_ticket(ticket: Mapping[str, Any], output_dir: Path, opera
     if family == "control-response":
         from dynamic_control_response_planner import run_dynamic_control_response_ticket
         return run_dynamic_control_response_ticket(ticket, output_dir, operations)
+    if family == "calibration":
+        from dynamic_calibration_planner import run_dynamic_calibration_ticket
+        return run_dynamic_calibration_ticket(ticket, output_dir, operations)
     raise DynamicFamilyRoutingError(f"unsupported dynamic family: {family}")
