@@ -20,6 +20,22 @@ FAMILY_BY_OPERATION = {
     "causal_policy_evaluation": "causal-policy",
     "bayesian_network_inference": "bayesian-network",
 }
+FAMILY_BY_OPERATION_MODE = {
+    ("finance_decision_analysis", "indirect_intelligence_analysis"): "indirect-intelligence",
+}
+INDIRECT_INTELLIGENCE_REQUIREMENTS = [
+    "requirements-ortools.txt",
+    "requirements-intelligence-rapidfuzz.txt",
+    "requirements-intelligence-datasketch.txt",
+    "requirements-intelligence-splink.txt",
+    "requirements-graph-rdflib.txt",
+    "requirements-graph-owlready2.txt",
+    "requirements-graph-pyshacl.txt",
+    "requirements-graph-igraph.txt",
+    "requirements-global-pm4py.txt",
+    "requirements-bayesian-network.txt",
+    "requirements-intelligence-problog.txt",
+]
 
 
 class DynamicFamilyRoutingError(ValueError):
@@ -45,14 +61,16 @@ def resolve_dynamic_family(ticket: Mapping[str, Any]) -> str:
     if not is_dynamic_request(ticket):
         raise DynamicFamilyRoutingError("ticket does not request the dynamic production contract")
     operation = str(ticket.get("operation") or "")
-    family = FAMILY_BY_OPERATION.get(operation)
-    if family is None:
-        raise DynamicFamilyRoutingError(
-            f"dynamic operation is not admitted to any capability family: {operation or '<empty>'}"
-        )
     inputs = ticket.get("inputs")
     if not isinstance(inputs, Mapping):
         raise DynamicFamilyRoutingError("dynamic ticket inputs must be an object")
+    mode = str(inputs.get("mode") or "")
+    family = FAMILY_BY_OPERATION_MODE.get((operation, mode)) or FAMILY_BY_OPERATION.get(operation)
+    if family is None:
+        raise DynamicFamilyRoutingError(
+            f"dynamic operation/mode is not admitted to any capability family: "
+            f"{operation or '<empty>'}/{mode or '<none>'}"
+        )
 
     if family == "scenario-decision":
         scenarios = _sequence(inputs.get("scenarios"), "inputs.scenarios")
@@ -68,7 +86,6 @@ def resolve_dynamic_family(ticket: Mapping[str, Any]) -> str:
         return family
 
     if family == "causal-policy":
-        mode = str(inputs.get("mode") or "")
         admitted_modes = {"backdoor_adjustment", "propensity_weighting"}
         if mode not in admitted_modes:
             raise DynamicFamilyRoutingError(
@@ -87,7 +104,6 @@ def resolve_dynamic_family(ticket: Mapping[str, Any]) -> str:
         return family
 
     if family == "bayesian-network":
-        mode = str(inputs.get("mode") or "")
         if mode != "bayesian_parameter_estimation":
             raise DynamicFamilyRoutingError(
                 "bayesian-network dynamic family currently admits only bayesian_parameter_estimation as the entry mode"
@@ -113,6 +129,17 @@ def resolve_dynamic_family(ticket: Mapping[str, Any]) -> str:
                 raise DynamicFamilyRoutingError(
                     "bayesian-network dependency nodes must have observed data columns for parameter estimation"
                 )
+        return family
+
+    if family == "indirect-intelligence":
+        if operation != "finance_decision_analysis" or mode != "indirect_intelligence_analysis":
+            raise DynamicFamilyRoutingError("indirect-intelligence family requires its exact operation/mode pair")
+        hypothesis = str(inputs.get("hypothesis") or "").strip()
+        if not hypothesis:
+            raise DynamicFamilyRoutingError("indirect-intelligence family requires a non-empty hypothesis")
+        evidence = _sequence(inputs.get("evidence"), "inputs.evidence")
+        if not evidence:
+            raise DynamicFamilyRoutingError("indirect-intelligence family requires non-empty structured evidence")
         return family
 
     raise DynamicFamilyRoutingError(f"unsupported dynamic family: {family}")
@@ -152,6 +179,15 @@ def family_runtime_metadata(ticket: Mapping[str, Any]) -> dict[str, Any]:
             "python_version": "3.12",
             "requirements": ["requirements-bayesian-network.txt"],
         }
+    if family == "indirect-intelligence":
+        return {
+            "family": family,
+            "entry_contract": "finance_decision_analysis:indirect_intelligence_analysis",
+            "policy_file": "indirect-intelligence-mode-registry.json",
+            "graph_file": "dynamic-indirect-intelligence-capability-graph.json",
+            "python_version": "3.12",
+            "requirements": list(INDIRECT_INTELLIGENCE_REQUIREMENTS),
+        }
     raise DynamicFamilyRoutingError(f"unsupported dynamic family: {family}")
 
 
@@ -177,4 +213,8 @@ def run_dynamic_family_ticket(
         from dynamic_bayesian_network_planner import run_dynamic_bayesian_network_ticket
 
         return run_dynamic_bayesian_network_ticket(ticket, output_dir, operations)
+    if family == "indirect-intelligence":
+        from dynamic_indirect_intelligence_planner import run_dynamic_indirect_intelligence_ticket
+
+        return run_dynamic_indirect_intelligence_ticket(ticket, output_dir, operations)
     raise DynamicFamilyRoutingError(f"unsupported dynamic family: {family}")
