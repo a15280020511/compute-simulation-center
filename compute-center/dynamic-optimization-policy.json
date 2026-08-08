@@ -21,7 +21,7 @@
   ],
   "allowed_adapters": [
     "optimization_ticket_to_primary",
-    "optimization_problem_to_highs_relaxation",
+    "optimization_problem_to_gekko_relaxation",
     "optimization_primary_relaxation_to_bound_audit",
     "optimization_primary_to_external_benchmark"
   ],
