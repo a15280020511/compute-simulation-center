@@ -1,0 +1,63 @@
+{
+  "schema_version": "compute-dynamic-drift-policy-v1",
+  "status": "controlled-preview",
+  "family": "drift",
+  "declared_operation": "finance_decision_analysis",
+  "declared_mode": "evidently_data_drift",
+  "planner": "ortools-cp-sat",
+  "graph_engine": "networkx",
+  "network_policy": "deny",
+  "model_calls": 0,
+  "objective_text_routing_allowed": false,
+  "structured_signals_only": true,
+  "dynamic_operation_discovery_allowed": false,
+  "ticket_supplied_code_allowed": false,
+  "automatic_parallel_execution": false,
+  "cycles_allowed": false,
+  "branching_allowed": true,
+  "maximum_stages": 4,
+  "allowed_operations": ["finance_decision_analysis"],
+  "allowed_entry_modes": ["evidently_data_drift"],
+  "allowed_adapters": [
+    "drift_ticket_to_evidently",
+    "evidently_to_adwin",
+    "evidently_to_change_point",
+    "evidently_to_drift_share_audit"
+  ],
+  "solver_policy": {
+    "require_optimal_status": true,
+    "num_search_workers": 1,
+    "random_seed": 0,
+    "max_time_seconds": 5.0,
+    "exhaustive_cross_check_max_optional_nodes": 8
+  },
+  "selection_policy": {
+    "stage_rules": {
+      "adwin_cross_check": {
+        "penalty": 20,
+        "benefits": {
+          "adwin_cross_check_requested": 150,
+          "formal_or_high_stakes": 40
+        },
+        "required_if_any": ["adwin_cross_check_requested"]
+      },
+      "change_point_cross_check": {
+        "penalty": 20,
+        "benefits": {
+          "change_point_cross_check_requested": 150,
+          "formal_or_high_stakes": 40
+        },
+        "required_if_any": ["change_point_cross_check_requested"]
+      },
+      "drift_share_audit": {
+        "penalty": 5,
+        "benefits": {
+          "expected_drift_share_available": 140,
+          "formal_or_high_stakes": 15
+        },
+        "eligible_all": ["expected_drift_share_available"],
+        "required_if_any": ["expected_drift_share_available"]
+      }
+    }
+  }
+}
