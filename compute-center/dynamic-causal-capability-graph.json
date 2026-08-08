@@ -1,0 +1,51 @@
+{
+  "schema_version": "compute-dynamic-causal-capability-graph-v1",
+  "status": "controlled-preview",
+  "family": "causal-policy",
+  "graph_engine": "networkx",
+  "selection_engine": "ortools-cp-sat",
+  "nodes": [
+    {
+      "id": "outcome_statistics",
+      "operation": "descriptive_statistics",
+      "adapter": "causal_outcome_to_descriptive_statistics",
+      "role": "optional-analysis",
+      "capabilities": ["outcome-level-dispersion-summary"]
+    },
+    {
+      "id": "alternate_estimate",
+      "operation": "causal_policy_evaluation",
+      "adapter": "causal_to_alternate_estimate",
+      "role": "optional-robustness",
+      "capabilities": ["estimator-cross-check", "effect-sign-consistency"]
+    },
+    {
+      "id": "placebo_refutation",
+      "operation": "causal_policy_evaluation",
+      "adapter": "causal_to_placebo_refutation",
+      "role": "optional-refutation",
+      "capabilities": ["placebo-policy-test", "empirical-refutation"]
+    },
+    {
+      "id": "primary_effect",
+      "operation": "causal_policy_evaluation",
+      "adapter": "causal_to_primary_estimate",
+      "role": "required-result",
+      "capabilities": ["identified-effect-estimation", "claim-boundary"]
+    }
+  ],
+  "precedence": [
+    ["outcome_statistics", "alternate_estimate"],
+    ["alternate_estimate", "placebo_refutation"],
+    ["placebo_refutation", "primary_effect"]
+  ],
+  "safety": {
+    "dynamic_operation_discovery_allowed": false,
+    "ticket_supplied_nodes_allowed": false,
+    "ticket_supplied_edges_allowed": false,
+    "cycles_allowed": false,
+    "automatic_parallel_execution": false,
+    "full_graph_must_be_single_serial_chain": true,
+    "primary_effect_stage_required": true
+  }
+}
