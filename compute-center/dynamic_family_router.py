@@ -17,6 +17,7 @@ DYNAMIC_STAGE_ID = "dynamic"
 FAMILY_BY_OPERATION = {
     "scenario_compare": "scenario-decision",
     "time_series_forecast": "time-series",
+    "causal_policy_evaluation": "causal-policy",
 }
 
 
@@ -65,6 +66,25 @@ def resolve_dynamic_family(ticket: Mapping[str, Any]) -> str:
             raise DynamicFamilyRoutingError("time-series family requires at least five observations")
         return family
 
+    if family == "causal-policy":
+        mode = str(inputs.get("mode") or "")
+        admitted_modes = {"backdoor_adjustment", "propensity_weighting"}
+        if mode not in admitted_modes:
+            raise DynamicFamilyRoutingError(
+                "causal-policy dynamic family currently admits only "
+                "backdoor_adjustment or propensity_weighting"
+            )
+        treatment = _sequence(inputs.get("treatment"), "inputs.treatment")
+        outcome = _sequence(inputs.get("outcome"), "inputs.outcome")
+        if len(treatment) < 8 or len(treatment) != len(outcome):
+            raise DynamicFamilyRoutingError(
+                "causal-policy family requires equal treatment/outcome arrays with at least eight observations"
+            )
+        confounders = inputs.get("confounders", {})
+        if confounders is not None and not isinstance(confounders, Mapping):
+            raise DynamicFamilyRoutingError("inputs.confounders must be an object when supplied")
+        return family
+
     raise DynamicFamilyRoutingError(f"unsupported dynamic family: {family}")
 
 
@@ -76,6 +96,7 @@ def family_runtime_metadata(ticket: Mapping[str, Any]) -> dict[str, Any]:
             "entry_contract": "scenario_compare",
             "policy_file": "dynamic-orchestration-policy.json",
             "graph_file": "dynamic-capability-graph.json",
+            "requirements": [],
         }
     if family == "time-series":
         return {
@@ -83,6 +104,15 @@ def family_runtime_metadata(ticket: Mapping[str, Any]) -> dict[str, Any]:
             "entry_contract": "time_series_forecast",
             "policy_file": "dynamic-time-series-policy.json",
             "graph_file": "dynamic-time-series-capability-graph.json",
+            "requirements": [],
+        }
+    if family == "causal-policy":
+        return {
+            "family": family,
+            "entry_contract": "causal_policy_evaluation",
+            "policy_file": "dynamic-causal-policy.json",
+            "graph_file": "dynamic-causal-capability-graph.json",
+            "requirements": ["requirements-causal.txt"],
         }
     raise DynamicFamilyRoutingError(f"unsupported dynamic family: {family}")
 
@@ -101,4 +131,8 @@ def run_dynamic_family_ticket(
         from dynamic_time_series_planner import run_dynamic_time_series_ticket
 
         return run_dynamic_time_series_ticket(ticket, output_dir, operations)
+    if family == "causal-policy":
+        from dynamic_causal_policy_planner import run_dynamic_causal_policy_ticket
+
+        return run_dynamic_causal_policy_ticket(ticket, output_dir, operations)
     raise DynamicFamilyRoutingError(f"unsupported dynamic family: {family}")
