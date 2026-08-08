@@ -1,0 +1,90 @@
+name: Indirect Intelligence Fixup
+
+on:
+  push:
+    branches:
+      - feat/indirect-intelligence-analysis-20260808
+    paths:
+      - .github/workflows/indirect-intelligence-fixup.yml
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: feat/indirect-intelligence-analysis-20260808
+      - name: Apply Bayesian state and inference semantics fixes
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          from pathlib import Path
+
+          path = Path('compute-center/indirect_intelligence_operations.py')
+          text = path.read_text(encoding='utf-8')
+
+          replacements = [
+              (
+                  '    known = {str(row["evref"]) for row in evidence}\n',
+                  '    by_ref = {str(row["evref"]): row for row in evidence}\n    known = set(by_ref)\n',
+              ),
+              (
+                  '        if unknown:\n            raise ComputeError(f"rule {name} references unknown evidence: {unknown[:5]}")\n        result.append({"name": name, "required_evrefs": refs})\n',
+                  '        if unknown:\n            raise ComputeError(f"rule {name} references unknown evidence: {unknown[:5]}")\n        non_supporting = [ref for ref in refs if by_ref[ref]["stance"] != "support"]\n        if non_supporting:\n            raise ComputeError(\n                f"rule {name} may reference only supporting evidence: {non_supporting[:5]}"\n            )\n        result.append({"name": name, "required_evrefs": refs})\n',
+              ),
+              ('    observed: dict[str, int] = {}\n', '    observed: dict[str, str] = {}\n'),
+              (
+                  '        if row["stance"] == "contradict":\n            p_true, p_false = 1.0 - p_true, 1.0 - p_false\n',
+                  '',
+              ),
+              ('        observed[variable] = 1\n', '        observed[variable] = "present"\n'),
+              (
+                  '        "conditional_independence_assumption": True,\n    }\n\n\ndef _problog_rule_results',
+                  '        "conditional_independence_assumption": True,\n        "likelihood_semantics": (\n            "p_if_true/p_if_false are P(observed evidence present | hypothesis true/false); "\n            "stance is evaluated separately and is not algebraically inverted."\n        ),\n    }\n\n\ndef _problog_rule_results',
+              ),
+              (
+                  '            probability = max(0.000001, min(0.999999, float(row["reliability"])))\n            if row["stance"] == "contradict":\n                probability = 1.0 - probability\n            facts.append({"name": f"evidence_{index}", "probability": probability})\n',
+                  '            probability = max(0.000001, min(0.999999, float(row["reliability"])))\n            facts.append({"name": f"evidence_{index}", "probability": probability})\n',
+              ),
+              (
+                  'def _final_class_and_confidence(\n    evidence: Sequence[Mapping[str, Any]],\n    posterior: float | None,\n    has_links: bool,\n) -> tuple[str, float]:\n',
+                  'def _final_class_and_confidence(\n    evidence: Sequence[Mapping[str, Any]],\n    posterior: float | None,\n    has_links: bool,\n    probabilistic_inference_used: bool,\n) -> tuple[str, float]:\n',
+              ),
+              (
+                  '    elif posterior is not None:\n        analysis_class = "INFERRED"\n',
+                  '    elif posterior is not None or probabilistic_inference_used:\n        analysis_class = "INFERRED"\n',
+              ),
+              (
+                  '        bool(entity_links or graph_paths or relations),\n    )\n',
+                  '        bool(entity_links or graph_paths or relations),\n        "probabilistic_inference" in plan["selected_stages"],\n    )\n',
+              ),
+          ]
+          for old, new in replacements:
+              count = text.count(old)
+              if count != 1:
+                  raise SystemExit(f'expected exactly one match, found {count}: {old[:100]!r}')
+              text = text.replace(old, new, 1)
+          path.write_text(text, encoding='utf-8')
+
+          test_path = Path('compute-center/tests/test_indirect_intelligence_analysis.py')
+          test_text = test_path.read_text(encoding='utf-8')
+          marker = '    def test_gateway_dispatches_new_mode(self) -> None:\n'
+          if test_text.count(marker) != 1:
+              raise SystemExit('gateway test marker missing or ambiguous')
+          rule_test = '''    def test_rule_only_probabilistic_stage_stays_inferred(self) -> None:\n        inputs = self._base_inputs()\n        inputs["rules"] = [\n            {\n                "name": "support-rule",\n                "required_evrefs": ["ev-training", "ev-case"],\n            }\n        ]\n        fake_plan = {\n            "selected_stages": ["probabilistic_inference", "contradiction_check"],\n            "signals": {},\n            "solver_status": "OPTIMAL",\n            "objective_value": 85,\n            "selection_engine": "ortools-cp-sat",\n            "graph_engine": "networkx",\n            "serial_execution": True,\n            "automatic_parallel_execution": False,\n            "maximum_stages": 8,\n        }\n        with patch.object(\n            indirect,\n            "_select_stages",\n            return_value=fake_plan,\n        ), patch.object(\n            indirect,\n            "_probabilistic_inference",\n            return_value={"bayesian": None, "problog_rules": [{"joint_probability": 0.72}]},\n        ), patch.object(\n            indirect,\n            "_contradiction",\n            return_value={"claims": []},\n        ):\n            result = indirect.indirect_intelligence_analysis(inputs)\n        self.assertEqual(result["analysis_class"], "INFERRED")\n        self.assertIsNone(result["posterior_probability"])\n        self.assertTrue(result["inference_not_fact"])\n\n'''
+          test_text = test_text.replace(marker, rule_test + marker, 1)
+          test_path.write_text(test_text, encoding='utf-8')
+          PY
+
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git add compute-center/indirect_intelligence_operations.py compute-center/tests/test_indirect_intelligence_analysis.py
+          git diff --cached --check
+          git diff --cached --quiet && exit 0
+          git commit -m 'compute: fix indirect Bayesian evidence semantics'
+          git push origin HEAD:feat/indirect-intelligence-analysis-20260808
