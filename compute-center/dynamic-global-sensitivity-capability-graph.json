@@ -1,0 +1,32 @@
+{
+  "schema_version": "compute-dynamic-global-sensitivity-capability-graph-v1",
+  "status": "controlled-preview",
+  "family": "global-sensitivity",
+  "node_order": [
+    "salib_sobol_sensitivity",
+    "exact_index_consistency_audit",
+    "exact_moment_consistency_audit",
+    "sensitivity_target_audit"
+  ],
+  "nodes": {
+    "salib_sobol_sensitivity": {"operation": "finance_decision_analysis", "mode": "sobol_sensitivity", "adapter": "sensitivity_ticket_to_salib"},
+    "exact_index_consistency_audit": {"operation": "finance_decision_analysis", "mode": "benchmark_comparison", "adapter": "sensitivity_to_exact_index_audit"},
+    "exact_moment_consistency_audit": {"operation": "finance_decision_analysis", "mode": "benchmark_comparison", "adapter": "sensitivity_to_exact_moment_audit"},
+    "sensitivity_target_audit": {"operation": "finance_decision_analysis", "mode": "benchmark_comparison", "adapter": "sensitivity_to_target_audit"}
+  },
+  "precedence": [
+    ["salib_sobol_sensitivity", "exact_index_consistency_audit"],
+    ["salib_sobol_sensitivity", "exact_moment_consistency_audit"],
+    ["salib_sobol_sensitivity", "sensitivity_target_audit"]
+  ],
+  "safety": {
+    "dynamic_operation_discovery_allowed": false,
+    "ticket_supplied_nodes_allowed": false,
+    "ticket_supplied_edges_allowed": false,
+    "ticket_supplied_code_allowed": false,
+    "cycles_allowed": false,
+    "automatic_parallel_execution": false,
+    "branching_allowed": true,
+    "execution_remains_strict_serial": true
+  }
+}
