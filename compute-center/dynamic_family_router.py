@@ -23,7 +23,8 @@ FAMILY_BY_OPERATION_MODE={
 ("finance_decision_analysis","lmfit_exponential_calibration"):"calibration",
 ("finance_decision_analysis","pm4py_directly_follows"):"process-mining",
 ("finance_decision_analysis","rsome_robust_allocation"):"robust-allocation",
-("finance_decision_analysis","mapie_conformal_interval"):"conformal-prediction"}
+("finance_decision_analysis","mapie_conformal_interval"):"conformal-prediction",
+("finance_decision_analysis","sobol_sensitivity"):"global-sensitivity"}
 INDIRECT_INTELLIGENCE_REQUIREMENTS=[
 "requirements-ortools.txt","requirements-intelligence-rapidfuzz.txt",
 "requirements-intelligence-datasketch.txt","requirements-intelligence-splink.txt",
@@ -128,6 +129,11 @@ def _validate(f:str,o:str,m:str,i:Mapping[str,Any])->None:
   if nc!=pc or len(_s(i.get("train_y"),"inputs.train_y"))!=nr: raise DynamicFamilyRoutingError("conformal feature/target dimensions do not align")
   _ctx(i,"conformal_context"); c=i.get("conformal_context")
   if isinstance(c,Mapping) and "validation_observed" in c and len(_s(c.get("validation_observed"),"conformal_context.validation_observed"))!=pr: raise DynamicFamilyRoutingError("validation_observed must match predict_x rows")
+ elif f=="global-sensitivity":
+  if o!="finance_decision_analysis" or m!="sobol_sensitivity": raise DynamicFamilyRoutingError("invalid global-sensitivity mode")
+  p=_s(i.get("parameters"),"inputs.parameters")
+  if not 2<=len(p)<=10 or not isinstance(i.get("model"),Mapping): raise DynamicFamilyRoutingError("global-sensitivity requires 2 to 10 parameters and a fixed model")
+  _ctx(i,"global_sensitivity_context")
  else: raise DynamicFamilyRoutingError(f"unsupported dynamic family: {f}")
 
 def resolve_dynamic_family(t:Mapping[str,Any])->str:
@@ -152,7 +158,8 @@ _META={
 "calibration":("finance_decision_analysis:lmfit_exponential_calibration","dynamic-calibration-policy.json","dynamic-calibration-capability-graph.json","3.12",["requirements-ortools.txt","requirements-global-lmfit.txt"]),
 "process-mining":("finance_decision_analysis:pm4py_directly_follows","dynamic-process-mining-policy.json","dynamic-process-mining-capability-graph.json","3.12",["requirements-ortools.txt","requirements-global-pm4py.txt"]),
 "robust-allocation":("finance_decision_analysis:rsome_robust_allocation","dynamic-robust-allocation-policy.json","dynamic-robust-allocation-capability-graph.json","3.12",["requirements-ortools.txt","requirements-global-rsome.txt"]),
-"conformal-prediction":("finance_decision_analysis:mapie_conformal_interval","dynamic-conformal-prediction-policy.json","dynamic-conformal-prediction-capability-graph.json","3.12",["requirements-ortools.txt","requirements-global-mapie.txt"])}
+"conformal-prediction":("finance_decision_analysis:mapie_conformal_interval","dynamic-conformal-prediction-policy.json","dynamic-conformal-prediction-capability-graph.json","3.12",["requirements-ortools.txt","requirements-global-mapie.txt"]),
+"global-sensitivity":("finance_decision_analysis:sobol_sensitivity","dynamic-global-sensitivity-policy.json","dynamic-global-sensitivity-capability-graph.json","3.12",["requirements-ortools.txt","requirements-global-salib.txt"])}
 
 def family_runtime_metadata(t:Mapping[str,Any])->dict[str,Any]:
  f=resolve_dynamic_family(t)
@@ -198,5 +205,7 @@ def run_dynamic_family_ticket(t:Mapping[str,Any],output_dir:Path,operations:Mapp
   from dynamic_robust_allocation_planner import run_dynamic_robust_allocation_ticket as run
  elif f=="conformal-prediction":
   from dynamic_conformal_prediction_planner import run_dynamic_conformal_prediction_ticket as run
+ elif f=="global-sensitivity":
+  from dynamic_global_sensitivity_planner import run_dynamic_global_sensitivity_ticket as run
  else: raise DynamicFamilyRoutingError(f"unsupported dynamic family: {f}")
  return run(t,output_dir,operations)
