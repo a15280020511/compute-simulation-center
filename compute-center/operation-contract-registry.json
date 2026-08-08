@@ -145,6 +145,36 @@
         },
         "additionalProperties": true
       }
+    },
+    "causal_policy_evaluation": {
+      "output_schema": {
+        "type": "object",
+        "required": ["engine", "mode", "interpretation_boundary"],
+        "properties": {
+          "engine": {
+            "type": "object",
+            "required": ["name", "version", "network_used"],
+            "properties": {
+              "name": {"type": "string", "minLength": 1},
+              "version": {"type": "string", "minLength": 1},
+              "network_used": {"const": false}
+            },
+            "additionalProperties": true
+          },
+          "mode": {
+            "enum": [
+              "backdoor_adjustment",
+              "propensity_weighting",
+              "difference_in_differences_refuted",
+              "instrumental_variable_refuted",
+              "placebo_policy_test",
+              "unobserved_confounding_sensitivity"
+            ]
+          },
+          "interpretation_boundary": {"type": "string", "minLength": 1}
+        },
+        "additionalProperties": true
+      }
     }
   }
 }
