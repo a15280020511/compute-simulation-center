@@ -6,27 +6,37 @@ from unittest.mock import patch
 
 import capability_manager
 import indirect_intelligence_operations as indirect
-from decision_intelligence_gateway import ALL_SUPPORTED_MODES, finance_decision_analysis
+from decision_intelligence_gateway import (
+    ALL_SUPPORTED_MODES,
+    CONTROLLED_PREVIEW_OVERLAY_MODES,
+    finance_decision_analysis,
+)
 
 
 class IndirectIntelligenceRegistryTests(unittest.TestCase):
-    def test_mode_is_registered_as_controlled_preview(self) -> None:
+    def test_mode_is_registered_as_controlled_preview_overlay(self) -> None:
         registry = capability_manager.load_registry()
-        groups = [row for row in registry["groups"] if row.get("id") == "decision-intelligence"]
+        groups = [
+            row for row in registry["groups"] if row.get("id") == "decision-intelligence"
+        ]
         self.assertEqual(len(groups), 1)
         mode = groups[0]["modes"][indirect.MODE]
         self.assertEqual(mode["maturity"], "controlled-preview")
         self.assertEqual(mode["network_policy"], "deny")
         self.assertTrue(mode["deterministic"])
         self.assertEqual(mode["limits"]["max_stages"], 8)
-        self.assertIn(indirect.MODE, ALL_SUPPORTED_MODES)
+        self.assertIn(indirect.MODE, CONTROLLED_PREVIEW_OVERLAY_MODES)
+        self.assertNotIn(indirect.MODE, ALL_SUPPORTED_MODES)
 
     def test_requirement_bundle_reuses_existing_pinned_packs(self) -> None:
         ticket = {
             "operation": "finance_decision_analysis",
             "inputs": {"mode": indirect.MODE},
         }
-        requirements = [path.rsplit("/", 1)[-1] for path in capability_manager.requirements_for_ticket(ticket)]
+        requirements = [
+            path.rsplit("/", 1)[-1]
+            for path in capability_manager.requirements_for_ticket(ticket)
+        ]
         self.assertIn("requirements-ortools.txt", requirements)
         self.assertIn("requirements-intelligence-splink.txt", requirements)
         self.assertIn("requirements-bayesian-network.txt", requirements)
@@ -83,7 +93,11 @@ class IndirectIntelligenceContractTests(unittest.TestCase):
             "automatic_parallel_execution": False,
             "maximum_stages": 8,
         }
-        with patch.object(indirect, "_select_stages", return_value=fake_plan), patch.object(
+        with patch.object(
+            indirect,
+            "_select_stages",
+            return_value=fake_plan,
+        ), patch.object(
             indirect,
             "_contradiction",
             return_value={"claims": []},
@@ -112,14 +126,22 @@ class IndirectIntelligenceContractTests(unittest.TestCase):
             "automatic_parallel_execution": False,
             "maximum_stages": 8,
         }
-        with patch.object(indirect, "_select_stages", return_value=fake_plan), patch.object(
+        with patch.object(
+            indirect,
+            "_select_stages",
+            return_value=fake_plan,
+        ), patch.object(
             indirect,
             "_probabilistic_inference",
             return_value={
                 "bayesian": {"posterior_probability": 0.79},
-                "problog": {"joint_probability": 0.72},
+                "problog_rules": [],
             },
-        ), patch.object(indirect, "_contradiction", return_value={"claims": []}):
+        ), patch.object(
+            indirect,
+            "_contradiction",
+            return_value={"claims": []},
+        ):
             result = indirect.indirect_intelligence_analysis(inputs)
         self.assertEqual(result["analysis_class"], "INFERRED")
         self.assertAlmostEqual(result["posterior_probability"], 0.79)
@@ -138,13 +160,18 @@ class IndirectIntelligenceContractTests(unittest.TestCase):
             "automatic_parallel_execution": False,
             "maximum_stages": 8,
         }
-        with patch.object(indirect, "_select_stages", return_value=fake_plan), patch.object(
+        with patch.object(
+            indirect,
+            "_select_stages",
+            return_value=fake_plan,
+        ), patch.object(
             indirect,
             "_contradiction",
             return_value={"claims": []},
         ):
             result = finance_decision_analysis(inputs)
         self.assertEqual(result["mode"], indirect.MODE)
+        self.assertEqual(result["runtime_registration"], "controlled-preview-overlay")
         self.assertTrue(result["decision_support_only"])
         self.assertEqual(result["external_data_fetches"], 0)
 
