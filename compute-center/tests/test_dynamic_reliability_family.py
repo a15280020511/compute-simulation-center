@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import importlib.util
 import shutil
 import tempfile
 import unittest
@@ -100,6 +101,10 @@ class DynamicReliabilityFamilyTests(unittest.TestCase):
             selected = plan["optimization"]["selected_nodes"]
             self.assertEqual(selected["monte_carlo_validation"], selected["analytic_mc_agreement"])
 
+    @unittest.skipUnless(
+        importlib.util.find_spec("openturns") is not None,
+        "OpenTURNS is an optional managed capability dependency; real execution is enforced by the dedicated reliability CI",
+    )
     def test_real_gateways_execute_branch_and_join_serially(self) -> None:
         context = {
             "threshold": 8.0,
