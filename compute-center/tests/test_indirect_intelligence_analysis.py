@@ -12,6 +12,9 @@ from decision_intelligence_gateway import (
     finance_decision_analysis,
 )
 
+# A connector-authored commit on this test path intentionally re-triggers the
+# feature-branch integration workflow after bot-applied semantic fixes.
+
 
 class IndirectIntelligenceRegistryTests(unittest.TestCase):
     def test_mode_is_registered_as_controlled_preview_overlay(self) -> None:
