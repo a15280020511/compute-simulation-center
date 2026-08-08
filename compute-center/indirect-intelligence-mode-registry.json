@@ -1,0 +1,36 @@
+{
+  "schema_version": "indirect-intelligence-mode-registry-v1",
+  "target_group": "decision-intelligence",
+  "status": "controlled-preview",
+  "network_policy": "deny",
+  "arbitrary_code_allowed": false,
+  "mode_requirements": {
+    "indirect_intelligence_analysis": [
+      "requirements-ortools.txt",
+      "requirements-intelligence-rapidfuzz.txt",
+      "requirements-intelligence-datasketch.txt",
+      "requirements-intelligence-splink.txt",
+      "requirements-graph-rdflib.txt",
+      "requirements-graph-owlready2.txt",
+      "requirements-graph-pyshacl.txt",
+      "requirements-graph-igraph.txt",
+      "requirements-global-pm4py.txt",
+      "requirements-bayesian-network.txt",
+      "requirements-intelligence-problog.txt"
+    ]
+  },
+  "modes": {
+    "indirect_intelligence_analysis": {
+      "maturity": "controlled-preview",
+      "network_policy": "deny",
+      "deterministic": true,
+      "limits": {
+        "max_evidence": 500,
+        "max_entity_records": 500,
+        "max_relations": 5000,
+        "max_process_cases": 1000,
+        "max_stages": 8
+      }
+    }
+  }
+}

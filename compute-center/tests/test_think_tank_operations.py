@@ -25,9 +25,15 @@ class ThinkTankRegistryTests(unittest.TestCase):
         self.assertEqual(result["status"], "PASS")
         self.assertEqual(result["extension_modes"], EXPECTED_EXTENSION_MODES)
         self.assertEqual(
-            result["effective_managed_modes"],
+            result["static_effective_managed_modes"],
             capabilities["effective_managed_mode_count"],
         )
+        self.assertEqual(
+            result["effective_managed_modes"],
+            result["static_effective_managed_modes"]
+            + result["controlled_preview_overlay_modes"],
+        )
+        self.assertGreaterEqual(result["controlled_preview_overlay_modes"], 1)
         self.assertTrue(set(SUPPORTED_MODES).isdisjoint(set(ASSURANCE_HANDLERS)))
         self.assertEqual(len(set(SUPPORTED_MODES) | set(ASSURANCE_HANDLERS)), EXPECTED_EXTENSION_MODES)
 
