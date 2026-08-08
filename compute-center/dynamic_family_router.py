@@ -80,9 +80,9 @@ def resolve_dynamic_family(ticket: Mapping[str, Any]) -> str:
             raise DynamicFamilyRoutingError(
                 "causal-policy family requires equal treatment/outcome arrays with at least eight observations"
             )
-        confounders = inputs.get("confounders", {})
-        if confounders is not None and not isinstance(confounders, Mapping):
-            raise DynamicFamilyRoutingError("inputs.confounders must be an object when supplied")
+        confounders = inputs.get("confounders")
+        if not isinstance(confounders, Mapping) or not confounders:
+            raise DynamicFamilyRoutingError("causal-policy family requires at least one declared confounder")
         return family
 
     raise DynamicFamilyRoutingError(f"unsupported dynamic family: {family}")
@@ -96,7 +96,6 @@ def family_runtime_metadata(ticket: Mapping[str, Any]) -> dict[str, Any]:
             "entry_contract": "scenario_compare",
             "policy_file": "dynamic-orchestration-policy.json",
             "graph_file": "dynamic-capability-graph.json",
-            "requirements": [],
         }
     if family == "time-series":
         return {
@@ -104,7 +103,6 @@ def family_runtime_metadata(ticket: Mapping[str, Any]) -> dict[str, Any]:
             "entry_contract": "time_series_forecast",
             "policy_file": "dynamic-time-series-policy.json",
             "graph_file": "dynamic-time-series-capability-graph.json",
-            "requirements": [],
         }
     if family == "causal-policy":
         return {
