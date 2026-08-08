@@ -1,0 +1,70 @@
+{
+  "schema_version": "compute-dynamic-optimization-policy-v1",
+  "status": "controlled-preview",
+  "family": "optimization",
+  "declared_operation": "finance_decision_analysis",
+  "declared_mode": "mixed_integer_optimization",
+  "planner": "ortools-cp-sat",
+  "graph_engine": "networkx",
+  "network_policy": "deny",
+  "model_calls": 0,
+  "objective_text_routing_allowed": false,
+  "structured_signals_only": true,
+  "dynamic_operation_discovery_allowed": false,
+  "ticket_supplied_code_allowed": false,
+  "automatic_parallel_execution": false,
+  "cycles_allowed": false,
+  "branching_allowed": true,
+  "maximum_stages": 4,
+  "allowed_operations": [
+    "finance_decision_analysis"
+  ],
+  "allowed_adapters": [
+    "optimization_ticket_to_primary",
+    "optimization_problem_to_highs_relaxation",
+    "optimization_primary_relaxation_to_bound_audit",
+    "optimization_primary_to_external_benchmark"
+  ],
+  "solver_policy": {
+    "require_optimal_status": true,
+    "num_search_workers": 1,
+    "random_seed": 0,
+    "max_time_seconds": 5.0,
+    "exhaustive_cross_check_max_optional_nodes": 8
+  },
+  "selection_policy": {
+    "stage_rules": {
+      "independent_relaxation": {
+        "penalty": 20,
+        "benefits": {
+          "crosscheck_requested": 100,
+          "formal_or_high_stakes": 55,
+          "has_discrete_variables": 40,
+          "variable_count_ge_5": 10
+        },
+        "eligible_all": ["relaxation_compatible"],
+        "required_if_any": ["crosscheck_requested"]
+      },
+      "relaxation_bound_audit": {
+        "penalty": 5,
+        "benefits": {
+          "crosscheck_requested": 60,
+          "formal_or_high_stakes": 45,
+          "has_discrete_variables": 30,
+          "variable_count_ge_5": 5
+        },
+        "eligible_all": ["relaxation_compatible"],
+        "coupled_equal_to": "independent_relaxation"
+      },
+      "external_objective_benchmark": {
+        "penalty": 5,
+        "benefits": {
+          "external_benchmark_available": 120,
+          "formal_or_high_stakes": 20
+        },
+        "eligible_all": ["external_benchmark_available"],
+        "required_if_any": ["external_benchmark_available"]
+      }
+    }
+  }
+}
