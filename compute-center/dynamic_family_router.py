@@ -22,6 +22,7 @@ FAMILY_BY_OPERATION = {
 }
 FAMILY_BY_OPERATION_MODE = {
     ("finance_decision_analysis", "indirect_intelligence_analysis"): "indirect-intelligence",
+    ("finance_decision_analysis", "bounded_linear_kalman_filter"): "state-estimation",
 }
 INDIRECT_INTELLIGENCE_REQUIREMENTS = [
     "requirements-ortools.txt",
@@ -142,6 +143,26 @@ def resolve_dynamic_family(ticket: Mapping[str, Any]) -> str:
             raise DynamicFamilyRoutingError("indirect-intelligence family requires non-empty structured evidence")
         return family
 
+    if family == "state-estimation":
+        if operation != "finance_decision_analysis" or mode != "bounded_linear_kalman_filter":
+            raise DynamicFamilyRoutingError("state-estimation family requires its exact operation/mode pair")
+        for name in (
+            "transition_matrix",
+            "observation_matrix",
+            "process_covariance",
+            "observation_covariance",
+            "initial_covariance",
+            "initial_state",
+            "observations",
+        ):
+            value = inputs.get(name)
+            if name == "initial_state":
+                if not _sequence(value, f"inputs.{name}"):
+                    raise DynamicFamilyRoutingError(f"state-estimation family requires non-empty {name}")
+            elif not _sequence(value, f"inputs.{name}"):
+                raise DynamicFamilyRoutingError(f"state-estimation family requires non-empty {name}")
+        return family
+
     raise DynamicFamilyRoutingError(f"unsupported dynamic family: {family}")
 
 
@@ -188,6 +209,15 @@ def family_runtime_metadata(ticket: Mapping[str, Any]) -> dict[str, Any]:
             "python_version": "3.12",
             "requirements": list(INDIRECT_INTELLIGENCE_REQUIREMENTS),
         }
+    if family == "state-estimation":
+        return {
+            "family": family,
+            "entry_contract": "finance_decision_analysis:bounded_linear_kalman_filter",
+            "policy_file": "dynamic-state-estimation-policy.json",
+            "graph_file": "dynamic-state-estimation-capability-graph.json",
+            "python_version": "3.12",
+            "requirements": [],
+        }
     raise DynamicFamilyRoutingError(f"unsupported dynamic family: {family}")
 
 
@@ -217,4 +247,8 @@ def run_dynamic_family_ticket(
         from dynamic_indirect_intelligence_planner import run_dynamic_indirect_intelligence_ticket
 
         return run_dynamic_indirect_intelligence_ticket(ticket, output_dir, operations)
+    if family == "state-estimation":
+        from dynamic_state_estimation_planner import run_dynamic_state_estimation_ticket
+
+        return run_dynamic_state_estimation_ticket(ticket, output_dir, operations)
     raise DynamicFamilyRoutingError(f"unsupported dynamic family: {family}")
