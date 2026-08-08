@@ -1,0 +1,48 @@
+{
+  "schema_version": "compute-dynamic-global-sensitivity-policy-v1",
+  "status": "controlled-preview",
+  "family": "global-sensitivity",
+  "declared_operation": "finance_decision_analysis",
+  "declared_mode": "sobol_sensitivity",
+  "planner": "ortools-cp-sat",
+  "graph_engine": "networkx",
+  "network_policy": "deny",
+  "model_calls": 0,
+  "objective_text_routing_allowed": false,
+  "structured_signals_only": true,
+  "dynamic_operation_discovery_allowed": false,
+  "ticket_supplied_code_allowed": false,
+  "automatic_parallel_execution": false,
+  "cycles_allowed": false,
+  "branching_allowed": true,
+  "maximum_stages": 4,
+  "allowed_operations": ["finance_decision_analysis"],
+  "allowed_entry_modes": ["sobol_sensitivity"],
+  "allowed_adapters": [
+    "sensitivity_ticket_to_salib",
+    "sensitivity_to_exact_index_audit",
+    "sensitivity_to_exact_moment_audit",
+    "sensitivity_to_target_audit"
+  ],
+  "solver_policy": {"require_optimal_status": true, "num_search_workers": 1, "random_seed": 0, "max_time_seconds": 5.0, "exhaustive_cross_check_max_optional_nodes": 8},
+  "selection_policy": {
+    "stage_rules": {
+      "exact_index_consistency_audit": {
+        "penalty": 5,
+        "benefits": {"exact_indices_required": 190},
+        "required_if_any": ["exact_indices_required"]
+      },
+      "exact_moment_consistency_audit": {
+        "penalty": 5,
+        "benefits": {"exact_moments_required": 160},
+        "required_if_any": ["exact_moments_required"]
+      },
+      "sensitivity_target_audit": {
+        "penalty": 5,
+        "benefits": {"sensitivity_targets_available": 140},
+        "eligible_all": ["sensitivity_targets_available"],
+        "required_if_any": ["sensitivity_targets_available"]
+      }
+    }
+  }
+}
