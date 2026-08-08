@@ -1,0 +1,157 @@
+{
+  "schema_version": "compute-dynamic-bayesian-stage-contracts-v1",
+  "status": "controlled-preview",
+  "family": "bayesian-network",
+  "contracts": {
+    "bayesian_parameter_estimation": {
+      "type": "object",
+      "required": [
+        "engine",
+        "mode",
+        "estimator",
+        "model_valid",
+        "cpds",
+        "observation_count",
+        "causal_structure_claimed",
+        "interpretation_boundary"
+      ],
+      "properties": {
+        "engine": {
+          "type": "object",
+          "required": ["name", "version", "network_used"],
+          "properties": {
+            "name": {"const": "pgmpy-isolated-fixed-adapter"},
+            "version": {"const": "1.1.2"},
+            "network_used": {"const": false}
+          },
+          "additionalProperties": true
+        },
+        "mode": {"const": "bayesian_parameter_estimation"},
+        "estimator": {"const": "bayesian_bdeu"},
+        "model_valid": {"const": true},
+        "cpds": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "object",
+            "required": ["variable", "variable_card", "evidence", "cardinality", "values", "state_names"],
+            "properties": {
+              "variable": {"type": "string", "minLength": 1},
+              "variable_card": {"type": "integer", "minimum": 2, "maximum": 20},
+              "evidence": {"type": "array"},
+              "cardinality": {"type": "array", "minItems": 1},
+              "values": {"type": "array", "minItems": 2},
+              "state_names": {"type": "object"}
+            },
+            "additionalProperties": true
+          }
+        },
+        "observation_count": {"type": "integer", "minimum": 2},
+        "causal_structure_claimed": {"const": false},
+        "interpretation_boundary": {"type": "string", "minLength": 1}
+      },
+      "additionalProperties": true
+    },
+    "fixed_network_inference": {
+      "type": "object",
+      "required": [
+        "engine",
+        "mode",
+        "query",
+        "model_valid",
+        "node_count",
+        "edge_count",
+        "causal_structure_claimed",
+        "interpretation_boundary"
+      ],
+      "properties": {
+        "engine": {
+          "type": "object",
+          "required": ["name", "version", "network_used"],
+          "properties": {
+            "name": {"const": "pgmpy-isolated-fixed-adapter"},
+            "version": {"const": "1.1.2"},
+            "network_used": {"const": false}
+          },
+          "additionalProperties": true
+        },
+        "mode": {"const": "fixed_network_inference"},
+        "query": {
+          "type": "object",
+          "required": ["variables", "cardinality", "values", "state_names"],
+          "properties": {
+            "variables": {"type": "array", "minItems": 1},
+            "cardinality": {"type": "array", "minItems": 1},
+            "values": {"type": "array"},
+            "state_names": {"type": "object"}
+          },
+          "additionalProperties": true
+        },
+        "model_valid": {"const": true},
+        "node_count": {"type": "integer", "minimum": 1, "maximum": 50},
+        "edge_count": {"type": "integer", "minimum": 0, "maximum": 200},
+        "causal_structure_claimed": {"const": false},
+        "interpretation_boundary": {"type": "string", "minLength": 1}
+      },
+      "additionalProperties": true
+    },
+    "evidence_sensitivity": {
+      "type": "object",
+      "required": [
+        "engine",
+        "mode",
+        "scenario_count",
+        "scenarios",
+        "causal_structure_claimed",
+        "interpretation_boundary"
+      ],
+      "properties": {
+        "engine": {
+          "type": "object",
+          "required": ["name", "version", "network_used"],
+          "properties": {
+            "name": {"const": "pgmpy-isolated-fixed-adapter"},
+            "version": {"const": "1.1.2"},
+            "network_used": {"const": false}
+          },
+          "additionalProperties": true
+        },
+        "mode": {"const": "evidence_sensitivity"},
+        "scenario_count": {"type": "integer", "minimum": 1, "maximum": 50},
+        "scenarios": {"type": "array", "minItems": 1, "maxItems": 50},
+        "causal_structure_claimed": {"const": false},
+        "interpretation_boundary": {"type": "string", "minLength": 1}
+      },
+      "additionalProperties": true
+    },
+    "virtual_evidence_update": {
+      "type": "object",
+      "required": [
+        "engine",
+        "mode",
+        "query",
+        "virtual_evidence_count",
+        "causal_structure_claimed",
+        "interpretation_boundary"
+      ],
+      "properties": {
+        "engine": {
+          "type": "object",
+          "required": ["name", "version", "network_used"],
+          "properties": {
+            "name": {"const": "pgmpy-isolated-fixed-adapter"},
+            "version": {"const": "1.1.2"},
+            "network_used": {"const": false}
+          },
+          "additionalProperties": true
+        },
+        "mode": {"const": "virtual_evidence_update"},
+        "query": {"type": "object"},
+        "virtual_evidence_count": {"type": "integer", "minimum": 1, "maximum": 20},
+        "causal_structure_claimed": {"const": false},
+        "interpretation_boundary": {"type": "string", "minLength": 1}
+      },
+      "additionalProperties": true
+    }
+  }
+}

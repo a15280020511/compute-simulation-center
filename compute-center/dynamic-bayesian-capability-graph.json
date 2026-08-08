@@ -1,0 +1,58 @@
+{
+  "schema_version": "compute-dynamic-bayesian-capability-graph-v1",
+  "status": "controlled-preview",
+  "family": "bayesian-network",
+  "graph_engine": "networkx",
+  "selection_engine": "ortools-cp-sat",
+  "node_order": [
+    "parameter_estimation",
+    "posterior_inference",
+    "evidence_sensitivity",
+    "virtual_evidence_update"
+  ],
+  "nodes": {
+    "parameter_estimation": {
+      "operation": "bayesian_network_inference",
+      "adapter": "bayesian_ticket_to_parameter_estimation",
+      "required": true,
+      "result_required": false,
+      "role": "required-model-estimation"
+    },
+    "posterior_inference": {
+      "operation": "bayesian_network_inference",
+      "adapter": "bayesian_estimate_to_fixed_inference",
+      "required": true,
+      "result_required": true,
+      "role": "required-posterior-result"
+    },
+    "evidence_sensitivity": {
+      "operation": "bayesian_network_inference",
+      "adapter": "bayesian_estimate_to_evidence_sensitivity",
+      "required": false,
+      "result_required": false,
+      "role": "optional-hard-evidence-robustness"
+    },
+    "virtual_evidence_update": {
+      "operation": "bayesian_network_inference",
+      "adapter": "bayesian_estimate_to_virtual_evidence",
+      "required": false,
+      "result_required": false,
+      "role": "optional-soft-evidence-update"
+    }
+  },
+  "precedence": [
+    ["parameter_estimation", "posterior_inference"],
+    ["parameter_estimation", "evidence_sensitivity"],
+    ["parameter_estimation", "virtual_evidence_update"]
+  ],
+  "safety": {
+    "dynamic_operation_discovery_allowed": false,
+    "ticket_supplied_nodes_allowed": false,
+    "ticket_supplied_edges_allowed": false,
+    "ticket_supplied_code_allowed": false,
+    "cycles_allowed": false,
+    "automatic_parallel_execution": false,
+    "branching_allowed": true,
+    "execution_remains_strict_serial": true
+  }
+}
