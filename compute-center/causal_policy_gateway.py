@@ -24,10 +24,12 @@ def _validate_runtime_paths() -> None:
         raise ComputeError(
             "isolated causal runtime is not prepared; run capability_environment.py prepare before execution"
         )
-    resolved_root = ENV_DIR.resolve()
-    resolved_interpreter = INTERPRETER.resolve()
-    if resolved_root not in resolved_interpreter.parents:
-        raise ComputeError("isolated causal interpreter escaped the repository-controlled runtime root")
+    lexical_root = ENV_DIR.absolute()
+    lexical_interpreter = INTERPRETER.absolute()
+    if lexical_root not in lexical_interpreter.parents:
+        raise ComputeError("isolated causal interpreter path escaped the repository-controlled runtime root")
+    if not (ENV_DIR / "pyvenv.cfg").is_file():
+        raise ComputeError("isolated causal runtime is missing pyvenv.cfg")
 
 
 def causal_policy_evaluation(inputs: Mapping[str, Any]) -> dict[str, Any]:
