@@ -1,0 +1,41 @@
+name: Cleanup Dynamic Indirect Validation Trigger
+
+on:
+  push:
+    branches:
+      - feat/dynamic-indirect-intelligence-family-20260808
+    paths:
+      - .github/workflows/cleanup-dynamic-indirect-trigger.yml
+
+permissions:
+  contents: write
+
+jobs:
+  cleanup:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: feat/dynamic-indirect-intelligence-family-20260808
+      - name: Remove temporary feature-branch trigger and self-delete
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          from pathlib import Path
+          path = Path('.github/workflows/dynamic-indirect-intelligence-validate.yml')
+          text = path.read_text(encoding='utf-8')
+          old = '''  push:\n    branches:\n      - main\n      - feat/dynamic-indirect-intelligence-family-20260808\n'''
+          new = '''  push:\n    branches: [main]\n'''
+          if text.count(old) != 1:
+              raise SystemExit('temporary feature-branch trigger missing or ambiguous')
+          path.write_text(text.replace(old, new, 1), encoding='utf-8')
+          PY
+          git rm .github/workflows/cleanup-dynamic-indirect-trigger.yml
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git add .github/workflows/dynamic-indirect-intelligence-validate.yml
+          git diff --cached --check
+          git commit -m 'ci: clean dynamic indirect validation trigger'
+          git push origin HEAD:feat/dynamic-indirect-intelligence-family-20260808
