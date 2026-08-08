@@ -147,6 +147,43 @@ class IndirectIntelligenceContractTests(unittest.TestCase):
         self.assertAlmostEqual(result["posterior_probability"], 0.79)
         self.assertTrue(result["inference_not_fact"])
 
+    def test_rule_only_probabilistic_stage_stays_inferred(self) -> None:
+        inputs = self._base_inputs()
+        inputs["rules"] = [
+            {
+                "name": "support-rule",
+                "required_evrefs": ["ev-training", "ev-case"],
+            }
+        ]
+        fake_plan = {
+            "selected_stages": ["probabilistic_inference", "contradiction_check"],
+            "signals": {},
+            "solver_status": "OPTIMAL",
+            "objective_value": 85,
+            "selection_engine": "ortools-cp-sat",
+            "graph_engine": "networkx",
+            "serial_execution": True,
+            "automatic_parallel_execution": False,
+            "maximum_stages": 8,
+        }
+        with patch.object(
+            indirect,
+            "_select_stages",
+            return_value=fake_plan,
+        ), patch.object(
+            indirect,
+            "_probabilistic_inference",
+            return_value={"bayesian": None, "problog_rules": [{"joint_probability": 0.72}]},
+        ), patch.object(
+            indirect,
+            "_contradiction",
+            return_value={"claims": []},
+        ):
+            result = indirect.indirect_intelligence_analysis(inputs)
+        self.assertEqual(result["analysis_class"], "INFERRED")
+        self.assertIsNone(result["posterior_probability"])
+        self.assertTrue(result["inference_not_fact"])
+
     def test_gateway_dispatches_new_mode(self) -> None:
         inputs = self._base_inputs()
         fake_plan = {

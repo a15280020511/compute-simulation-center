@@ -258,7 +258,8 @@ def _rules(inputs: Mapping[str, Any], evidence: Sequence[Mapping[str, Any]]) -> 
     raw_rules = _sequence(inputs.get("rules") or [], "inputs.rules")
     if len(raw_rules) > MAX_RULES:
         raise ComputeError(f"rules cannot exceed {MAX_RULES}")
-    known = {str(row["evref"]) for row in evidence}
+    by_ref = {str(row["evref"]): row for row in evidence}
+    known = set(by_ref)
     result = []
     seen: set[str] = set()
     for index, raw in enumerate(raw_rules):
@@ -276,6 +277,11 @@ def _rules(inputs: Mapping[str, Any], evidence: Sequence[Mapping[str, Any]]) -> 
         unknown = sorted(set(refs) - known)
         if unknown:
             raise ComputeError(f"rule {name} references unknown evidence: {unknown[:5]}")
+        non_supporting = [ref for ref in refs if by_ref[ref]["stance"] != "support"]
+        if non_supporting:
+            raise ComputeError(
+                f"rule {name} may reference only supporting evidence: {non_supporting[:5]}"
+            )
         result.append({"name": name, "required_evrefs": refs})
     return result
 
@@ -606,12 +612,10 @@ def _bayesian_posterior(
             "state_names": {"hypothesis": ["false", "true"]},
         }
     ]
-    observed: dict[str, int] = {}
+    observed: dict[str, str] = {}
     for index, row in enumerate(rows):
         p_true = float(row["p_if_true"])
         p_false = float(row["p_if_false"])
-        if row["stance"] == "contradict":
-            p_true, p_false = 1.0 - p_true, 1.0 - p_false
         variable = f"e{index}"
         cpds.append(
             {
@@ -629,7 +633,7 @@ def _bayesian_posterior(
                 },
             }
         )
-        observed[variable] = 1
+        observed[variable] = "present"
     result = bayesian_network_inference(
         {
             "mode": "fixed_network_inference",
@@ -650,6 +654,10 @@ def _bayesian_posterior(
         "evidence_count": len(rows),
         "pgmpy": result,
         "conditional_independence_assumption": True,
+        "likelihood_semantics": (
+            "p_if_true/p_if_false are P(observed evidence present | hypothesis true/false); "
+            "stance is evaluated separately and is not algebraically inverted."
+        ),
     }
 
 
@@ -664,8 +672,6 @@ def _problog_rule_results(
         for index, evref in enumerate(rule["required_evrefs"]):
             row = by_ref[str(evref)]
             probability = max(0.000001, min(0.999999, float(row["reliability"])))
-            if row["stance"] == "contradict":
-                probability = 1.0 - probability
             facts.append({"name": f"evidence_{index}", "probability": probability})
         result = problog_evidence_probability({"facts": facts})
         output.append(
@@ -738,6 +744,7 @@ def _final_class_and_confidence(
     evidence: Sequence[Mapping[str, Any]],
     posterior: float | None,
     has_links: bool,
+    probabilistic_inference_used: bool,
 ) -> tuple[str, float]:
     support = sum(
         float(row["reliability"]) for row in evidence if row["stance"] == "support"
@@ -755,7 +762,7 @@ def _final_class_and_confidence(
     evidence_balance = support / total if total > 0 else 0.5
     if contradict > support and contradict >= 0.75:
         analysis_class = "CONTRADICTED"
-    elif posterior is not None:
+    elif posterior is not None or probabilistic_inference_used:
         analysis_class = "INFERRED"
     elif direct_support:
         analysis_class = "DIRECT"
@@ -842,6 +849,7 @@ def indirect_intelligence_analysis(inputs: Mapping[str, Any]) -> dict[str, Any]:
         evidence,
         posterior,
         bool(entity_links or graph_paths or relations),
+        "probabilistic_inference" in plan["selected_stages"],
     )
     supporting = [
         str(row["evref"]) for row in evidence if row["stance"] == "support"
