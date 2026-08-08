@@ -5,9 +5,10 @@ from __future__ import annotations
 from collections.abc import Mapping
 from typing import Any, Callable
 
-from compute_runner import ComputeError
 from assurance_operations import HANDLERS as ASSURANCE_HANDLERS
+from compute_runner import ComputeError
 from finance_operations import finance_decision_analysis as legacy_finance_decision_analysis
+from indirect_intelligence_operations import HANDLERS as INDIRECT_INTELLIGENCE_HANDLERS
 from institutional_expansion_operations import HANDLERS as INSTITUTIONAL_EXPANSION_HANDLERS
 from operations_research_modes import HANDLERS as OR_HANDLERS
 from professional_forecasting_operations import HANDLERS as FORECAST_HANDLERS
@@ -50,8 +51,22 @@ MODE_HANDLERS: dict[str, Callable[[Mapping[str, Any]], dict[str, Any]]] = {
     **UNCERTAINTY_FACTOR_ACCURACY_HANDLERS,
 }
 
+# Controlled-preview overlays are intentionally excluded from PREVIEW_MODES and
+# ALL_SUPPORTED_MODES so an incremental, repository-governed extension cannot
+# silently mutate the static decision-gateway baseline/cardinality contract.
+# Capability Manager V2 owns discovery, pinned dependencies, limits and maturity
+# for these overlays; the gateway only provides their allowlisted runtime handler.
+CONTROLLED_PREVIEW_OVERLAY_HANDLERS: dict[
+    str, Callable[[Mapping[str, Any]], dict[str, Any]]
+] = {
+    **INDIRECT_INTELLIGENCE_HANDLERS,
+}
+CONTROLLED_PREVIEW_OVERLAY_MODES = tuple(sorted(CONTROLLED_PREVIEW_OVERLAY_HANDLERS))
+
 if PRODUCTION_MODES & PREVIEW_MODES:
     raise RuntimeError("production and controlled-preview decision modes must not overlap")
+if (PRODUCTION_MODES | PREVIEW_MODES) & set(CONTROLLED_PREVIEW_OVERLAY_HANDLERS):
+    raise RuntimeError("controlled-preview overlay must not overlap the stable gateway baseline")
 if len(MODE_HANDLERS) != sum(
     len(group)
     for group in (
@@ -73,7 +88,11 @@ ALL_SUPPORTED_MODES = tuple(sorted(PRODUCTION_MODES | PREVIEW_MODES))
 
 def finance_decision_analysis(inputs: Mapping[str, Any]) -> dict[str, Any]:
     mode = str(inputs.get("mode") or "")
-    if mode in LEGACY_MODES:
+    overlay_handler = CONTROLLED_PREVIEW_OVERLAY_HANDLERS.get(mode)
+    if overlay_handler is not None:
+        result = overlay_handler(inputs)
+        result.setdefault("runtime_registration", "controlled-preview-overlay")
+    elif mode in LEGACY_MODES:
         result = legacy_finance_decision_analysis(inputs)
     else:
         handler = MODE_HANDLERS.get(mode)
