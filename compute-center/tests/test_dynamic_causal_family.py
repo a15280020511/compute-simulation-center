@@ -124,7 +124,12 @@ class DynamicCausalFamilyTests(unittest.TestCase):
         self.assertEqual(runtime["dynamic_family"], "causal-policy")
         self.assertEqual(runtime["dynamic_entry_contract"], "causal_policy_evaluation")
         requirement_names = [Path(item).name for item in runtime["requirements"]]
-        self.assertEqual(requirement_names, ["requirements-ortools.txt", "requirements-causal.txt"])
+        self.assertEqual(requirement_names, ["requirements-ortools.txt"])
+        isolated = runtime["isolated_environment"]
+        self.assertEqual(isolated["name"], "causal-policy")
+        self.assertEqual([Path(item).name for item in isolated["requirements"]], ["requirements-causal.txt"])
+        self.assertEqual(isolated["network_policy"], "inherit-deny-at-execution")
+        self.assertFalse(isolated["ticket_supplied_requirements_allowed"])
         self.assertEqual(runtime["network_policy"], "deny")
         self.assertFalse(runtime["automatic_parallel_execution"])
 
@@ -184,6 +189,10 @@ class DynamicCausalFamilyTests(unittest.TestCase):
             self.assertEqual(result["results"]["stage_order"], expected)
             self.assertEqual(result["results"]["final_stage"], "primary_effect")
             self.assertEqual(result["results"]["final_result"]["mode"], "backdoor_adjustment")
+            self.assertEqual(
+                result["results"]["final_result"]["engine"]["runtime_isolation"],
+                "fixed-venv",
+            )
             self.assertEqual(len(result["results"]["stage_receipts"]), 4)
             self.assertTrue(all(row["status"] == "PASS" for row in result["results"]["stage_receipts"]))
             self.assertEqual(result["results"]["optimization"]["solver_status"], "OPTIMAL")
