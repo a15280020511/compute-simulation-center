@@ -18,6 +18,7 @@ FAMILY_BY_OPERATION = {
     "scenario_compare": "scenario-decision",
     "time_series_forecast": "time-series",
     "causal_policy_evaluation": "causal-policy",
+    "bayesian_network_inference": "bayesian-network",
 }
 
 
@@ -85,6 +86,25 @@ def resolve_dynamic_family(ticket: Mapping[str, Any]) -> str:
             raise DynamicFamilyRoutingError("causal-policy family requires at least one declared confounder")
         return family
 
+    if family == "bayesian-network":
+        mode = str(inputs.get("mode") or "")
+        if mode != "bayesian_parameter_estimation":
+            raise DynamicFamilyRoutingError(
+                "bayesian-network dynamic family currently admits only bayesian_parameter_estimation as the entry mode"
+            )
+        data = inputs.get("data")
+        if not isinstance(data, Mapping) or not data:
+            raise DynamicFamilyRoutingError("bayesian-network family requires a non-empty data object")
+        query_variables = _sequence(inputs.get("query_variables"), "inputs.query_variables")
+        if not query_variables:
+            raise DynamicFamilyRoutingError("bayesian-network family requires non-empty query_variables")
+        edges = _sequence(inputs.get("edges", []), "inputs.edges")
+        for index, raw_edge in enumerate(edges):
+            edge = _sequence(raw_edge, f"inputs.edges[{index}]")
+            if len(edge) != 2:
+                raise DynamicFamilyRoutingError("bayesian-network edges must contain source and target")
+        return family
+
     raise DynamicFamilyRoutingError(f"unsupported dynamic family: {family}")
 
 
@@ -113,6 +133,15 @@ def family_runtime_metadata(ticket: Mapping[str, Any]) -> dict[str, Any]:
             "python_version": "3.13",
             "requirements": ["requirements-causal.txt"],
         }
+    if family == "bayesian-network":
+        return {
+            "family": family,
+            "entry_contract": "bayesian_network_inference",
+            "policy_file": "dynamic-bayesian-policy.json",
+            "graph_file": "dynamic-bayesian-capability-graph.json",
+            "python_version": "3.12",
+            "requirements": ["requirements-bayesian-network.txt"],
+        }
     raise DynamicFamilyRoutingError(f"unsupported dynamic family: {family}")
 
 
@@ -134,4 +163,8 @@ def run_dynamic_family_ticket(
         from dynamic_causal_policy_planner import run_dynamic_causal_policy_ticket
 
         return run_dynamic_causal_policy_ticket(ticket, output_dir, operations)
+    if family == "bayesian-network":
+        from dynamic_bayesian_network_planner import run_dynamic_bayesian_network_ticket
+
+        return run_dynamic_bayesian_network_ticket(ticket, output_dir, operations)
     raise DynamicFamilyRoutingError(f"unsupported dynamic family: {family}")
