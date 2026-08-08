@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 import shutil
 import tempfile
 import unittest
@@ -66,10 +67,7 @@ class DynamicStateEstimationFamilyTests(unittest.TestCase):
         plan = plan_dynamic_state_estimation(
             ticket(context={"realized_feedback": True, "benchmark_check": True}, benchmark=True)
         )
-        self.assertEqual(
-            plan["stage_order"],
-            ["state_estimation", "realized_feedback", "benchmark_check"],
-        )
+        self.assertEqual(plan["stage_order"], ["state_estimation", "realized_feedback", "benchmark_check"])
         self.assertEqual(plan["stage_map"]["state_estimation"]["depends_on"], [])
         self.assertEqual(plan["stage_map"]["realized_feedback"]["depends_on"], ["state_estimation"])
         self.assertEqual(plan["stage_map"]["benchmark_check"]["depends_on"], ["state_estimation"])
@@ -108,7 +106,7 @@ class DynamicStateEstimationFamilyTests(unittest.TestCase):
         self.assertEqual(left["stage_order"], right["stage_order"])
         self.assertEqual(left["optimization"], right["optimization"])
 
-    def test_real_gateway_executes_three_stages_serially(self) -> None:
+    def test_real_gateway_executes_three_stages_with_one_step_feedback(self) -> None:
         value = ticket(context={"realized_feedback": True, "benchmark_check": True}, benchmark=True)
         root = Path(tempfile.mkdtemp(prefix="dynamic-state-estimation-"))
         try:
@@ -125,6 +123,15 @@ class DynamicStateEstimationFamilyTests(unittest.TestCase):
             self.assertEqual(result["results"]["final_result"]["mode"], "bounded_linear_kalman_filter")
             self.assertEqual(result["results"]["validation_results"]["realized_feedback"]["mode"], "realized_outcome_feedback")
             self.assertEqual(result["results"]["validation_results"]["benchmark_check"]["mode"], "benchmark_comparison")
+            feedback_input = json.loads(
+                (root / "dynamic-pipeline-stages" / "02-realized_feedback-input.json").read_text(encoding="utf-8")
+            )
+            filtered = result["results"]["final_result"]["filtered_states"]
+            expected_one_step = [0.0] + [row[0] for row in filtered[:-1]]
+            self.assertEqual(len(feedback_input["predicted"]), len(expected_one_step))
+            for actual, expected in zip(feedback_input["predicted"], expected_one_step, strict=True):
+                self.assertAlmostEqual(actual, expected, places=12)
+            self.assertNotAlmostEqual(feedback_input["predicted"][0], filtered[0][0], places=12)
             self.assertEqual(len(result["results"]["stage_receipts"]), 3)
             self.assertTrue(all(row["status"] == "PASS" for row in result["results"]["stage_receipts"]))
             self.assertFalse(result["execution"]["network_used"])

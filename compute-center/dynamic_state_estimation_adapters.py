@@ -62,6 +62,15 @@ def _state_result(stage_results: Mapping[str, Any]) -> Mapping[str, Any]:
     return result
 
 
+def _matvec(matrix: Sequence[Sequence[float]], vector: Sequence[float], name: str) -> list[float]:
+    if not matrix:
+        raise PipelineAdapterError(f"{name} must not be empty")
+    width = len(vector)
+    if width == 0 or any(len(row) != width for row in matrix):
+        raise PipelineAdapterError(f"{name} dimensions do not align")
+    return [float(sum(weight * value for weight, value in zip(row, vector, strict=True))) for row in matrix]
+
+
 def state_ticket_to_kalman(
     initial_inputs: Mapping[str, Any],
     stage_results: Mapping[str, Any],
@@ -93,6 +102,7 @@ def state_estimate_to_realized_feedback(
 ) -> dict[str, Any]:
     del stage
     estimation = _state_result(stage_results)
+    transition_matrix = _matrix(initial_inputs.get("transition_matrix"), "ticket inputs.transition_matrix")
     observation_matrix = _matrix(initial_inputs.get("observation_matrix"), "ticket inputs.observation_matrix")
     if len(observation_matrix) != 1:
         raise PipelineAdapterError("realized feedback currently requires scalar observations")
@@ -103,12 +113,35 @@ def state_estimate_to_realized_feedback(
     if len(states_raw) != len(observations):
         raise PipelineAdapterError("filtered state count must match observation count")
     h = observation_matrix[0]
-    predicted: list[float] = []
+    state_dimension = len(h)
+    if len(transition_matrix) != state_dimension or any(len(row) != state_dimension for row in transition_matrix):
+        raise PipelineAdapterError("transition_matrix must be square and match filtered state dimension")
+    initial_state = [
+        _finite(item, "ticket inputs.initial_state[]")
+        for item in _sequence(initial_inputs.get("initial_state"), "ticket inputs.initial_state")
+    ]
+    if len(initial_state) != state_dimension:
+        raise PipelineAdapterError("initial_state dimension does not match observation matrix")
+    filtered_states: list[list[float]] = []
     for index, raw_state in enumerate(states_raw):
-        state = [_finite(item, f"filtered_states[{index}][]") for item in _sequence(raw_state, f"filtered_states[{index}]")]
-        if len(state) != len(h):
+        state = [
+            _finite(item, f"filtered_states[{index}][]")
+            for item in _sequence(raw_state, f"filtered_states[{index}]")
+        ]
+        if len(state) != state_dimension:
             raise PipelineAdapterError("filtered state dimension does not match observation matrix")
-        predicted.append(float(sum(weight * value for weight, value in zip(h, state, strict=True))))
+        filtered_states.append(state)
+
+    # Strict one-step-ahead semantics: predict z_t from the prior state before z_t
+    # is assimilated. For t=0 the prior is the declared initial state; afterwards
+    # it is the previous filtered state propagated through the transition matrix.
+    predicted: list[float] = []
+    for index in range(len(observations)):
+        prior_state = initial_state if index == 0 else filtered_states[index - 1]
+        predicted_state = _matvec(transition_matrix, prior_state, "transition_matrix")
+        predicted_observation = _matvec(observation_matrix, predicted_state, "observation_matrix")
+        predicted.append(predicted_observation[0])
+
     observed = [row[0] for row in observations]
     threshold = _finite(initial_inputs.get("drift_ratio_threshold", 1.5), "ticket inputs.drift_ratio_threshold")
     if threshold <= 0:
