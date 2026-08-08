@@ -29,7 +29,6 @@ class ToolRegistryTests(unittest.TestCase):
             "agent_based_simulation": ("network_contagion", "requirements-mesa.txt"),
             "missing_data_analysis": ("mice_multiple_imputation", "requirements-missing-data.txt"),
             "information_diffusion_analysis": ("sir_information_spread", "requirements-diffusion.txt"),
-            "causal_policy_evaluation": ("backdoor_adjustment", "requirements-causal.txt"),
             "bayesian_network_inference": ("fixed_network_inference", "requirements-bayesian-network.txt"),
             "sector_model_analysis": ("pypsa_linear_power_flow", "requirements-sector-energy.txt"),
             "strategic_policy_analysis": ("open_spiel_policy_evaluation", "requirements-strategy-open-spiel.txt"),
@@ -39,6 +38,20 @@ class ToolRegistryTests(unittest.TestCase):
         for operation, (mode, requirement) in cases.items():
             observed = tool_registry.requirement_files_for_ticket({"operation": operation, "inputs": {"mode": mode}})
             self.assertEqual([Path(item).name for item in observed], [requirement])
+
+    def test_causal_requirements_are_isolated_from_core_runtime(self):
+        ticket = {
+            "operation": "causal_policy_evaluation",
+            "inputs": {"mode": "backdoor_adjustment"},
+        }
+        self.assertEqual(tool_registry.requirement_files_for_ticket(ticket), [])
+        plan = tool_registry.managed_runtime_plan(ticket)
+        isolated = plan["isolated_environment"]
+        self.assertEqual(isolated["name"], "causal-policy")
+        self.assertEqual([Path(item).name for item in isolated["requirements"]], ["requirements-causal.txt"])
+        self.assertEqual(isolated["network_policy"], "inherit-deny-at-execution")
+        self.assertFalse(isolated["ticket_supplied_requirements_allowed"])
+        self.assertFalse(isolated["ticket_supplied_commands_allowed"])
 
     def test_registry_registers_without_conflicts(self):
         target = dict(compute_runner.OPERATIONS)
