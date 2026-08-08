@@ -1,0 +1,66 @@
+{
+  "schema_version": "compute-dynamic-control-response-capability-graph-v1",
+  "status": "controlled-preview",
+  "family": "control-response",
+  "selection_engine": "ortools-cp-sat",
+  "graph_engine": "networkx",
+  "safety": {
+    "dynamic_operation_discovery_allowed": false,
+    "ticket_supplied_nodes_allowed": false,
+    "ticket_supplied_edges_allowed": false,
+    "ticket_supplied_code_allowed": false,
+    "cycles_allowed": false,
+    "automatic_parallel_execution": false,
+    "branching_allowed": true,
+    "execution_remains_strict_serial": true
+  },
+  "node_order": [
+    "control_step_response",
+    "tail_response_statistics",
+    "tail_stability_audit",
+    "dc_gain_consistency_audit",
+    "control_target_audit"
+  ],
+  "nodes": {
+    "control_step_response": {
+      "operation": "finance_decision_analysis",
+      "mode": "control_step_response",
+      "adapter": "control_ticket_to_step_response",
+      "required": true,
+      "result_required": true
+    },
+    "tail_response_statistics": {
+      "operation": "descriptive_statistics",
+      "adapter": "control_response_to_tail_statistics",
+      "required": false,
+      "result_required": false
+    },
+    "tail_stability_audit": {
+      "operation": "finance_decision_analysis",
+      "mode": "benchmark_comparison",
+      "adapter": "tail_statistics_to_stability_audit",
+      "required": false,
+      "result_required": false
+    },
+    "dc_gain_consistency_audit": {
+      "operation": "finance_decision_analysis",
+      "mode": "benchmark_comparison",
+      "adapter": "control_response_to_dc_gain_audit",
+      "required": false,
+      "result_required": false
+    },
+    "control_target_audit": {
+      "operation": "finance_decision_analysis",
+      "mode": "benchmark_comparison",
+      "adapter": "control_response_to_target_audit",
+      "required": false,
+      "result_required": false
+    }
+  },
+  "precedence": [
+    ["control_step_response", "tail_response_statistics"],
+    ["tail_response_statistics", "tail_stability_audit"],
+    ["control_step_response", "dc_gain_consistency_audit"],
+    ["control_step_response", "control_target_audit"]
+  ]
+}

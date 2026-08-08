@@ -1,0 +1,76 @@
+{
+  "schema_version": "compute-dynamic-control-response-policy-v1",
+  "status": "controlled-preview",
+  "family": "control-response",
+  "declared_operation": "finance_decision_analysis",
+  "declared_mode": "control_step_response",
+  "planner": "ortools-cp-sat",
+  "graph_engine": "networkx",
+  "network_policy": "deny",
+  "model_calls": 0,
+  "objective_text_routing_allowed": false,
+  "structured_signals_only": true,
+  "dynamic_operation_discovery_allowed": false,
+  "ticket_supplied_code_allowed": false,
+  "automatic_parallel_execution": false,
+  "cycles_allowed": false,
+  "branching_allowed": true,
+  "maximum_stages": 5,
+  "allowed_operations": ["finance_decision_analysis", "descriptive_statistics"],
+  "allowed_entry_modes": ["control_step_response"],
+  "allowed_adapters": [
+    "control_ticket_to_step_response",
+    "control_response_to_tail_statistics",
+    "tail_statistics_to_stability_audit",
+    "control_response_to_dc_gain_audit",
+    "control_response_to_target_audit"
+  ],
+  "solver_policy": {
+    "require_optimal_status": true,
+    "num_search_workers": 1,
+    "random_seed": 0,
+    "max_time_seconds": 5.0,
+    "exhaustive_cross_check_max_optional_nodes": 8
+  },
+  "selection_policy": {
+    "stage_rules": {
+      "tail_response_statistics": {
+        "penalty": 10,
+        "benefits": {
+          "tail_profile_requested": 100,
+          "tail_stability_target_available": 130,
+          "formal_or_high_stakes": 25
+        },
+        "required_if_any": ["tail_profile_requested", "tail_stability_target_available"]
+      },
+      "tail_stability_audit": {
+        "penalty": 5,
+        "benefits": {
+          "tail_stability_target_available": 150,
+          "formal_or_high_stakes": 25
+        },
+        "eligible_all": ["tail_stability_target_available"],
+        "required_if_any": ["tail_stability_target_available"],
+        "requires_selected": ["tail_response_statistics"]
+      },
+      "dc_gain_consistency_audit": {
+        "penalty": 5,
+        "benefits": {
+          "dc_gain_consistency_requested": 170,
+          "formal_or_high_stakes": 30
+        },
+        "eligible_all": ["dc_gain_consistency_requested"],
+        "required_if_any": ["dc_gain_consistency_requested"]
+      },
+      "control_target_audit": {
+        "penalty": 5,
+        "benefits": {
+          "control_targets_available": 160,
+          "formal_or_high_stakes": 20
+        },
+        "eligible_all": ["control_targets_available"],
+        "required_if_any": ["control_targets_available"]
+      }
+    }
+  }
+}
