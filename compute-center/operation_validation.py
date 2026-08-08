@@ -9,39 +9,19 @@ from typing import Any, Mapping
 from jsonschema import Draft202012Validator
 
 from capability_manager import load_registry
+from game_theory_registry import game_theory_modes, load_game_theory_registry
 from model_governance import GovernanceError, validate_ticket_governance
 
 HERE = Path(__file__).resolve().parent
 CATALOG = json.loads((HERE / "operation-input-schemas.json").read_text(encoding="utf-8"))
 REGISTRY = load_registry()
-GAME_OVERLAY_PATH = HERE / "game-theory-mode-registry.json"
-GAME_OVERLAY = json.loads(GAME_OVERLAY_PATH.read_text(encoding="utf-8")) if GAME_OVERLAY_PATH.exists() else None
+GAME_REGISTRY = load_game_theory_registry()
 
 
 def _controlled_preview_modes(operation: str) -> set[str]:
-    if not isinstance(GAME_OVERLAY, Mapping):
+    if str(GAME_REGISTRY.get("target_operation") or "") != operation:
         return set()
-    if GAME_OVERLAY.get("schema_version") != "game-theory-mode-registry-v1":
-        raise ValueError("invalid game-theory controlled-preview registry schema")
-    if GAME_OVERLAY.get("status") != "controlled-preview":
-        raise ValueError("game-theory controlled-preview registry must remain controlled-preview")
-    if GAME_OVERLAY.get("network_policy") != "deny" or GAME_OVERLAY.get("arbitrary_code_allowed") is not False:
-        raise ValueError("unsafe game-theory controlled-preview registry policy")
-    if str(GAME_OVERLAY.get("target_operation") or "") != operation:
-        return set()
-    modes = GAME_OVERLAY.get("modes")
-    if not isinstance(modes, Mapping) or not modes:
-        raise ValueError("game-theory controlled-preview registry has no modes")
-    allowed: set[str] = set()
-    for name, raw in modes.items():
-        if not isinstance(raw, Mapping):
-            raise ValueError(f"invalid game-theory mode registry entry: {name}")
-        if raw.get("maturity") != "controlled-preview" or raw.get("deterministic") is not True:
-            raise ValueError(f"unsafe game-theory mode registry entry: {name}")
-        if raw.get("user_defined_game_code_allowed") is not False:
-            raise ValueError(f"game-theory mode must forbid user-defined game code: {name}")
-        allowed.add(str(name))
-    return allowed
+    return set(game_theory_modes())
 
 
 def _managed_schema(operation: str) -> Mapping[str, Any] | None:
