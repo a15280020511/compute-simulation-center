@@ -1,0 +1,60 @@
+{
+  "schema_version": "compute-dynamic-state-estimation-policy-v1",
+  "status": "controlled-preview",
+  "family": "state-estimation",
+  "declared_operation": "finance_decision_analysis",
+  "entry_mode": "bounded_linear_kalman_filter",
+  "planner": "ortools-cp-sat",
+  "graph_engine": "networkx",
+  "network_policy": "deny",
+  "model_calls": 0,
+  "objective_text_routing_allowed": false,
+  "structured_signals_only": true,
+  "dynamic_operation_discovery_allowed": false,
+  "ticket_supplied_code_allowed": false,
+  "automatic_parallel_execution": false,
+  "cycles_allowed": false,
+  "branching_allowed": true,
+  "maximum_stages": 3,
+  "allowed_operations": ["finance_decision_analysis"],
+  "allowed_adapters": [
+    "state_ticket_to_kalman",
+    "state_estimate_to_realized_feedback",
+    "state_estimate_to_benchmark"
+  ],
+  "solver_policy": {
+    "require_optimal_status": true,
+    "num_search_workers": 1,
+    "random_seed": 0,
+    "max_time_seconds": 5.0,
+    "exhaustive_cross_check_max_optional_nodes": 8
+  },
+  "selection_policy": {
+    "stage_rules": {
+      "realized_feedback": {
+        "operation": "finance_decision_analysis",
+        "penalty": 10,
+        "benefits": {
+          "realized_feedback_requested": 90,
+          "formal_or_high_stakes": 35,
+          "long_enough_feedback_series": 20
+        },
+        "eligible_all": ["scalar_observation", "long_enough_feedback_series"],
+        "required_if_any": ["realized_feedback_requested"],
+        "required_if_all": []
+      },
+      "benchmark_check": {
+        "operation": "finance_decision_analysis",
+        "penalty": 10,
+        "benefits": {
+          "benchmark_requested": 90,
+          "formal_or_high_stakes": 35,
+          "benchmark_available": 30
+        },
+        "eligible_all": ["benchmark_available"],
+        "required_if_any": ["benchmark_requested"],
+        "required_if_all": []
+      }
+    }
+  }
+}

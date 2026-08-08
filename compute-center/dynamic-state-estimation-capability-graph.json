@@ -1,0 +1,49 @@
+{
+  "schema_version": "compute-dynamic-state-estimation-capability-graph-v1",
+  "status": "controlled-preview",
+  "family": "state-estimation",
+  "selection_engine": "ortools-cp-sat",
+  "graph_engine": "networkx",
+  "safety": {
+    "dynamic_operation_discovery_allowed": false,
+    "ticket_supplied_nodes_allowed": false,
+    "ticket_supplied_edges_allowed": false,
+    "ticket_supplied_code_allowed": false,
+    "cycles_allowed": false,
+    "automatic_parallel_execution": false,
+    "branching_allowed": true,
+    "execution_remains_strict_serial": true
+  },
+  "node_order": [
+    "state_estimation",
+    "realized_feedback",
+    "benchmark_check"
+  ],
+  "nodes": {
+    "state_estimation": {
+      "operation": "finance_decision_analysis",
+      "mode": "bounded_linear_kalman_filter",
+      "adapter": "state_ticket_to_kalman",
+      "required": true,
+      "result_required": true
+    },
+    "realized_feedback": {
+      "operation": "finance_decision_analysis",
+      "mode": "realized_outcome_feedback",
+      "adapter": "state_estimate_to_realized_feedback",
+      "required": false,
+      "result_required": false
+    },
+    "benchmark_check": {
+      "operation": "finance_decision_analysis",
+      "mode": "benchmark_comparison",
+      "adapter": "state_estimate_to_benchmark",
+      "required": false,
+      "result_required": false
+    }
+  },
+  "precedence": [
+    ["state_estimation", "realized_feedback"],
+    ["state_estimation", "benchmark_check"]
+  ]
+}
