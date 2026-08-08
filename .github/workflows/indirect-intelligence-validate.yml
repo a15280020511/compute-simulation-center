@@ -14,7 +14,9 @@ on:
       - "compute-center/tests/test_indirect_intelligence_analysis.py"
       - ".github/workflows/indirect-intelligence-validate.yml"
   push:
-    branches: [main]
+    branches:
+      - main
+      - feat/indirect-intelligence-analysis-20260808
     paths:
       - "compute-center/indirect_intelligence_operations.py"
       - "compute-center/indirect-intelligence-mode-registry.json"
