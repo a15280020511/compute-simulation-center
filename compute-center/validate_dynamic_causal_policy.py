@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import ast
 import json
+import platform
 import shutil
 from pathlib import Path
 from typing import Any
@@ -106,6 +107,7 @@ def main() -> int:
         "entry_contract": "causal_policy_evaluation",
         "policy_file": "dynamic-causal-policy.json",
         "graph_file": "dynamic-causal-capability-graph.json",
+        "python_version": "3.13",
         "requirements": ["requirements-causal.txt"],
     }
     requirements = requirement_files_for_ticket(ticket)
@@ -114,10 +116,12 @@ def main() -> int:
     assert runtime["capability_pack"] == "dynamic-orchestration"
     assert runtime["dynamic_family"] == "causal-policy"
     assert runtime["dynamic_entry_contract"] == "causal_policy_evaluation"
+    assert runtime["python_version"] == "3.13"
     assert runtime["network_policy"] == "deny"
     assert runtime["selection_engine"] == "ortools-cp-sat"
     assert runtime["graph_engine"] == "networkx"
     assert runtime["automatic_parallel_execution"] is False
+    assert platform.python_version_tuple()[:2] == ("3", "13")
 
     plan = plan_dynamic_causal_policy(ticket)
     expected = ["outcome_statistics", "causal_estimate", "placebo_refutation"]
@@ -175,6 +179,7 @@ def main() -> int:
         print(json.dumps({
             "status": "PASS",
             "dynamic_family": "causal-policy",
+            "python_version": runtime["python_version"],
             "stage_order": expected,
             "solver_status": optimization["solver_status"],
             "objective_value": optimization["objective_value"],
