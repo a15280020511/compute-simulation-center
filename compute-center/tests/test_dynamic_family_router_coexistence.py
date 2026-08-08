@@ -104,6 +104,34 @@ class DynamicFamilyRouterCoexistenceTests(unittest.TestCase):
         self.assertEqual(metadata["requirements"], ["requirements-global-openturns.txt"])
         self.assertEqual(metadata["entry_contract"], "descriptive_statistics:sample-normal-reliability")
 
+    def test_optimization_mode_specific_route_coexists_with_existing_families(self) -> None:
+        ticket = {
+            "task_id": "router-optimization-coexistence",
+            "operation": "finance_decision_analysis",
+            "inputs": {
+                "mode": "mixed_integer_optimization",
+                "variables": [
+                    {"name": "x", "type": "integer", "lower_bound": 0.0, "upper_bound": 4.0, "objective_coefficient": 3.0},
+                    {"name": "y", "type": "continuous", "lower_bound": 0.0, "upper_bound": 8.0, "objective_coefficient": 2.0},
+                ],
+                "constraints": [
+                    {"coefficients": {"x": 2.0, "y": 1.0}, "relation": "<=", "rhs": 8.0}
+                ],
+                "maximize": True,
+            },
+            "pipeline": dict(PIPELINE),
+        }
+        self.assertEqual(resolve_dynamic_family(ticket), "optimization")
+        metadata = family_runtime_metadata(ticket)
+        self.assertEqual(metadata["family"], "optimization")
+        self.assertEqual(metadata["python_version"], "3.12")
+        self.assertEqual(
+            metadata["entry_contract"],
+            "finance_decision_analysis:mixed_integer_optimization",
+        )
+        self.assertIn("requirements-ortools.txt", metadata["requirements"])
+        self.assertIn("requirements-thinktank-decision.txt", metadata["requirements"])
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -1,0 +1,59 @@
+{
+  "schema_version": "compute-dynamic-optimization-capability-graph-v1",
+  "status": "controlled-preview",
+  "family": "optimization",
+  "selection_engine": "ortools-cp-sat",
+  "graph_engine": "networkx",
+  "safety": {
+    "dynamic_operation_discovery_allowed": false,
+    "ticket_supplied_nodes_allowed": false,
+    "ticket_supplied_edges_allowed": false,
+    "ticket_supplied_code_allowed": false,
+    "cycles_allowed": false,
+    "automatic_parallel_execution": false,
+    "branching_allowed": true,
+    "execution_remains_strict_serial": true
+  },
+  "node_order": [
+    "primary_optimization",
+    "independent_relaxation",
+    "relaxation_bound_audit",
+    "external_objective_benchmark"
+  ],
+  "nodes": {
+    "primary_optimization": {
+      "operation": "finance_decision_analysis",
+      "mode": "mixed_integer_optimization",
+      "adapter": "optimization_ticket_to_primary",
+      "required": true,
+      "result_required": true
+    },
+    "independent_relaxation": {
+      "operation": "finance_decision_analysis",
+      "mode": "algebraic_resource_optimization",
+      "adapter": "optimization_problem_to_gekko_relaxation",
+      "required": false,
+      "result_required": false
+    },
+    "relaxation_bound_audit": {
+      "operation": "finance_decision_analysis",
+      "mode": "benchmark_comparison",
+      "adapter": "optimization_primary_relaxation_to_bound_audit",
+      "required": false,
+      "result_required": false
+    },
+    "external_objective_benchmark": {
+      "operation": "finance_decision_analysis",
+      "mode": "benchmark_comparison",
+      "adapter": "optimization_primary_to_external_benchmark",
+      "required": false,
+      "result_required": false
+    }
+  },
+  "precedence": [
+    ["primary_optimization", "independent_relaxation"],
+    ["primary_optimization", "relaxation_bound_audit"],
+    ["independent_relaxation", "relaxation_bound_audit"],
+    ["primary_optimization", "external_objective_benchmark"]
+  ]
+}
