@@ -1,0 +1,85 @@
+{
+  "schema_version": "compute-dynamic-system-dynamics-policy-v1",
+  "status": "controlled-preview",
+  "family": "system-dynamics",
+  "declared_operation": "system_dynamics_simulation",
+  "planner": "ortools-cp-sat",
+  "graph_engine": "networkx",
+  "network_policy": "deny",
+  "model_calls": 0,
+  "objective_text_routing_allowed": false,
+  "structured_signals_only": true,
+  "dynamic_operation_discovery_allowed": false,
+  "ticket_supplied_code_allowed": false,
+  "automatic_parallel_execution": false,
+  "cycles_allowed": false,
+  "branching_allowed": true,
+  "maximum_stages": 5,
+  "allowed_modes": [
+    "stock_flow",
+    "feedback_delay",
+    "policy_switch",
+    "coupled_capacity",
+    "resource_depletion",
+    "adoption_saturation"
+  ],
+  "allowed_operations": [
+    "system_dynamics_simulation",
+    "descriptive_statistics",
+    "finance_decision_analysis"
+  ],
+  "allowed_adapters": [
+    "system_dynamics_ticket_to_primary",
+    "system_dynamics_primary_to_trajectory_statistics",
+    "system_dynamics_ticket_to_robustness_simulation",
+    "system_dynamics_primary_robustness_to_audit",
+    "system_dynamics_primary_to_external_benchmark"
+  ],
+  "solver_policy": {
+    "require_optimal_status": true,
+    "num_search_workers": 1,
+    "random_seed": 0,
+    "max_time_seconds": 5.0,
+    "exhaustive_cross_check_max_optional_nodes": 8
+  },
+  "selection_policy": {
+    "stage_rules": {
+      "trajectory_statistics": {
+        "penalty": 10,
+        "benefits": {
+          "trajectory_summary_requested": 100,
+          "formal_or_high_stakes": 45,
+          "long_horizon": 15
+        },
+        "required_if_any": ["trajectory_summary_requested"]
+      },
+      "robustness_simulation": {
+        "penalty": 20,
+        "benefits": {
+          "robustness_configured": 120,
+          "formal_or_high_stakes": 25
+        },
+        "eligible_all": ["robustness_configured", "robustness_compatible"],
+        "required_if_any": ["robustness_configured"]
+      },
+      "robustness_audit": {
+        "penalty": 5,
+        "benefits": {
+          "robustness_configured": 80,
+          "formal_or_high_stakes": 20
+        },
+        "eligible_all": ["robustness_configured", "robustness_compatible"],
+        "coupled_equal_to": "robustness_simulation"
+      },
+      "external_final_benchmark": {
+        "penalty": 5,
+        "benefits": {
+          "external_benchmark_available": 120,
+          "formal_or_high_stakes": 20
+        },
+        "eligible_all": ["external_benchmark_available"],
+        "required_if_any": ["external_benchmark_available"]
+      }
+    }
+  }
+}
