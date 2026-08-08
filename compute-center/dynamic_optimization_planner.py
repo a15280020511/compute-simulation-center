@@ -461,7 +461,7 @@ def plan_dynamic_optimization(ticket: Mapping[str, Any]) -> dict[str, Any]:
             "optimization family is selected only from finance_decision_analysis:mixed_integer_optimization plus structured inputs",
             "OR-Tools/SCIP remains the primary bounded linear or mixed-integer solver",
             f"OR-Tools CP-SAT proved the policy-optimal validation subset; status={optimization['solver_status']}, objective={optimization['objective_value']}",
-            "eligible independent relaxation uses the existing Pyomo/HiGHS backend and never changes integer constraints in the primary solve",
+            "eligible independent relaxation uses the existing network-denied GEKKO/APOPT local backend and never changes integer constraints in the primary solve",
             "benchmark_comparison checks continuous-solution equality or the mathematically valid LP-relaxation bound direction for discrete problems",
             "NetworkX preserves the branching DAG while execution remains strict serial deterministic topological order",
             "independent exhaustive enumeration cross-checks the bounded optional-stage optimum",
@@ -580,8 +580,7 @@ def run_dynamic_optimization_ticket(ticket: Mapping[str, Any], output_dir: Path,
         result_data["validation_results"] = validation_results
     software: dict[str, Any] = {"python": platform.python_version(), "networkx": nx.__version__, "ortools": ortools.__version__, "numpy": np.__version__, "scipy": scipy.__version__}
     if "independent_relaxation" in stage_results:
-        software["pyomo"] = _package_version("pyomo")
-        software["highspy"] = _package_version("highspy")
+        software["gekko"] = _package_version("gekko")
     runtime_graph = nx.DiGraph()
     runtime_graph.add_nodes_from(plan["stage_order"])
     for stage_id in plan["stage_order"]:
@@ -625,7 +624,7 @@ def run_dynamic_optimization_ticket(ticket: Mapping[str, Any], output_dir: Path,
         "automatic_parallel_execution": False,
         "graph_contains_branching": graph_contains_branching,
         "primary_solver": "ortools-scip",
-        "independent_relaxation_solver": "pyomo-highs" if "independent_relaxation" in stage_results else None,
+        "independent_relaxation_solver": "gekko-apopt-local" if "independent_relaxation" in stage_results else None,
         "secret_values_included": False
     })
     (output_dir / "compute-summary.md").write_text(
