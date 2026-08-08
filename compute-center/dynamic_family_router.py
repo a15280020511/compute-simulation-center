@@ -24,6 +24,7 @@ FAMILY_BY_OPERATION = {
 FAMILY_BY_OPERATION_MODE = {
     ("finance_decision_analysis", "indirect_intelligence_analysis"): "indirect-intelligence",
     ("finance_decision_analysis", "bounded_linear_kalman_filter"): "state-estimation",
+    ("finance_decision_analysis", "mixed_integer_optimization"): "optimization",
 }
 INDIRECT_INTELLIGENCE_REQUIREMENTS = [
     "requirements-ortools.txt",
@@ -177,6 +178,17 @@ def resolve_dynamic_family(ticket: Mapping[str, Any]) -> str:
             raise DynamicFamilyRoutingError("reliability_context.tail must be lower or upper")
         return family
 
+    if family == "optimization":
+        if operation != "finance_decision_analysis" or mode != "mixed_integer_optimization":
+            raise DynamicFamilyRoutingError("optimization family requires its exact operation/mode pair")
+        variables = _sequence(inputs.get("variables"), "inputs.variables")
+        if not 1 <= len(variables) <= 200:
+            raise DynamicFamilyRoutingError("optimization family requires 1 to 200 variables")
+        constraints = _sequence(inputs.get("constraints", []), "inputs.constraints")
+        if len(constraints) > 1000:
+            raise DynamicFamilyRoutingError("optimization family admits at most 1000 constraints")
+        return family
+
     raise DynamicFamilyRoutingError(f"unsupported dynamic family: {family}")
 
 
@@ -241,6 +253,15 @@ def family_runtime_metadata(ticket: Mapping[str, Any]) -> dict[str, Any]:
             "python_version": "3.12",
             "requirements": ["requirements-global-openturns.txt"],
         }
+    if family == "optimization":
+        return {
+            "family": family,
+            "entry_contract": "finance_decision_analysis:mixed_integer_optimization",
+            "policy_file": "dynamic-optimization-policy.json",
+            "graph_file": "dynamic-optimization-capability-graph.json",
+            "python_version": "3.12",
+            "requirements": ["requirements-ortools.txt", "requirements-thinktank-decision.txt"],
+        }
     raise DynamicFamilyRoutingError(f"unsupported dynamic family: {family}")
 
 
@@ -278,4 +299,8 @@ def run_dynamic_family_ticket(
         from dynamic_reliability_planner import run_dynamic_reliability_ticket
 
         return run_dynamic_reliability_ticket(ticket, output_dir, operations)
+    if family == "optimization":
+        from dynamic_optimization_planner import run_dynamic_optimization_ticket
+
+        return run_dynamic_optimization_ticket(ticket, output_dir, operations)
     raise DynamicFamilyRoutingError(f"unsupported dynamic family: {family}")
