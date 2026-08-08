@@ -5,6 +5,7 @@ import tempfile
 import unittest
 from pathlib import Path
 from typing import Any, Mapping
+from unittest.mock import patch
 
 import compute_dispatch
 from dynamic_causal_policy_planner import plan_dynamic_causal_policy, run_dynamic_causal_policy_ticket
@@ -133,7 +134,9 @@ class DynamicCausalPolicyFamilyTests(unittest.TestCase):
             "descriptive_statistics": compute_dispatch.OPERATIONS["descriptive_statistics"],
             "causal_policy_evaluation": causal_stub,
         }
-        with tempfile.TemporaryDirectory() as directory:
+        with tempfile.TemporaryDirectory() as directory, patch(
+            "dynamic_causal_policy_planner.version", return_value="0.14"
+        ):
             result = run_dynamic_causal_policy_ticket(ticket, Path(directory), operations)
             self.assertEqual(result["status"], "success")
             self.assertEqual(result["results"]["dynamic_family"], "causal-policy")
