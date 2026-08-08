@@ -1,0 +1,67 @@
+{
+  "schema_version": "compute-dynamic-conformal-prediction-policy-v1",
+  "status": "controlled-preview",
+  "family": "conformal-prediction",
+  "declared_operation": "finance_decision_analysis",
+  "declared_mode": "mapie_conformal_interval",
+  "planner": "ortools-cp-sat",
+  "graph_engine": "networkx",
+  "network_policy": "deny",
+  "model_calls": 0,
+  "objective_text_routing_allowed": false,
+  "structured_signals_only": true,
+  "dynamic_operation_discovery_allowed": false,
+  "ticket_supplied_code_allowed": false,
+  "automatic_parallel_execution": false,
+  "cycles_allowed": false,
+  "branching_allowed": true,
+  "maximum_stages": 6,
+  "allowed_operations": ["finance_decision_analysis"],
+  "allowed_entry_modes": ["mapie_conformal_interval"],
+  "allowed_adapters": [
+    "conformal_ticket_to_mapie",
+    "conformal_to_interval_validation",
+    "conformal_validation_to_width_audit",
+    "conformal_validation_to_interval_targets",
+    "conformal_to_realized_feedback",
+    "conformal_feedback_to_point_targets"
+  ],
+  "solver_policy": {"require_optimal_status": true, "num_search_workers": 1, "random_seed": 0, "max_time_seconds": 5.0, "exhaustive_cross_check_max_optional_nodes": 8},
+  "selection_policy": {
+    "stage_rules": {
+      "prediction_interval_validation": {
+        "penalty": 10,
+        "benefits": {"interval_validation_required": 180},
+        "eligible_all": ["validation_observed_available"],
+        "required_if_any": ["interval_validation_required"]
+      },
+      "interval_width_consistency_audit": {
+        "penalty": 5,
+        "benefits": {"width_consistency_required": 190},
+        "eligible_all": ["validation_observed_available", "width_consistency_required"],
+        "required_if_any": ["width_consistency_required"],
+        "requires_selected": ["prediction_interval_validation"]
+      },
+      "interval_target_audit": {
+        "penalty": 5,
+        "benefits": {"interval_targets_available": 150},
+        "eligible_all": ["validation_observed_available", "interval_targets_available"],
+        "required_if_any": ["interval_targets_available"],
+        "requires_selected": ["prediction_interval_validation"]
+      },
+      "realized_outcome_feedback": {
+        "penalty": 10,
+        "benefits": {"point_feedback_required": 150},
+        "eligible_all": ["validation_observed_available"],
+        "required_if_any": ["point_feedback_required"]
+      },
+      "point_target_audit": {
+        "penalty": 5,
+        "benefits": {"point_targets_available": 150},
+        "eligible_all": ["validation_observed_available", "point_targets_available"],
+        "required_if_any": ["point_targets_available"],
+        "requires_selected": ["realized_outcome_feedback"]
+      }
+    }
+  }
+}
