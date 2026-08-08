@@ -1,0 +1,41 @@
+{
+  "schema_version": "compute-dynamic-assignment-optimization-capability-graph-v1",
+  "status": "controlled-preview",
+  "family": "assignment-optimization",
+  "node_order": [
+    "assignment_optimization",
+    "scipy_exact_assignment_audit",
+    "objective_target_audit"
+  ],
+  "nodes": {
+    "assignment_optimization": {
+      "operation": "finance_decision_analysis",
+      "mode": "assignment_optimization",
+      "adapter": "assignment_ticket_to_ortools"
+    },
+    "scipy_exact_assignment_audit": {
+      "operation": "finance_decision_analysis",
+      "mode": "benchmark_comparison",
+      "adapter": "assignment_to_scipy_exact_audit"
+    },
+    "objective_target_audit": {
+      "operation": "finance_decision_analysis",
+      "mode": "benchmark_comparison",
+      "adapter": "assignment_to_objective_target_audit"
+    }
+  },
+  "precedence": [
+    ["assignment_optimization", "scipy_exact_assignment_audit"],
+    ["assignment_optimization", "objective_target_audit"]
+  ],
+  "safety": {
+    "dynamic_operation_discovery_allowed": false,
+    "ticket_supplied_nodes_allowed": false,
+    "ticket_supplied_edges_allowed": false,
+    "ticket_supplied_code_allowed": false,
+    "cycles_allowed": false,
+    "automatic_parallel_execution": false,
+    "branching_allowed": true,
+    "execution_remains_strict_serial": true
+  }
+}

@@ -26,7 +26,8 @@ FAMILY_BY_OPERATION_MODE={
 ("finance_decision_analysis","mapie_conformal_interval"):"conformal-prediction",
 ("finance_decision_analysis","sobol_sensitivity"):"global-sensitivity",
 ("finance_decision_analysis","aequilibrae_shortest_path"):"transport-routing",
-("finance_decision_analysis","factor_regression"):"factor-regression"}
+("finance_decision_analysis","factor_regression"):"factor-regression",
+("finance_decision_analysis","assignment_optimization"):"assignment-optimization"}
 INDIRECT_INTELLIGENCE_REQUIREMENTS=[
 "requirements-ortools.txt","requirements-intelligence-rapidfuzz.txt",
 "requirements-intelligence-datasketch.txt","requirements-intelligence-splink.txt",
@@ -153,6 +154,12 @@ def _validate(f:str,o:str,m:str,i:Mapping[str,Any])->None:
   for name,values in factors.items():
    if not str(name) or len(_s(values,f"inputs.factors[{name}]"))!=len(asset): raise DynamicFamilyRoutingError("factor series must be named and match asset_returns length")
   _ctx(i,"factor_regression_context")
+ elif f=="assignment-optimization":
+  workers=_s(i.get("workers"),"inputs.workers"); tasks=_s(i.get("tasks"),"inputs.tasks")
+  if o!="finance_decision_analysis" or m!="assignment_optimization" or not 1<=len(workers)<=100 or not 1<=len(tasks)<=100 or len(workers)<len(tasks) or i.get("require_all_tasks",True) is not True: raise DynamicFamilyRoutingError("invalid assignment-optimization inputs")
+  costs=_s(i.get("costs"),"inputs.costs")
+  if len(costs)!=len(workers) or any(len(_s(row,f"inputs.costs[{j}]"))!=len(tasks) for j,row in enumerate(costs)): raise DynamicFamilyRoutingError("assignment costs must be worker-by-task")
+  _ctx(i,"assignment_optimization_context")
  else: raise DynamicFamilyRoutingError(f"unsupported dynamic family: {f}")
 
 def resolve_dynamic_family(t:Mapping[str,Any])->str:
@@ -180,7 +187,8 @@ _META={
 "conformal-prediction":("finance_decision_analysis:mapie_conformal_interval","dynamic-conformal-prediction-policy.json","dynamic-conformal-prediction-capability-graph.json","3.12",["requirements-ortools.txt","requirements-global-mapie.txt"]),
 "global-sensitivity":("finance_decision_analysis:sobol_sensitivity","dynamic-global-sensitivity-policy.json","dynamic-global-sensitivity-capability-graph.json","3.12",["requirements-ortools.txt","requirements-global-salib.txt"]),
 "transport-routing":("finance_decision_analysis:aequilibrae_shortest_path","dynamic-transport-routing-policy.json","dynamic-transport-routing-capability-graph.json","3.12",["requirements-ortools.txt","requirements-global-aequilibrae.txt"]),
-"factor-regression":("finance_decision_analysis:factor_regression","dynamic-factor-regression-policy.json","dynamic-factor-regression-capability-graph.json","3.12",["requirements-finance.txt"])}
+"factor-regression":("finance_decision_analysis:factor_regression","dynamic-factor-regression-policy.json","dynamic-factor-regression-capability-graph.json","3.12",["requirements-finance.txt"]),
+"assignment-optimization":("finance_decision_analysis:assignment_optimization","dynamic-assignment-optimization-policy.json","dynamic-assignment-optimization-capability-graph.json","3.12",["requirements-ortools.txt"])}
 
 def family_runtime_metadata(t:Mapping[str,Any])->dict[str,Any]:
  f=resolve_dynamic_family(t)
@@ -232,5 +240,7 @@ def run_dynamic_family_ticket(t:Mapping[str,Any],output_dir:Path,operations:Mapp
   from dynamic_transport_routing_planner import run_dynamic_transport_routing_ticket as run
  elif f=="factor-regression":
   from dynamic_factor_regression_planner import run_dynamic_factor_regression_ticket as run
+ elif f=="assignment-optimization":
+  from dynamic_assignment_optimization_planner import run_dynamic_assignment_optimization_ticket as run
  else: raise DynamicFamilyRoutingError(f"unsupported dynamic family: {f}")
  return run(t,output_dir,operations)
