@@ -95,14 +95,24 @@ def resolve_dynamic_family(ticket: Mapping[str, Any]) -> str:
         data = inputs.get("data")
         if not isinstance(data, Mapping) or not data:
             raise DynamicFamilyRoutingError("bayesian-network family requires a non-empty data object")
+        data_nodes = {str(name) for name in data}
+        if any(not name for name in data_nodes):
+            raise DynamicFamilyRoutingError("bayesian-network data variable names must be non-empty")
         query_variables = _sequence(inputs.get("query_variables"), "inputs.query_variables")
         if not query_variables:
             raise DynamicFamilyRoutingError("bayesian-network family requires non-empty query_variables")
+        if any(str(item) not in data_nodes for item in query_variables):
+            raise DynamicFamilyRoutingError("bayesian-network query_variables must have observed data columns")
         edges = _sequence(inputs.get("edges", []), "inputs.edges")
         for index, raw_edge in enumerate(edges):
             edge = _sequence(raw_edge, f"inputs.edges[{index}]")
             if len(edge) != 2:
                 raise DynamicFamilyRoutingError("bayesian-network edges must contain source and target")
+            left, right = str(edge[0]), str(edge[1])
+            if left not in data_nodes or right not in data_nodes:
+                raise DynamicFamilyRoutingError(
+                    "bayesian-network dependency nodes must have observed data columns for parameter estimation"
+                )
         return family
 
     raise DynamicFamilyRoutingError(f"unsupported dynamic family: {family}")
