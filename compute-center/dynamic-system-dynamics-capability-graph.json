@@ -1,0 +1,65 @@
+{
+  "schema_version": "compute-dynamic-system-dynamics-capability-graph-v1",
+  "status": "controlled-preview",
+  "family": "system-dynamics",
+  "selection_engine": "ortools-cp-sat",
+  "graph_engine": "networkx",
+  "safety": {
+    "dynamic_operation_discovery_allowed": false,
+    "ticket_supplied_nodes_allowed": false,
+    "ticket_supplied_edges_allowed": false,
+    "ticket_supplied_code_allowed": false,
+    "cycles_allowed": false,
+    "automatic_parallel_execution": false,
+    "branching_allowed": true,
+    "execution_remains_strict_serial": true
+  },
+  "node_order": [
+    "primary_simulation",
+    "trajectory_statistics",
+    "robustness_simulation",
+    "robustness_audit",
+    "external_final_benchmark"
+  ],
+  "nodes": {
+    "primary_simulation": {
+      "operation": "system_dynamics_simulation",
+      "adapter": "system_dynamics_ticket_to_primary",
+      "required": true,
+      "result_required": true
+    },
+    "trajectory_statistics": {
+      "operation": "descriptive_statistics",
+      "adapter": "system_dynamics_primary_to_trajectory_statistics",
+      "required": false,
+      "result_required": false
+    },
+    "robustness_simulation": {
+      "operation": "system_dynamics_simulation",
+      "adapter": "system_dynamics_ticket_to_robustness_simulation",
+      "required": false,
+      "result_required": false
+    },
+    "robustness_audit": {
+      "operation": "finance_decision_analysis",
+      "mode": "benchmark_comparison",
+      "adapter": "system_dynamics_primary_robustness_to_audit",
+      "required": false,
+      "result_required": false
+    },
+    "external_final_benchmark": {
+      "operation": "finance_decision_analysis",
+      "mode": "benchmark_comparison",
+      "adapter": "system_dynamics_primary_to_external_benchmark",
+      "required": false,
+      "result_required": false
+    }
+  },
+  "precedence": [
+    ["primary_simulation", "trajectory_statistics"],
+    ["primary_simulation", "robustness_simulation"],
+    ["primary_simulation", "robustness_audit"],
+    ["robustness_simulation", "robustness_audit"],
+    ["primary_simulation", "external_final_benchmark"]
+  ]
+}
