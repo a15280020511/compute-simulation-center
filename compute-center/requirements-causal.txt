@@ -1,1 +1,8 @@
+# Isolated causal-policy runtime. Do not install into the core compute interpreter.
+# DoWhy 0.14 requires scipy<=1.15.3 on Python 3.12, while the core compute
+# environment intentionally remains on SciPy 1.18.0.
 dowhy==0.14
+scipy==1.15.3
+numpy==2.4.6
+networkx==3.6.1
+jsonschema==4.26.0
