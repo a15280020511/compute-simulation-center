@@ -1,0 +1,48 @@
+{
+  "schema_version": "compute-dynamic-assignment-optimization-policy-v1",
+  "status": "controlled-preview",
+  "family": "assignment-optimization",
+  "declared_operation": "finance_decision_analysis",
+  "declared_mode": "assignment_optimization",
+  "planner": "ortools-cp-sat",
+  "graph_engine": "networkx",
+  "network_policy": "deny",
+  "model_calls": 0,
+  "objective_text_routing_allowed": false,
+  "structured_signals_only": true,
+  "dynamic_operation_discovery_allowed": false,
+  "ticket_supplied_code_allowed": false,
+  "automatic_parallel_execution": false,
+  "cycles_allowed": false,
+  "branching_allowed": true,
+  "maximum_stages": 3,
+  "allowed_operations": ["finance_decision_analysis"],
+  "allowed_entry_modes": ["assignment_optimization"],
+  "allowed_adapters": [
+    "assignment_ticket_to_ortools",
+    "assignment_to_scipy_exact_audit",
+    "assignment_to_objective_target_audit"
+  ],
+  "solver_policy": {
+    "require_optimal_status": true,
+    "num_search_workers": 1,
+    "random_seed": 0,
+    "max_time_seconds": 5.0,
+    "exhaustive_cross_check_max_optional_nodes": 8
+  },
+  "selection_policy": {
+    "stage_rules": {
+      "scipy_exact_assignment_audit": {
+        "penalty": 5,
+        "benefits": {"exact_assignment_consistency_required": 220},
+        "required_if_any": ["exact_assignment_consistency_required"]
+      },
+      "objective_target_audit": {
+        "penalty": 5,
+        "benefits": {"objective_target_available": 140},
+        "eligible_all": ["objective_target_available"],
+        "required_if_any": ["objective_target_available"]
+      }
+    }
+  }
+}
