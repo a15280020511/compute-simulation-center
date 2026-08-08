@@ -91,19 +91,7 @@ jobs:
         working-directory: compute-center
         run: |
           set -euo pipefail
-          python -m unittest \
-            tests.test_dynamic_drift_family \
-            tests.test_dynamic_family_router_coexistence \
-            tests.test_dynamic_game_theory_family \
-            tests.test_dynamic_system_dynamics_family \
-            tests.test_dynamic_optimization_family \
-            tests.test_dynamic_reliability_family \
-            tests.test_dynamic_state_estimation_family \
-            tests.test_dynamic_bayesian_network_family \
-            tests.test_dynamic_time_series_family \
-            tests.test_dynamic_pipeline_planner \
-            tests.test_dynamic_runtime_integration \
-            tests.test_dynamic_generic_extensions -v
+          python -m unittest discover -s tests -p 'test_dynamic*.py' -v
       - name: Validate capability registry
         working-directory: compute-center
         run: python tool_registry.py validate
