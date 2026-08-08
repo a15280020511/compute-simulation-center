@@ -13,7 +13,7 @@ from typing import Any
 from jsonschema import Draft202012Validator
 
 from capability_manager import load_registered_operations, requirements_for_ticket, runtime_plan
-from dynamic_family_router import FAMILY_BY_OPERATION, family_runtime_metadata
+from dynamic_family_router import FAMILY_BY_OPERATION, FAMILY_BY_OPERATION_MODE, family_runtime_metadata
 from governance_runtime import install as install_governance_runtime
 from json_normalization import wrap_operation
 from systems_matrix import load_systems_matrix, route_for_ticket
@@ -98,10 +98,12 @@ def requirement_files_for_ticket(ticket: Mapping[str, Any]) -> list[str]:
 def managed_runtime_plan(ticket: Mapping[str, Any]) -> dict[str, Any]:
     if _dynamic_orchestration_requested(ticket):
         family = family_runtime_metadata(ticket)
+        inputs = ticket.get("inputs")
+        mode = str(inputs.get("mode") or "") if isinstance(inputs, Mapping) else ""
         return {
             "schema_version": "compute-runtime-plan-v2",
             "operation": str(ticket.get("operation") or ""),
-            "mode": None,
+            "mode": mode or None,
             "capability_pack": "dynamic-orchestration",
             "dynamic_family": family["family"],
             "dynamic_entry_contract": family["entry_contract"],
@@ -149,6 +151,10 @@ def main() -> int:
         matrix = load_systems_matrix()
         if not DYNAMIC_REQUIREMENT.is_file():
             raise SystemExit("dynamic orchestration requirement bundle is missing")
+        mode_families = {
+            f"{operation}:{mode}": family
+            for (operation, mode), family in sorted(FAMILY_BY_OPERATION_MODE.items())
+        }
         print(json.dumps({
             "status": "PASS",
             "manager_version": 2,
@@ -162,6 +168,7 @@ def main() -> int:
                 "selection_engine": "ortools-cp-sat",
                 "graph_engine": "networkx",
                 "families": dict(sorted(FAMILY_BY_OPERATION.items())),
+                "mode_specific_families": mode_families,
                 "python_allowlist": sorted(ALLOWED_DYNAMIC_PYTHON),
             },
         }, ensure_ascii=False))
