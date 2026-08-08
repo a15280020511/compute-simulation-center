@@ -56,20 +56,53 @@ jobs:
             compute-center/requirements-institutional-river.txt
             compute-center/requirements-institutional-skfolio.txt
 
-      - name: Install complete isolated compute environment
+      - name: Install complete core compute environment
         run: |
           set -euo pipefail
           python -m pip install --disable-pip-version-check --no-input -r compute-center/requirements-mesa.txt
           python -m pip install --disable-pip-version-check --no-input -r compute-center/requirements-finance.txt
           python -m pip install --disable-pip-version-check --no-input -r compute-center/requirements-missing-data.txt
           python -m pip install --disable-pip-version-check --no-input -r compute-center/requirements-diffusion.txt
-          python -m pip install --disable-pip-version-check --no-input -r compute-center/requirements-causal.txt
+          # causal-policy is intentionally NOT installed into the core interpreter:
+          # DoWhy 0.14 requires scipy<=1.15.3 while core compute pins scipy==1.18.0.
           python -m pip install --disable-pip-version-check --no-input -r compute-center/requirements-bayesian-network.txt
           python -m pip install --disable-pip-version-check --no-input -r compute-center/requirements-calibration.txt
           python -m pip install --disable-pip-version-check --no-input -r compute-center/requirements-constraints.txt
           python -m pip install --disable-pip-version-check --no-input -r compute-center/requirements-sector-causal-econ.txt
           python -m pip install --disable-pip-version-check --no-input -r compute-center/requirements-sumo.txt
           python -m pip check
+
+      - name: Prepare fixed isolated causal capability environment
+        run: |
+          set -euo pipefail
+          cat > /tmp/causal-capability-ticket.json <<'JSON'
+          {
+            "task_id": "all-capabilities-causal-runtime",
+            "operation": "causal_policy_evaluation"
+          }
+          JSON
+          python compute-center/capability_environment.py prepare \
+            --ticket /tmp/causal-capability-ticket.json \
+            --output architecture-validation-artifacts/causal-capability-environment.json
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          receipt = json.loads(Path('architecture-validation-artifacts/causal-capability-environment.json').read_text(encoding='utf-8'))
+          assert receipt['status'] == 'PASS', receipt
+          assert receipt['isolated'] is True, receipt
+          assert receipt['name'] == 'causal-policy', receipt
+          assert receipt['versions'] == {
+              'dowhy': '0.14',
+              'jsonschema': '4.26.0',
+              'networkx': '3.6.1',
+              'numpy': '2.4.6',
+              'scipy': '1.15.3',
+          }, receipt
+          assert receipt['network_policy'] == 'inherit-deny-at-execution', receipt
+          assert receipt['ticket_supplied_requirements_allowed'] is False, receipt
+          assert receipt['ticket_supplied_commands_allowed'] is False, receipt
+          assert Path(receipt['interpreter']).is_file(), receipt
+          PY
 
       - name: Compile production runtime and validators
         run: |
@@ -137,6 +170,11 @@ jobs:
           assert governance['unverified_domain_truth_prepopulation_allowed'] is False, governance
           assert governance['single_weighted_credibility_score_allowed'] is False, governance
 
+          causal_environment = json.loads(Path('architecture-validation-artifacts/causal-capability-environment.json').read_text(encoding='utf-8'))
+          assert causal_environment['status'] == 'PASS', causal_environment
+          assert causal_environment['versions']['dowhy'] == '0.14', causal_environment
+          assert causal_environment['versions']['scipy'] == '1.15.3', causal_environment
+
           operation_root = Path('all-compute-operation-artifacts')
           operation_summary = json.loads((operation_root / 'all-operations-validation-summary.json').read_text(encoding='utf-8'))
           assert operation_summary['status'] == 'PASS', operation_summary
@@ -180,7 +218,7 @@ jobs:
               for name in ('compute-result.json', 'compute-audit.json', 'compute-diagnostics.json', 'compute-preflight.json', 'compute-data-gap-plan.json', 'compute-expert-review-request.json', 'artifact-manifest.json'):
                   assert (root / name).is_file(), (row['mode'], name)
 
-          print(json.dumps({'status': 'PASS', 'operations': 31, 'managed_modes': 135, 'institutional_libraries': 16, 'credibility_factors': 12, 'decision_intelligence_modes': 22, 'operation_summary_sha256': operation_summary['summary_sha256'], 'mode_summary_sha256': mode_summary['summary_sha256'], 'sole_relay': 'gpts-usage-center', 'compute_network_policy': 'deny'}))
+          print(json.dumps({'status': 'PASS', 'operations': 31, 'managed_modes': 135, 'institutional_libraries': 16, 'credibility_factors': 12, 'decision_intelligence_modes': 22, 'operation_summary_sha256': operation_summary['summary_sha256'], 'mode_summary_sha256': mode_summary['summary_sha256'], 'sole_relay': 'gpts-usage-center', 'compute_network_policy': 'deny', 'causal_runtime_isolation': 'fixed-venv'}))
           PY
 
       - name: Upload exhaustive compute evidence
