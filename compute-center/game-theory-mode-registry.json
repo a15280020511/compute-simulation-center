@@ -1,0 +1,25 @@
+{
+  "schema_version": "game-theory-mode-registry-v1",
+  "target_group": "decision-intelligence",
+  "target_operation": "finance_decision_analysis",
+  "status": "controlled-preview",
+  "network_policy": "deny",
+  "arbitrary_code_allowed": false,
+  "modes": {
+    "open_spiel_policy_evaluation": {
+      "requirements": ["requirements-strategy-open-spiel.txt"],
+      "maturity": "controlled-preview",
+      "deterministic": true,
+      "allowed_games": ["matrix_rps", "matrix_pd"],
+      "user_defined_game_code_allowed": false,
+      "limits": {"max_actions_per_player": 20}
+    },
+    "pygambit_pure_equilibria": {
+      "requirements": ["requirements-strategy-pygambit.txt"],
+      "maturity": "controlled-preview",
+      "deterministic": true,
+      "limits": {"max_rows": 30, "max_columns": 30},
+      "user_defined_game_code_allowed": false
+    }
+  }
+}
