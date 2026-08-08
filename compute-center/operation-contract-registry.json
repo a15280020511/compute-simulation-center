@@ -145,6 +145,78 @@
         },
         "additionalProperties": true
       }
+    },
+    "causal_policy_evaluation": {
+      "output_schema": {
+        "type": "object",
+        "required": ["engine", "mode", "interpretation_boundary"],
+        "properties": {
+          "engine": {
+            "type": "object",
+            "required": ["name", "version", "network_used"],
+            "properties": {
+              "name": {"const": "dowhy-isolated-fixed-adapter"},
+              "version": {"const": "0.14"},
+              "network_used": {"const": false}
+            },
+            "additionalProperties": true
+          },
+          "mode": {
+            "enum": [
+              "backdoor_adjustment",
+              "propensity_weighting",
+              "difference_in_differences_refuted",
+              "instrumental_variable_refuted",
+              "placebo_policy_test",
+              "unobserved_confounding_sensitivity"
+            ]
+          },
+          "interpretation_boundary": {"type": "string", "minLength": 1}
+        },
+        "allOf": [
+          {
+            "if": {"properties": {"mode": {"enum": ["backdoor_adjustment", "propensity_weighting"]}}, "required": ["mode"]},
+            "then": {
+              "required": ["effect", "identified", "causal_claim_allowed", "claim_type", "observation_count"],
+              "properties": {
+                "effect": {"type": "number"},
+                "identified": {"const": true},
+                "causal_claim_allowed": {"type": "boolean"},
+                "claim_type": {"type": "string", "minLength": 1},
+                "observation_count": {"type": "integer", "minimum": 2}
+              }
+            }
+          },
+          {
+            "if": {"properties": {"mode": {"const": "placebo_policy_test"}}, "required": ["mode"]},
+            "then": {
+              "required": ["actual_effect", "placebo_mean", "placebo_standard_deviation", "empirical_p_value", "refutation_passed", "repetitions", "seed"],
+              "properties": {
+                "actual_effect": {"type": "number"},
+                "placebo_mean": {"type": "number"},
+                "placebo_standard_deviation": {"type": "number", "minimum": 0},
+                "empirical_p_value": {"type": "number", "minimum": 0, "maximum": 1},
+                "refutation_passed": {"type": "boolean"},
+                "repetitions": {"type": "integer", "minimum": 20, "maximum": 2000},
+                "seed": {"type": "integer", "minimum": 0}
+              }
+            }
+          },
+          {
+            "if": {"properties": {"mode": {"const": "unobserved_confounding_sensitivity"}}, "required": ["mode"]},
+            "then": {
+              "required": ["effect_estimate", "standard_error", "scenarios", "robust_to_all_tested_strengths"],
+              "properties": {
+                "effect_estimate": {"type": "number"},
+                "standard_error": {"type": "number", "exclusiveMinimum": 0},
+                "scenarios": {"type": "array", "minItems": 1},
+                "robust_to_all_tested_strengths": {"type": "boolean"}
+              }
+            }
+          }
+        ],
+        "additionalProperties": true
+      }
     }
   }
 }
