@@ -1,0 +1,56 @@
+{
+  "schema_version": "compute-dynamic-robust-allocation-policy-v1",
+  "status": "controlled-preview",
+  "family": "robust-allocation",
+  "declared_operation": "finance_decision_analysis",
+  "declared_mode": "rsome_robust_allocation",
+  "planner": "ortools-cp-sat",
+  "graph_engine": "networkx",
+  "network_policy": "deny",
+  "model_calls": 0,
+  "objective_text_routing_allowed": false,
+  "structured_signals_only": true,
+  "dynamic_operation_discovery_allowed": false,
+  "ticket_supplied_code_allowed": false,
+  "automatic_parallel_execution": false,
+  "cycles_allowed": false,
+  "branching_allowed": true,
+  "maximum_stages": 5,
+  "allowed_operations": ["finance_decision_analysis"],
+  "allowed_entry_modes": ["rsome_robust_allocation"],
+  "allowed_adapters": [
+    "allocation_ticket_to_rsome",
+    "allocation_to_ortools_crosscheck",
+    "allocation_crosscheck_to_objective_audit",
+    "allocation_to_feasibility_audit",
+    "allocation_to_target_audit"
+  ],
+  "solver_policy": {"require_optimal_status": true, "num_search_workers": 1, "random_seed": 0, "max_time_seconds": 5.0, "exhaustive_cross_check_max_optional_nodes": 8},
+  "selection_policy": {
+    "stage_rules": {
+      "ortools_maximin_crosscheck": {
+        "penalty": 10,
+        "benefits": {"independent_crosscheck_required": 180},
+        "required_if_any": ["independent_crosscheck_required"]
+      },
+      "worst_case_objective_consistency_audit": {
+        "penalty": 5,
+        "benefits": {"independent_crosscheck_required": 190},
+        "eligible_all": ["independent_crosscheck_required"],
+        "required_if_any": ["independent_crosscheck_required"],
+        "requires_selected": ["ortools_maximin_crosscheck"]
+      },
+      "allocation_feasibility_audit": {
+        "penalty": 5,
+        "benefits": {"feasibility_audit_required": 150},
+        "required_if_any": ["feasibility_audit_required"]
+      },
+      "allocation_target_audit": {
+        "penalty": 5,
+        "benefits": {"allocation_targets_available": 150},
+        "eligible_all": ["allocation_targets_available"],
+        "required_if_any": ["allocation_targets_available"]
+      }
+    }
+  }
+}

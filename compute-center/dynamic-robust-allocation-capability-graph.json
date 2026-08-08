@@ -1,0 +1,35 @@
+{
+  "schema_version": "compute-dynamic-robust-allocation-capability-graph-v1",
+  "status": "controlled-preview",
+  "family": "robust-allocation",
+  "node_order": [
+    "rsome_robust_allocation",
+    "ortools_maximin_crosscheck",
+    "worst_case_objective_consistency_audit",
+    "allocation_feasibility_audit",
+    "allocation_target_audit"
+  ],
+  "nodes": {
+    "rsome_robust_allocation": {"operation": "finance_decision_analysis", "mode": "rsome_robust_allocation", "adapter": "allocation_ticket_to_rsome"},
+    "ortools_maximin_crosscheck": {"operation": "finance_decision_analysis", "mode": "mixed_integer_optimization", "adapter": "allocation_to_ortools_crosscheck"},
+    "worst_case_objective_consistency_audit": {"operation": "finance_decision_analysis", "mode": "benchmark_comparison", "adapter": "allocation_crosscheck_to_objective_audit"},
+    "allocation_feasibility_audit": {"operation": "finance_decision_analysis", "mode": "benchmark_comparison", "adapter": "allocation_to_feasibility_audit"},
+    "allocation_target_audit": {"operation": "finance_decision_analysis", "mode": "benchmark_comparison", "adapter": "allocation_to_target_audit"}
+  },
+  "precedence": [
+    ["rsome_robust_allocation", "ortools_maximin_crosscheck"],
+    ["ortools_maximin_crosscheck", "worst_case_objective_consistency_audit"],
+    ["rsome_robust_allocation", "allocation_feasibility_audit"],
+    ["rsome_robust_allocation", "allocation_target_audit"]
+  ],
+  "safety": {
+    "dynamic_operation_discovery_allowed": false,
+    "ticket_supplied_nodes_allowed": false,
+    "ticket_supplied_edges_allowed": false,
+    "ticket_supplied_code_allowed": false,
+    "cycles_allowed": false,
+    "automatic_parallel_execution": false,
+    "branching_allowed": true,
+    "execution_remains_strict_serial": true
+  }
+}
