@@ -106,7 +106,7 @@ jobs:
           receipt={'status':'PASS','engine_version':statsforecast.__version__,'rows':len(result['forecast_rows']),'network_used':False,'model_calls':0}
           open('statsforecast-receipt.json','w').write(json.dumps(receipt,indent=2)+'\n')
           PY
-      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
         with:
           name: statsforecast-real-${{ github.run_id }}
           path: compute-center/statsforecast-receipt.json
@@ -146,7 +146,7 @@ jobs:
           receipt={'status':'PASS','sumo_home_present':bool(sumo.SUMO_HOME),'deterministic_repeat':True,'completed_trips':first['completed_trips'],'network_used':False,'model_calls':0}
           open('sumo-receipt.json','w').write(json.dumps(receipt,indent=2)+'\n')
           PY
-      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
         with:
           name: sumo-real-${{ github.run_id }}
           path: compute-center/sumo-receipt.json
