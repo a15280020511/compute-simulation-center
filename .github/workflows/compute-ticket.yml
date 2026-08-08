@@ -121,7 +121,8 @@ jobs:
             --event-path "$GITHUB_EVENT_PATH" \
             --output-dir compute-artifacts
 
-      - name: Resolve and install managed capability dependencies
+      - name: Resolve managed runtime plan
+        id: runtime
         if: steps.prepare.outputs.accepted == 'true'
         shell: bash
         run: |
@@ -129,6 +130,47 @@ jobs:
           python compute-center/tool_registry.py plan \
             --ticket compute-artifacts/ticket.json \
             > compute-artifacts/compute-runtime-plan.json
+          runtime_python="$(python - <<'PY'
+          import json
+          from pathlib import Path
+
+          plan = json.loads(Path("compute-artifacts/compute-runtime-plan.json").read_text(encoding="utf-8"))
+          version = str(plan.get("python_version") or "3.12")
+          if version not in {"3.12", "3.13"}:
+              raise SystemExit(f"runtime Python is not allowlisted: {version}")
+          print(version)
+          PY
+          )"
+          echo "python_version=$runtime_python" >> "$GITHUB_OUTPUT"
+
+      - name: Set up selected family Python runtime
+        if: >-
+          steps.prepare.outputs.accepted == 'true' &&
+          steps.runtime.outputs.python_version != '3.12'
+        uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5
+        with:
+          python-version: ${{ steps.runtime.outputs.python_version }}
+          cache: pip
+          cache-dependency-path: |
+            compute-center/requirements.txt
+            compute-center/requirements-ortools.txt
+            compute-center/requirements-causal.txt
+
+      - name: Install selected runtime core dependencies
+        if: >-
+          steps.prepare.outputs.accepted == 'true' &&
+          steps.runtime.outputs.python_version != '3.12'
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m pip install --disable-pip-version-check --no-input -r compute-center/requirements.txt
+          python -m py_compile compute-center/*.py
+
+      - name: Install managed capability dependencies
+        if: steps.prepare.outputs.accepted == 'true'
+        shell: bash
+        run: |
+          set -euo pipefail
           mapfile -t requirement_files < <(
             python compute-center/tool_registry.py requirements \
               --ticket compute-artifacts/ticket.json
@@ -137,6 +179,17 @@ jobs:
             python -m pip install --disable-pip-version-check --no-input -r "$requirement"
           done
           python -m pip check
+          python - <<'PY'
+          import json
+          import platform
+          from pathlib import Path
+
+          plan = json.loads(Path("compute-artifacts/compute-runtime-plan.json").read_text(encoding="utf-8"))
+          expected = str(plan.get("python_version") or "3.12")
+          actual = ".".join(platform.python_version_tuple()[:2])
+          if actual != expected:
+              raise SystemExit(f"runtime Python mismatch: expected={expected}, actual={actual}")
+          PY
 
       - name: Comment compute ticket accepted
         if: steps.prepare.outputs.accepted == 'true'

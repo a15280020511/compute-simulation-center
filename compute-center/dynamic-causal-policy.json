@@ -1,0 +1,60 @@
+{
+  "schema_version": "compute-dynamic-causal-policy-v1",
+  "status": "controlled-preview",
+  "family": "causal-policy",
+  "declared_operation": "causal_policy_evaluation",
+  "planner": "ortools-cp-sat",
+  "graph_engine": "networkx",
+  "network_policy": "deny",
+  "model_calls": 0,
+  "objective_text_routing_allowed": false,
+  "structured_signals_only": true,
+  "dynamic_operation_discovery_allowed": false,
+  "ticket_supplied_code_allowed": false,
+  "automatic_parallel_execution": false,
+  "cycles_allowed": false,
+  "maximum_stages": 3,
+  "allowed_operations": [
+    "descriptive_statistics",
+    "causal_policy_evaluation"
+  ],
+  "allowed_adapters": [
+    "causal_outcome_to_descriptive_statistics",
+    "causal_ticket_to_estimate",
+    "causal_ticket_to_placebo_refutation"
+  ],
+  "solver_policy": {
+    "require_optimal_status": true,
+    "max_time_seconds": 2.0,
+    "num_search_workers": 1,
+    "random_seed": 20260808,
+    "exhaustive_cross_check_max_optional_nodes": 8
+  },
+  "selection_policy": {
+    "stage_rules": {
+      "outcome_statistics": {
+        "operation": "descriptive_statistics",
+        "penalty": 12,
+        "benefits": {
+          "diagnostics_requested": 55,
+          "formal_decision": 15
+        },
+        "eligible_all": ["causal_input_valid"],
+        "required_if_any": [],
+        "required_if_all": []
+      },
+      "placebo_refutation": {
+        "operation": "causal_policy_evaluation",
+        "penalty": 25,
+        "benefits": {
+          "refutation_requested": 80,
+          "formal_decision": 45,
+          "high_stakes": 55
+        },
+        "eligible_all": ["causal_input_valid"],
+        "required_if_any": ["refutation_requested", "high_stakes"],
+        "required_if_all": []
+      }
+    }
+  }
+}

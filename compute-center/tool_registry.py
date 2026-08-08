@@ -5,7 +5,8 @@ from __future__ import annotations
 import argparse
 import copy
 import json
-from collections.abc import Callable, Mapping
+import re
+from collections.abc import Callable, Mapping, Sequence
 from pathlib import Path
 from typing import Any
 
@@ -21,6 +22,9 @@ HERE = Path(__file__).resolve().parent
 DYNAMIC_PIPELINE_ID = "dynamic-auto-v1"
 DYNAMIC_STAGE_ID = "dynamic"
 DYNAMIC_REQUIREMENT = HERE / "requirements-ortools.txt"
+REQUIREMENT_RE = re.compile(r"^requirements-[a-z0-9-]+\.txt$")
+ALLOWED_DYNAMIC_PYTHON = {"3.12", "3.13"}
+DEFAULT_DYNAMIC_PYTHON = "3.12"
 
 
 def _dynamic_orchestration_requested(ticket: Mapping[str, Any]) -> bool:
@@ -30,6 +34,31 @@ def _dynamic_orchestration_requested(ticket: Mapping[str, Any]) -> bool:
         and str(pipeline.get("pipeline_id") or "") == DYNAMIC_PIPELINE_ID
         and str(pipeline.get("stage_id") or "") == DYNAMIC_STAGE_ID
     )
+
+
+def _dynamic_family_requirements(metadata: Mapping[str, Any]) -> list[str]:
+    rows = metadata.get("requirements", [])
+    if isinstance(rows, (str, bytes)) or not isinstance(rows, Sequence):
+        raise RuntimeError("dynamic family requirements must be an array")
+    result: list[str] = []
+    for raw in rows:
+        name = str(raw)
+        if not REQUIREMENT_RE.fullmatch(name):
+            raise RuntimeError(f"invalid dynamic family requirement name: {name}")
+        candidate = HERE / name
+        if candidate.parent != HERE or not candidate.is_file():
+            raise RuntimeError(f"dynamic family requirement bundle is missing: {name}")
+        rendered = str(candidate)
+        if rendered not in result:
+            result.append(rendered)
+    return result
+
+
+def _dynamic_family_python(metadata: Mapping[str, Any]) -> str:
+    version = str(metadata.get("python_version") or DEFAULT_DYNAMIC_PYTHON)
+    if version not in ALLOWED_DYNAMIC_PYTHON:
+        raise RuntimeError(f"dynamic family Python runtime is not allowlisted: {version}")
+    return version
 
 
 def register_into(target: dict[str, Callable[[Mapping[str, Any]], dict[str, Any]]]) -> None:
@@ -53,12 +82,16 @@ def register_into(target: dict[str, Callable[[Mapping[str, Any]], dict[str, Any]
 
 def requirement_files_for_ticket(ticket: Mapping[str, Any]) -> list[str]:
     if _dynamic_orchestration_requested(ticket):
-        # Validate the structured family before installing OR-Tools so unsupported
-        # dynamic operations fail closed at dependency planning time.
-        family_runtime_metadata(ticket)
+        # Resolve the structured family before installing any optional bundle so
+        # unsupported dynamic operations fail closed at dependency planning time.
+        family = family_runtime_metadata(ticket)
         if not DYNAMIC_REQUIREMENT.is_file():
             raise RuntimeError("dynamic orchestration requirement bundle is missing")
-        return [str(DYNAMIC_REQUIREMENT)]
+        result = [str(DYNAMIC_REQUIREMENT)]
+        for requirement in _dynamic_family_requirements(family):
+            if requirement not in result:
+                result.append(requirement)
+        return result
     return requirements_for_ticket(ticket)
 
 
@@ -74,6 +107,7 @@ def managed_runtime_plan(ticket: Mapping[str, Any]) -> dict[str, Any]:
             "dynamic_entry_contract": family["entry_contract"],
             "dynamic_policy_file": family["policy_file"],
             "dynamic_graph_file": family["graph_file"],
+            "python_version": _dynamic_family_python(family),
             "requirements": requirement_files_for_ticket(ticket),
             "network_policy": "deny",
             "deterministic": True,
@@ -128,6 +162,7 @@ def main() -> int:
                 "selection_engine": "ortools-cp-sat",
                 "graph_engine": "networkx",
                 "families": dict(sorted(FAMILY_BY_OPERATION.items())),
+                "python_allowlist": sorted(ALLOWED_DYNAMIC_PYTHON),
             },
         }, ensure_ascii=False))
         return 0
