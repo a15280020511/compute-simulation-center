@@ -31,7 +31,7 @@
     "independent_relaxation": {
       "operation": "finance_decision_analysis",
       "mode": "algebraic_resource_optimization",
-      "adapter": "optimization_problem_to_highs_relaxation",
+      "adapter": "optimization_problem_to_gekko_relaxation",
       "required": false,
       "result_required": false
     },
