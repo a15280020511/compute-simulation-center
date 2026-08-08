@@ -5,6 +5,7 @@ from __future__ import annotations
 from collections.abc import Mapping
 from typing import Any, Callable
 
+from indirect_intelligence_operations import HANDLERS as INDIRECT_INTELLIGENCE_HANDLERS
 from think_tank_advanced_operations import HANDLERS as ADVANCED_HANDLERS
 from think_tank_business_operations import HANDLERS as BUSINESS_HANDLERS
 from think_tank_data_operations import HANDLERS as DATA_HANDLERS
@@ -21,6 +22,7 @@ HANDLERS: dict[str, Callable[[Mapping[str, Any]], dict[str, Any]]] = {
     **DECISION_HANDLERS,
     **ADVANCED_HANDLERS,
     **GLOBAL_HANDLERS,
+    **INDIRECT_INTELLIGENCE_HANDLERS,
 }
 
 if len(HANDLERS) != sum(
@@ -33,6 +35,7 @@ if len(HANDLERS) != sum(
         DECISION_HANDLERS,
         ADVANCED_HANDLERS,
         GLOBAL_HANDLERS,
+        INDIRECT_INTELLIGENCE_HANDLERS,
     )
 ):
     raise RuntimeError("duplicate top think-tank mode registration")
