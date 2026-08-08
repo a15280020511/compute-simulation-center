@@ -132,6 +132,29 @@ class DynamicFamilyRouterCoexistenceTests(unittest.TestCase):
         self.assertIn("requirements-ortools.txt", metadata["requirements"])
         self.assertIn("requirements-thinktank-decision.txt", metadata["requirements"])
 
+    def test_system_dynamics_operation_route_coexists_with_existing_families(self) -> None:
+        ticket = {
+            "task_id": "router-system-dynamics-coexistence",
+            "operation": "system_dynamics_simulation",
+            "inputs": {
+                "mode": "feedback_delay",
+                "steps": 20,
+                "dt": 1.0,
+                "initial_state": 10.0,
+                "exogenous_input": 2.0,
+                "decay_rate": 0.0,
+                "feedback_gain": 0.0,
+                "delay_steps": 2,
+            },
+            "pipeline": dict(PIPELINE),
+        }
+        self.assertEqual(resolve_dynamic_family(ticket), "system-dynamics")
+        metadata = family_runtime_metadata(ticket)
+        self.assertEqual(metadata["family"], "system-dynamics")
+        self.assertEqual(metadata["python_version"], "3.12")
+        self.assertEqual(metadata["requirements"], ["requirements-ortools.txt"])
+        self.assertEqual(metadata["entry_contract"], "system_dynamics_simulation:<fixed-mode>")
+
 
 if __name__ == "__main__":
     unittest.main()
