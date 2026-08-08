@@ -11,6 +11,8 @@ from collections.abc import Mapping, Sequence
 from pathlib import Path
 from typing import Any, Callable
 
+from drift_registry import drift_requirements
+
 DYNAMIC_PIPELINE_ID = "dynamic-auto-v1"
 DYNAMIC_STAGE_ID = "dynamic"
 
@@ -27,6 +29,7 @@ FAMILY_BY_OPERATION_MODE = {
     ("finance_decision_analysis", "bounded_linear_kalman_filter"): "state-estimation",
     ("finance_decision_analysis", "mixed_integer_optimization"): "optimization",
     ("finance_decision_analysis", "open_spiel_policy_evaluation"): "game-theory",
+    ("finance_decision_analysis", "evidently_data_drift"): "drift",
 }
 INDIRECT_INTELLIGENCE_REQUIREMENTS = [
     "requirements-ortools.txt",
@@ -68,6 +71,22 @@ def _sequence(value: Any, name: str) -> Sequence[Any]:
     if isinstance(value, (str, bytes)) or not isinstance(value, Sequence):
         raise DynamicFamilyRoutingError(f"{name} must be an array")
     return value
+
+
+def _matrix_dimensions(value: Any, name: str) -> tuple[int, int]:
+    rows = _sequence(value, name)
+    if not 20 <= len(rows) <= 5000:
+        raise DynamicFamilyRoutingError(f"{name} must contain 20 to 5000 rows")
+    width: int | None = None
+    for index, raw_row in enumerate(rows):
+        row = _sequence(raw_row, f"{name}[{index}]")
+        if width is None:
+            width = len(row)
+        if len(row) != width:
+            raise DynamicFamilyRoutingError(f"{name} must be rectangular")
+    if width is None or not 2 <= width <= 30:
+        raise DynamicFamilyRoutingError(f"{name} must contain 2 to 30 columns")
+    return len(rows), width
 
 
 def resolve_dynamic_family(ticket: Mapping[str, Any]) -> str:
@@ -215,6 +234,18 @@ def resolve_dynamic_family(ticket: Mapping[str, Any]) -> str:
             raise DynamicFamilyRoutingError("game-theory family admits only matrix_rps and matrix_pd")
         return family
 
+    if family == "drift":
+        if operation != "finance_decision_analysis" or mode != "evidently_data_drift":
+            raise DynamicFamilyRoutingError("drift family requires finance_decision_analysis:evidently_data_drift")
+        _, reference_columns = _matrix_dimensions(inputs.get("reference"), "inputs.reference")
+        _, current_columns = _matrix_dimensions(inputs.get("current"), "inputs.current")
+        if reference_columns != current_columns:
+            raise DynamicFamilyRoutingError("drift reference/current column counts must match")
+        context = inputs.get("drift_context")
+        if context is not None and not isinstance(context, Mapping):
+            raise DynamicFamilyRoutingError("drift_context must be an object when supplied")
+        return family
+
     raise DynamicFamilyRoutingError(f"unsupported dynamic family: {family}")
 
 
@@ -240,6 +271,9 @@ def family_runtime_metadata(ticket: Mapping[str, Any]) -> dict[str, Any]:
         return {"family": family, "entry_contract": "system_dynamics_simulation:<fixed-mode>", "policy_file": "dynamic-system-dynamics-policy.json", "graph_file": "dynamic-system-dynamics-capability-graph.json", "python_version": "3.12", "requirements": ["requirements-ortools.txt"]}
     if family == "game-theory":
         return {"family": family, "entry_contract": "finance_decision_analysis:open_spiel_policy_evaluation", "policy_file": "dynamic-game-theory-policy.json", "graph_file": "dynamic-game-theory-capability-graph.json", "python_version": "3.12", "requirements": ["requirements-ortools.txt", "requirements-strategy-open-spiel.txt", "requirements-strategy-pygambit.txt"]}
+    if family == "drift":
+        requirements = ["requirements-ortools.txt", *drift_requirements(), "requirements-thinktank-econometrics.txt"]
+        return {"family": family, "entry_contract": "finance_decision_analysis:evidently_data_drift", "policy_file": "dynamic-drift-policy.json", "graph_file": "dynamic-drift-capability-graph.json", "python_version": "3.12", "requirements": requirements}
     raise DynamicFamilyRoutingError(f"unsupported dynamic family: {family}")
 
 
@@ -275,4 +309,7 @@ def run_dynamic_family_ticket(ticket: Mapping[str, Any], output_dir: Path, opera
     if family == "game-theory":
         from dynamic_game_theory_planner import run_dynamic_game_theory_ticket
         return run_dynamic_game_theory_ticket(ticket, output_dir, operations)
+    if family == "drift":
+        from dynamic_drift_planner import run_dynamic_drift_ticket
+        return run_dynamic_drift_ticket(ticket, output_dir, operations)
     raise DynamicFamilyRoutingError(f"unsupported dynamic family: {family}")
