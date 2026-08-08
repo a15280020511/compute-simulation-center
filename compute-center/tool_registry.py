@@ -35,6 +35,13 @@ def _dynamic_orchestration_requested(ticket: Mapping[str, Any]) -> bool:
 
 def register_into(target: dict[str, Callable[[Mapping[str, Any]], dict[str, Any]]]) -> None:
     for name, handler in load_registered_operations().items():
+        if name == "causal_policy_evaluation":
+            # The registered causal implementation remains the algorithm source of truth,
+            # but production dispatch crosses the fixed gateway so DoWhy's older SciPy
+            # constraint cannot contaminate the core numerical runtime.
+            from causal_policy_gateway import causal_policy_evaluation
+
+            handler = causal_policy_evaluation
         managed_handler = wrap_operation(handler)
         if name in target and target[name] is not managed_handler:
             raise RuntimeError(f"conflicting compute operation registration: {name}")
