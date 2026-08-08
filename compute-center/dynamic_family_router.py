@@ -110,6 +110,7 @@ def family_runtime_metadata(ticket: Mapping[str, Any]) -> dict[str, Any]:
             "entry_contract": "causal_policy_evaluation",
             "policy_file": "dynamic-causal-policy.json",
             "graph_file": "dynamic-causal-capability-graph.json",
+            "python_version": "3.13",
             "requirements": ["requirements-causal.txt"],
         }
     raise DynamicFamilyRoutingError(f"unsupported dynamic family: {family}")
