@@ -31,6 +31,7 @@ FAMILY_BY_OPERATION_MODE = {
     ("finance_decision_analysis", "open_spiel_policy_evaluation"): "game-theory",
     ("finance_decision_analysis", "evidently_data_drift"): "drift",
     ("finance_decision_analysis", "policy_microsimulation"): "policy-simulation",
+    ("finance_decision_analysis", "control_step_response"): "control-response",
 }
 INDIRECT_INTELLIGENCE_REQUIREMENTS = [
     "requirements-ortools.txt",
@@ -261,6 +262,21 @@ def resolve_dynamic_family(ticket: Mapping[str, Any]) -> str:
             raise DynamicFamilyRoutingError("policy_context must be an object when supplied")
         return family
 
+    if family == "control-response":
+        if operation != "finance_decision_analysis" or mode != "control_step_response":
+            raise DynamicFamilyRoutingError("control-response family requires finance_decision_analysis:control_step_response")
+        numerator = _sequence(inputs.get("numerator"), "inputs.numerator")
+        denominator = _sequence(inputs.get("denominator"), "inputs.denominator")
+        if not 1 <= len(numerator) <= 10 or not 2 <= len(denominator) <= 10:
+            raise DynamicFamilyRoutingError("control-response coefficient counts are out of bounds")
+        points = inputs.get("points", 101)
+        if isinstance(points, bool) or not isinstance(points, int) or not 10 <= points <= 1000:
+            raise DynamicFamilyRoutingError("control-response points must be 10 to 1000")
+        context = inputs.get("control_context")
+        if context is not None and not isinstance(context, Mapping):
+            raise DynamicFamilyRoutingError("control_context must be an object when supplied")
+        return family
+
     raise DynamicFamilyRoutingError(f"unsupported dynamic family: {family}")
 
 
@@ -291,6 +307,8 @@ def family_runtime_metadata(ticket: Mapping[str, Any]) -> dict[str, Any]:
         return {"family": family, "entry_contract": "finance_decision_analysis:evidently_data_drift", "policy_file": "dynamic-drift-policy.json", "graph_file": "dynamic-drift-capability-graph.json", "python_version": "3.12", "requirements": requirements}
     if family == "policy-simulation":
         return {"family": family, "entry_contract": "finance_decision_analysis:policy_microsimulation", "policy_file": "dynamic-policy-simulation-policy.json", "graph_file": "dynamic-policy-simulation-capability-graph.json", "python_version": "3.12", "requirements": ["requirements-ortools.txt"]}
+    if family == "control-response":
+        return {"family": family, "entry_contract": "finance_decision_analysis:control_step_response", "policy_file": "dynamic-control-response-policy.json", "graph_file": "dynamic-control-response-capability-graph.json", "python_version": "3.12", "requirements": ["requirements-ortools.txt", "requirements-global-control.txt"]}
     raise DynamicFamilyRoutingError(f"unsupported dynamic family: {family}")
 
 
@@ -332,4 +350,7 @@ def run_dynamic_family_ticket(ticket: Mapping[str, Any], output_dir: Path, opera
     if family == "policy-simulation":
         from dynamic_policy_simulation_planner import run_dynamic_policy_simulation_ticket
         return run_dynamic_policy_simulation_ticket(ticket, output_dir, operations)
+    if family == "control-response":
+        from dynamic_control_response_planner import run_dynamic_control_response_ticket
+        return run_dynamic_control_response_ticket(ticket, output_dir, operations)
     raise DynamicFamilyRoutingError(f"unsupported dynamic family: {family}")
