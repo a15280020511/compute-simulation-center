@@ -23,6 +23,8 @@ DYNAMIC_PIPELINE_ID = "dynamic-auto-v1"
 DYNAMIC_STAGE_ID = "dynamic"
 DYNAMIC_REQUIREMENT = HERE / "requirements-ortools.txt"
 REQUIREMENT_RE = re.compile(r"^requirements-[a-z0-9-]+\.txt$")
+ALLOWED_DYNAMIC_PYTHON = {"3.12", "3.13"}
+DEFAULT_DYNAMIC_PYTHON = "3.12"
 
 
 def _dynamic_orchestration_requested(ticket: Mapping[str, Any]) -> bool:
@@ -50,6 +52,13 @@ def _dynamic_family_requirements(metadata: Mapping[str, Any]) -> list[str]:
         if rendered not in result:
             result.append(rendered)
     return result
+
+
+def _dynamic_family_python(metadata: Mapping[str, Any]) -> str:
+    version = str(metadata.get("python_version") or DEFAULT_DYNAMIC_PYTHON)
+    if version not in ALLOWED_DYNAMIC_PYTHON:
+        raise RuntimeError(f"dynamic family Python runtime is not allowlisted: {version}")
+    return version
 
 
 def register_into(target: dict[str, Callable[[Mapping[str, Any]], dict[str, Any]]]) -> None:
@@ -98,6 +107,7 @@ def managed_runtime_plan(ticket: Mapping[str, Any]) -> dict[str, Any]:
             "dynamic_entry_contract": family["entry_contract"],
             "dynamic_policy_file": family["policy_file"],
             "dynamic_graph_file": family["graph_file"],
+            "python_version": _dynamic_family_python(family),
             "requirements": requirement_files_for_ticket(ticket),
             "network_policy": "deny",
             "deterministic": True,
@@ -152,6 +162,7 @@ def main() -> int:
                 "selection_engine": "ortools-cp-sat",
                 "graph_engine": "networkx",
                 "families": dict(sorted(FAMILY_BY_OPERATION.items())),
+                "python_allowlist": sorted(ALLOWED_DYNAMIC_PYTHON),
             },
         }, ensure_ascii=False))
         return 0
