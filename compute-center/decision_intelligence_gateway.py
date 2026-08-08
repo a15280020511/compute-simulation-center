@@ -8,6 +8,7 @@ from typing import Any, Callable
 from assurance_operations import HANDLERS as ASSURANCE_HANDLERS
 from compute_runner import ComputeError
 from finance_operations import finance_decision_analysis as legacy_finance_decision_analysis
+from game_theory_registry import game_theory_modes
 from indirect_intelligence_operations import HANDLERS as INDIRECT_INTELLIGENCE_HANDLERS
 from institutional_expansion_operations import HANDLERS as INSTITUTIONAL_EXPANSION_HANDLERS
 from operations_research_modes import HANDLERS as OR_HANDLERS
@@ -52,19 +53,16 @@ MODE_HANDLERS: dict[str, Callable[[Mapping[str, Any]], dict[str, Any]]] = {
     **UNCERTAINTY_FACTOR_ACCURACY_HANDLERS,
 }
 
-GAME_THEORY_OVERLAY_NAMES = (
-    "open_spiel_policy_evaluation",
-    "pygambit_pure_equilibria",
-)
+GAME_THEORY_OVERLAY_NAMES = game_theory_modes()
 GAME_THEORY_OVERLAY_HANDLERS = {
     name: STRATEGIC_POLICY_HANDLERS[name] for name in GAME_THEORY_OVERLAY_NAMES
 }
 
 # Controlled-preview overlays are intentionally excluded from PREVIEW_MODES and
-# ALL_SUPPORTED_MODES so an incremental, repository-governed extension cannot
-# silently mutate the static decision-gateway baseline/cardinality contract.
-# Capability Manager V2 owns discovery, pinned dependencies, limits and maturity
-# for these overlays; the gateway only provides their allowlisted runtime handler.
+# ALL_SUPPORTED_MODES so a repository-governed extension cannot silently mutate
+# the static decision-gateway baseline/cardinality contract. Overlay registries
+# own the admitted modes, dependency metadata, limits and maturity; the gateway
+# only exposes their allowlisted runtime handlers.
 CONTROLLED_PREVIEW_OVERLAY_HANDLERS: dict[
     str, Callable[[Mapping[str, Any]], dict[str, Any]]
 ] = {
