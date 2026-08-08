@@ -53,12 +53,23 @@ def register_into(target: dict[str, Callable[[Mapping[str, Any]], dict[str, Any]
 
 def requirement_files_for_ticket(ticket: Mapping[str, Any]) -> list[str]:
     if _dynamic_orchestration_requested(ticket):
-        # Validate the structured family before installing OR-Tools so unsupported
-        # dynamic operations fail closed at dependency planning time.
+        # Validate the structured family before installing dependencies so unsupported
+        # dynamic operations fail closed at dependency planning time. Dynamic families
+        # always need OR-Tools and may additionally need the entry operation's managed
+        # dependency bundle (for example DoWhy for causal-policy).
         family_runtime_metadata(ticket)
         if not DYNAMIC_REQUIREMENT.is_file():
             raise RuntimeError("dynamic orchestration requirement bundle is missing")
-        return [str(DYNAMIC_REQUIREMENT)]
+        selected = [str(DYNAMIC_REQUIREMENT), *requirements_for_ticket(ticket)]
+        unique: list[str] = []
+        for raw in selected:
+            path = Path(raw)
+            if not path.is_file():
+                raise RuntimeError(f"dynamic family requirement bundle is missing: {path.name}")
+            rendered = str(path)
+            if rendered not in unique:
+                unique.append(rendered)
+        return unique
     return requirements_for_ticket(ticket)
 
 
