@@ -1,0 +1,33 @@
+{
+  "schema_version": "dynamic-indirect-intelligence-capability-graph-v1",
+  "family": "indirect-intelligence",
+  "entry_contract": "finance_decision_analysis:indirect_intelligence_analysis",
+  "network_policy": "deny",
+  "automatic_parallel_execution": false,
+  "stage_order": [
+    "name_normalization",
+    "similarity_collision",
+    "entity_resolution",
+    "knowledge_graph",
+    "graph_analysis",
+    "process_mining",
+    "probabilistic_inference",
+    "contradiction_check"
+  ],
+  "edges": [
+    ["name_normalization", "similarity_collision"],
+    ["similarity_collision", "entity_resolution"],
+    ["entity_resolution", "knowledge_graph"],
+    ["knowledge_graph", "graph_analysis"],
+    ["graph_analysis", "process_mining"],
+    ["process_mining", "probabilistic_inference"],
+    ["probabilistic_inference", "contradiction_check"]
+  ],
+  "result_contract": {
+    "analysis_classes": ["DIRECT", "LINKED", "INFERRED", "CONTRADICTED"],
+    "inference_may_be_promoted_to_fact": false,
+    "scope_extrapolation_allowed": false,
+    "expert_semantic_synthesis_required_for_publication": true,
+    "governance_release_gate_required": true
+  }
+}
