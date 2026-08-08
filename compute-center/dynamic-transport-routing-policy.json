@@ -1,0 +1,55 @@
+{
+  "schema_version": "compute-dynamic-transport-routing-policy-v1",
+  "status": "controlled-preview",
+  "family": "transport-routing",
+  "declared_operation": "finance_decision_analysis",
+  "declared_mode": "aequilibrae_shortest_path",
+  "planner": "ortools-cp-sat",
+  "graph_engine": "networkx",
+  "network_policy": "deny",
+  "model_calls": 0,
+  "objective_text_routing_allowed": false,
+  "structured_signals_only": true,
+  "dynamic_operation_discovery_allowed": false,
+  "ticket_supplied_code_allowed": false,
+  "automatic_parallel_execution": false,
+  "cycles_allowed": false,
+  "branching_allowed": true,
+  "maximum_stages": 4,
+  "allowed_operations": ["finance_decision_analysis"],
+  "allowed_entry_modes": ["aequilibrae_shortest_path"],
+  "allowed_adapters": [
+    "transport_ticket_to_aequilibrae",
+    "transport_to_networkx_exact_audit",
+    "transport_to_cost_target_audit",
+    "transport_to_hop_target_audit"
+  ],
+  "solver_policy": {
+    "require_optimal_status": true,
+    "num_search_workers": 1,
+    "random_seed": 0,
+    "max_time_seconds": 5.0,
+    "exhaustive_cross_check_max_optional_nodes": 8
+  },
+  "selection_policy": {
+    "stage_rules": {
+      "networkx_exact_route_audit": {
+        "penalty": 5,
+        "benefits": {"exact_route_consistency_required": 220},
+        "required_if_any": ["exact_route_consistency_required"]
+      },
+      "route_cost_target_audit": {
+        "penalty": 5,
+        "benefits": {"cost_target_available": 140},
+        "eligible_all": ["cost_target_available"],
+        "required_if_any": ["cost_target_available"]
+      },
+      "route_hop_target_audit": {
+        "penalty": 5,
+        "benefits": {"hop_target_available": 120},
+        "eligible_all": ["hop_target_available"],
+        "required_if_any": ["hop_target_available"]
+      }
+    }
+  }
+}
