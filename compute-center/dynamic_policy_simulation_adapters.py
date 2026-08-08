@@ -88,30 +88,30 @@ def microsimulation_to_policy_target_audit(
     primary = _mapping(stage_results.get("policy_microsimulation"), "stage_results.policy_microsimulation")
     context = _context(initial_inputs)
     specs = (
-        ("net_fiscal_balance", "expected_net_fiscal_balance", "net_fiscal_balance_tolerance"),
-        ("gini_after", "expected_gini_after", "gini_after_tolerance"),
-        ("poverty_rate_after", "expected_poverty_rate_after", "poverty_rate_after_tolerance"),
+        ("net_fiscal_balance", "minimum_net_fiscal_balance", "net_fiscal_balance_tolerance", "minimum"),
+        ("gini_after", "maximum_gini_after", "gini_after_tolerance", "maximum"),
+        ("poverty_rate_after", "maximum_poverty_rate_after", "poverty_rate_after_tolerance", "maximum"),
     )
     candidates = []
-    for observed_name, expected_name, tolerance_name in specs:
-        if expected_name not in context:
+    for observed_name, target_name, tolerance_name, direction in specs:
+        if target_name not in context:
             continue
         observed = _finite(primary.get(observed_name), f"policy_microsimulation.{observed_name}")
-        expected = _finite(context.get(expected_name), f"policy_context.{expected_name}")
+        target = _finite(context.get(target_name), f"policy_context.{target_name}")
         tolerance = _finite(context.get(tolerance_name, 0.0), f"policy_context.{tolerance_name}")
         if tolerance < 0:
             raise PipelineAdapterError(f"{tolerance_name} must be non-negative")
-        if observed_name in {"gini_after", "poverty_rate_after"} and not 0.0 <= expected <= 1.0:
-            raise PipelineAdapterError(f"{expected_name} must be between 0 and 1")
+        if observed_name in {"gini_after", "poverty_rate_after"} and not 0.0 <= target <= 1.0:
+            raise PipelineAdapterError(f"{target_name} must be between 0 and 1")
         candidates.append({
             "name": f"policy-target-{observed_name}",
             "observed": observed,
-            "benchmark": expected,
+            "benchmark": target,
             "tolerance": tolerance,
-            "direction": "absolute",
+            "direction": direction,
         })
     if not candidates:
-        raise PipelineAdapterError("policy_target_audit requires at least one explicit expected policy target")
+        raise PipelineAdapterError("policy_target_audit requires at least one explicit directional policy target")
     return {"mode": "benchmark_comparison", "candidates": candidates}
 
 
