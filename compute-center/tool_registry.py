@@ -11,6 +11,7 @@ from typing import Any
 
 from jsonschema import Draft202012Validator
 
+from capability_environment import core_requirement_files, metadata_for_ticket
 from capability_manager import load_registered_operations, requirements_for_ticket, runtime_plan
 from dynamic_family_router import FAMILY_BY_OPERATION, family_runtime_metadata
 from governance_runtime import install as install_governance_runtime
@@ -51,29 +52,37 @@ def register_into(target: dict[str, Callable[[Mapping[str, Any]], dict[str, Any]
         raise RuntimeError("GOVERNANCE_RUNTIME_INSTALLATION_FAILED") from exc
 
 
+def _core_managed_requirements(ticket: Mapping[str, Any]) -> list[str]:
+    return core_requirement_files(ticket, requirements_for_ticket(ticket))
+
+
 def requirement_files_for_ticket(ticket: Mapping[str, Any]) -> list[str]:
+    base_requirements = _core_managed_requirements(ticket)
     if _dynamic_orchestration_requested(ticket):
         # Validate the structured family before installing dependencies so unsupported
         # dynamic operations fail closed at dependency planning time. Dynamic families
-        # always need OR-Tools and may additionally need the entry operation's managed
-        # dependency bundle (for example DoWhy for causal-policy).
+        # always need OR-Tools. Dependency-incompatible packs such as causal-policy are
+        # excluded here and prepared by capability_environment.py in a fixed venv.
         family_runtime_metadata(ticket)
         if not DYNAMIC_REQUIREMENT.is_file():
             raise RuntimeError("dynamic orchestration requirement bundle is missing")
-        selected = [str(DYNAMIC_REQUIREMENT), *requirements_for_ticket(ticket)]
-        unique: list[str] = []
-        for raw in selected:
-            path = Path(raw)
-            if not path.is_file():
-                raise RuntimeError(f"dynamic family requirement bundle is missing: {path.name}")
-            rendered = str(path)
-            if rendered not in unique:
-                unique.append(rendered)
-        return unique
-    return requirements_for_ticket(ticket)
+        selected = [str(DYNAMIC_REQUIREMENT), *base_requirements]
+    else:
+        selected = list(base_requirements)
+
+    unique: list[str] = []
+    for raw in selected:
+        path = Path(raw)
+        if not path.is_file():
+            raise RuntimeError(f"managed requirement bundle is missing: {path.name}")
+        rendered = str(path)
+        if rendered not in unique:
+            unique.append(rendered)
+    return unique
 
 
 def managed_runtime_plan(ticket: Mapping[str, Any]) -> dict[str, Any]:
+    isolated_environment = metadata_for_ticket(ticket)
     if _dynamic_orchestration_requested(ticket):
         family = family_runtime_metadata(ticket)
         return {
@@ -86,6 +95,7 @@ def managed_runtime_plan(ticket: Mapping[str, Any]) -> dict[str, Any]:
             "dynamic_policy_file": family["policy_file"],
             "dynamic_graph_file": family["graph_file"],
             "requirements": requirement_files_for_ticket(ticket),
+            "isolated_environment": isolated_environment,
             "network_policy": "deny",
             "deterministic": True,
             "limits": {
@@ -108,6 +118,8 @@ def managed_runtime_plan(ticket: Mapping[str, Any]) -> dict[str, Any]:
             "systems_route": route_for_ticket(ticket),
         }
     plan = runtime_plan(ticket)
+    plan["requirements"] = requirement_files_for_ticket(ticket)
+    plan["isolated_environment"] = isolated_environment
     plan["systems_route"] = route_for_ticket(ticket)
     return plan
 
@@ -139,6 +151,10 @@ def main() -> int:
                 "selection_engine": "ortools-cp-sat",
                 "graph_engine": "networkx",
                 "families": dict(sorted(FAMILY_BY_OPERATION.items())),
+            },
+            "isolated_environments": {
+                operation: metadata_for_ticket({"operation": operation})
+                for operation in ("causal_policy_evaluation",)
             },
         }, ensure_ascii=False))
         return 0
