@@ -1,0 +1,48 @@
+{
+  "schema_version": "compute-dynamic-transport-routing-capability-graph-v1",
+  "status": "controlled-preview",
+  "family": "transport-routing",
+  "node_order": [
+    "aequilibrae_shortest_path",
+    "networkx_exact_route_audit",
+    "route_cost_target_audit",
+    "route_hop_target_audit"
+  ],
+  "nodes": {
+    "aequilibrae_shortest_path": {
+      "operation": "finance_decision_analysis",
+      "mode": "aequilibrae_shortest_path",
+      "adapter": "transport_ticket_to_aequilibrae"
+    },
+    "networkx_exact_route_audit": {
+      "operation": "finance_decision_analysis",
+      "mode": "benchmark_comparison",
+      "adapter": "transport_to_networkx_exact_audit"
+    },
+    "route_cost_target_audit": {
+      "operation": "finance_decision_analysis",
+      "mode": "benchmark_comparison",
+      "adapter": "transport_to_cost_target_audit"
+    },
+    "route_hop_target_audit": {
+      "operation": "finance_decision_analysis",
+      "mode": "benchmark_comparison",
+      "adapter": "transport_to_hop_target_audit"
+    }
+  },
+  "precedence": [
+    ["aequilibrae_shortest_path", "networkx_exact_route_audit"],
+    ["aequilibrae_shortest_path", "route_cost_target_audit"],
+    ["aequilibrae_shortest_path", "route_hop_target_audit"]
+  ],
+  "safety": {
+    "dynamic_operation_discovery_allowed": false,
+    "ticket_supplied_nodes_allowed": false,
+    "ticket_supplied_edges_allowed": false,
+    "ticket_supplied_code_allowed": false,
+    "cycles_allowed": false,
+    "automatic_parallel_execution": false,
+    "branching_allowed": true,
+    "execution_remains_strict_serial": true
+  }
+}
