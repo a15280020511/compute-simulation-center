@@ -1,0 +1,38 @@
+{
+  "schema_version": "compute-dynamic-conformal-prediction-capability-graph-v1",
+  "status": "controlled-preview",
+  "family": "conformal-prediction",
+  "node_order": [
+    "mapie_conformal_interval",
+    "prediction_interval_validation",
+    "interval_width_consistency_audit",
+    "interval_target_audit",
+    "realized_outcome_feedback",
+    "point_target_audit"
+  ],
+  "nodes": {
+    "mapie_conformal_interval": {"operation": "finance_decision_analysis", "mode": "mapie_conformal_interval", "adapter": "conformal_ticket_to_mapie"},
+    "prediction_interval_validation": {"operation": "finance_decision_analysis", "mode": "prediction_interval_validation", "adapter": "conformal_to_interval_validation"},
+    "interval_width_consistency_audit": {"operation": "finance_decision_analysis", "mode": "benchmark_comparison", "adapter": "conformal_validation_to_width_audit"},
+    "interval_target_audit": {"operation": "finance_decision_analysis", "mode": "benchmark_comparison", "adapter": "conformal_validation_to_interval_targets"},
+    "realized_outcome_feedback": {"operation": "finance_decision_analysis", "mode": "realized_outcome_feedback", "adapter": "conformal_to_realized_feedback"},
+    "point_target_audit": {"operation": "finance_decision_analysis", "mode": "benchmark_comparison", "adapter": "conformal_feedback_to_point_targets"}
+  },
+  "precedence": [
+    ["mapie_conformal_interval", "prediction_interval_validation"],
+    ["prediction_interval_validation", "interval_width_consistency_audit"],
+    ["prediction_interval_validation", "interval_target_audit"],
+    ["mapie_conformal_interval", "realized_outcome_feedback"],
+    ["realized_outcome_feedback", "point_target_audit"]
+  ],
+  "safety": {
+    "dynamic_operation_discovery_allowed": false,
+    "ticket_supplied_nodes_allowed": false,
+    "ticket_supplied_edges_allowed": false,
+    "ticket_supplied_code_allowed": false,
+    "cycles_allowed": false,
+    "automatic_parallel_execution": false,
+    "branching_allowed": true,
+    "execution_remains_strict_serial": true
+  }
+}
