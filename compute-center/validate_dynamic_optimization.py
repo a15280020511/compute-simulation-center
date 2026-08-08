@@ -26,10 +26,10 @@ def main() -> None:
                 {"coefficients": {"x": 2.0, "y": 1.0}, "relation": "<=", "rhs": 8.0},
                 {"coefficients": {"x": 1.0, "y": 2.0}, "relation": "<=", "rhs": 8.0}
             ],
-            "maximize": true,
+            "maximize": True,
             "time_limit_seconds": 20,
             "optimization_context": {
-                "independent_relaxation_crosscheck": true,
+                "independent_relaxation_crosscheck": True,
                 "crosscheck_tolerance": 1e-7,
                 "external_objective_value": 13.0,
                 "external_objective_tolerance": 1e-7
