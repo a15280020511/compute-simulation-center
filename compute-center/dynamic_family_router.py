@@ -33,6 +33,7 @@ FAMILY_BY_OPERATION_MODE = {
     ("finance_decision_analysis", "policy_microsimulation"): "policy-simulation",
     ("finance_decision_analysis", "control_step_response"): "control-response",
     ("finance_decision_analysis", "lmfit_exponential_calibration"): "calibration",
+    ("finance_decision_analysis", "pm4py_directly_follows"): "process-mining",
 }
 INDIRECT_INTELLIGENCE_REQUIREMENTS = [
     "requirements-ortools.txt",
@@ -290,6 +291,27 @@ def resolve_dynamic_family(ticket: Mapping[str, Any]) -> str:
             raise DynamicFamilyRoutingError("calibration_context must be an object when supplied")
         return family
 
+    if family == "process-mining":
+        if operation != "finance_decision_analysis" or mode != "pm4py_directly_follows":
+            raise DynamicFamilyRoutingError("process-mining family requires finance_decision_analysis:pm4py_directly_follows")
+        cases = _sequence(inputs.get("cases"), "inputs.cases")
+        if not 1 <= len(cases) <= 2_000:
+            raise DynamicFamilyRoutingError("process-mining family requires 1 to 2000 cases")
+        event_count = 0
+        for index, raw_case in enumerate(cases):
+            if not isinstance(raw_case, Mapping):
+                raise DynamicFamilyRoutingError(f"inputs.cases[{index}] must be an object")
+            activities = _sequence(raw_case.get("activities"), f"inputs.cases[{index}].activities")
+            if not 1 <= len(activities) <= 200:
+                raise DynamicFamilyRoutingError("each process-mining case requires 1 to 200 activities")
+            event_count += len(activities)
+        if event_count > 10_000:
+            raise DynamicFamilyRoutingError("process-mining family admits at most 10000 events")
+        context = inputs.get("process_context")
+        if context is not None and not isinstance(context, Mapping):
+            raise DynamicFamilyRoutingError("process_context must be an object when supplied")
+        return family
+
     raise DynamicFamilyRoutingError(f"unsupported dynamic family: {family}")
 
 
@@ -324,10 +346,16 @@ def family_runtime_metadata(ticket: Mapping[str, Any]) -> dict[str, Any]:
         return {"family": family, "entry_contract": "finance_decision_analysis:control_step_response", "policy_file": "dynamic-control-response-policy.json", "graph_file": "dynamic-control-response-capability-graph.json", "python_version": "3.12", "requirements": ["requirements-ortools.txt", "requirements-global-control.txt"]}
     if family == "calibration":
         return {"family": family, "entry_contract": "finance_decision_analysis:lmfit_exponential_calibration", "policy_file": "dynamic-calibration-policy.json", "graph_file": "dynamic-calibration-capability-graph.json", "python_version": "3.12", "requirements": ["requirements-ortools.txt", "requirements-global-lmfit.txt"]}
+    if family == "process-mining":
+        return {"family": family, "entry_contract": "finance_decision_analysis:pm4py_directly_follows", "policy_file": "dynamic-process-mining-policy.json", "graph_file": "dynamic-process-mining-capability-graph.json", "python_version": "3.12", "requirements": ["requirements-ortools.txt", "requirements-global-pm4py.txt"]}
     raise DynamicFamilyRoutingError(f"unsupported dynamic family: {family}")
 
 
-def run_dynamic_family_ticket(ticket: Mapping[str, Any], output_dir: Path, operations: Mapping[str, Callable[[Mapping[str, Any]], dict[str, Any]]]) -> dict[str, Any]:
+def run_dynamic_family_ticket(
+    ticket: Mapping[str, Any],
+    output_dir: Path,
+    operations: Mapping[str, Callable[[Mapping[str, Any]], dict[str, Any]]],
+) -> dict[str, Any]:
     family = resolve_dynamic_family(ticket)
     if family == "scenario-decision":
         from dynamic_pipeline_planner import run_dynamic_pipeline_ticket
@@ -371,4 +399,7 @@ def run_dynamic_family_ticket(ticket: Mapping[str, Any], output_dir: Path, opera
     if family == "calibration":
         from dynamic_calibration_planner import run_dynamic_calibration_ticket
         return run_dynamic_calibration_ticket(ticket, output_dir, operations)
+    if family == "process-mining":
+        from dynamic_process_mining_planner import run_dynamic_process_mining_ticket
+        return run_dynamic_process_mining_ticket(ticket, output_dir, operations)
     raise DynamicFamilyRoutingError(f"unsupported dynamic family: {family}")
