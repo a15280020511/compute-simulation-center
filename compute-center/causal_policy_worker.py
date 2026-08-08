@@ -6,7 +6,10 @@ import json
 import sys
 from collections.abc import Mapping
 from importlib.metadata import version
+from pathlib import Path
 
+HERE = Path(__file__).resolve().parent
+EXPECTED_PREFIX = (HERE / ".runtime-envs" / "causal-policy").resolve()
 EXPECTED = {
     "dowhy": "0.14",
     "numpy": "2.4.6",
@@ -16,14 +19,19 @@ EXPECTED = {
 }
 
 
-def _verify_versions() -> None:
+def _verify_runtime_identity() -> None:
+    observed_prefix = Path(sys.prefix).resolve()
+    if observed_prefix != EXPECTED_PREFIX:
+        raise RuntimeError(
+            f"causal worker is not running inside the fixed repository venv: {observed_prefix}"
+        )
     observed = {name: version(name) for name in EXPECTED}
     if observed != EXPECTED:
         raise RuntimeError(f"causal isolated runtime version mismatch: {observed!r}")
 
 
 def main() -> int:
-    _verify_versions()
+    _verify_runtime_identity()
     payload = json.load(sys.stdin)
     if not isinstance(payload, Mapping):
         raise ValueError("causal worker input must be a JSON object")
@@ -36,6 +44,7 @@ def main() -> int:
     engine = dict(output.get("engine") or {})
     engine["runtime_isolation"] = "fixed-venv"
     engine["scipy_version"] = EXPECTED["scipy"]
+    engine["runtime_prefix_verified"] = True
     output["engine"] = engine
     json.dump(output, sys.stdout, ensure_ascii=False, allow_nan=False, separators=(",", ":"))
     sys.stdout.write("\n")
