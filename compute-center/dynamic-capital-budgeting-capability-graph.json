@@ -1,0 +1,41 @@
+{
+  "schema_version": "compute-dynamic-capital-budgeting-capability-graph-v1",
+  "status": "controlled-preview",
+  "family": "capital-budgeting",
+  "node_order": [
+    "capital_budgeting",
+    "independent_exact_capital_budget_audit",
+    "capital_budget_target_audit"
+  ],
+  "nodes": {
+    "capital_budgeting": {
+      "operation": "finance_decision_analysis",
+      "mode": "capital_budgeting",
+      "adapter": "capital_budget_ticket_to_primary"
+    },
+    "independent_exact_capital_budget_audit": {
+      "operation": "finance_decision_analysis",
+      "mode": "benchmark_comparison",
+      "adapter": "capital_budget_to_independent_exact_audit"
+    },
+    "capital_budget_target_audit": {
+      "operation": "finance_decision_analysis",
+      "mode": "benchmark_comparison",
+      "adapter": "capital_budget_to_target_audit"
+    }
+  },
+  "precedence": [
+    ["capital_budgeting", "independent_exact_capital_budget_audit"],
+    ["capital_budgeting", "capital_budget_target_audit"]
+  ],
+  "safety": {
+    "dynamic_operation_discovery_allowed": false,
+    "ticket_supplied_nodes_allowed": false,
+    "ticket_supplied_edges_allowed": false,
+    "ticket_supplied_code_allowed": false,
+    "cycles_allowed": false,
+    "automatic_parallel_execution": false,
+    "branching_allowed": true,
+    "execution_remains_strict_serial": true
+  }
+}
