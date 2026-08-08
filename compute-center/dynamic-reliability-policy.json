@@ -1,0 +1,70 @@
+{
+  "schema_version": "compute-dynamic-reliability-policy-v1",
+  "status": "controlled-preview",
+  "family": "reliability",
+  "declared_operation": "descriptive_statistics",
+  "planner": "ortools-cp-sat",
+  "graph_engine": "networkx",
+  "network_policy": "deny",
+  "model_calls": 0,
+  "objective_text_routing_allowed": false,
+  "structured_signals_only": true,
+  "dynamic_operation_discovery_allowed": false,
+  "ticket_supplied_code_allowed": false,
+  "automatic_parallel_execution": false,
+  "cycles_allowed": false,
+  "branching_allowed": true,
+  "maximum_stages": 5,
+  "allowed_operations": [
+    "descriptive_statistics",
+    "finance_decision_analysis",
+    "monte_carlo"
+  ],
+  "allowed_adapters": [
+    "reliability_ticket_to_statistics",
+    "statistics_to_openturns_reliability",
+    "statistics_to_reliability_monte_carlo",
+    "analytic_mc_to_benchmark",
+    "analytic_reliability_to_external_benchmark"
+  ],
+  "solver_policy": {
+    "require_optimal_status": true,
+    "num_search_workers": 1,
+    "random_seed": 0,
+    "max_time_seconds": 5.0,
+    "exhaustive_cross_check_max_optional_nodes": 8
+  },
+  "selection_policy": {
+    "stage_rules": {
+      "monte_carlo_validation": {
+        "penalty": 20,
+        "benefits": {
+          "monte_carlo_requested": 100,
+          "formal_or_high_stakes": 55,
+          "sample_size_ge_30": 20
+        },
+        "eligible_all": ["sample_size_ge_8"],
+        "required_if_any": ["monte_carlo_requested"]
+      },
+      "analytic_mc_agreement": {
+        "penalty": 10,
+        "benefits": {
+          "monte_carlo_requested": 60,
+          "formal_or_high_stakes": 40,
+          "sample_size_ge_30": 15
+        },
+        "eligible_all": ["sample_size_ge_8"],
+        "coupled_equal_to": "monte_carlo_validation"
+      },
+      "external_benchmark": {
+        "penalty": 10,
+        "benefits": {
+          "external_benchmark_available": 110,
+          "formal_or_high_stakes": 30
+        },
+        "eligible_all": ["external_benchmark_available"],
+        "required_if_any": ["external_benchmark_available"]
+      }
+    }
+  }
+}
