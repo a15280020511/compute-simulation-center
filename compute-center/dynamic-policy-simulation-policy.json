@@ -1,0 +1,66 @@
+{
+  "schema_version": "compute-dynamic-policy-simulation-policy-v1",
+  "status": "controlled-preview",
+  "family": "policy-simulation",
+  "declared_operation": "finance_decision_analysis",
+  "declared_mode": "policy_microsimulation",
+  "planner": "ortools-cp-sat",
+  "graph_engine": "networkx",
+  "network_policy": "deny",
+  "model_calls": 0,
+  "objective_text_routing_allowed": false,
+  "structured_signals_only": true,
+  "dynamic_operation_discovery_allowed": false,
+  "ticket_supplied_code_allowed": false,
+  "automatic_parallel_execution": false,
+  "cycles_allowed": false,
+  "branching_allowed": true,
+  "maximum_stages": 4,
+  "allowed_operations": ["finance_decision_analysis", "descriptive_statistics"],
+  "allowed_entry_modes": ["policy_microsimulation"],
+  "allowed_adapters": [
+    "policy_ticket_to_microsimulation",
+    "microsimulation_to_disposable_statistics",
+    "policy_stats_to_mean_consistency_audit",
+    "microsimulation_to_policy_target_audit"
+  ],
+  "solver_policy": {
+    "require_optimal_status": true,
+    "num_search_workers": 1,
+    "random_seed": 0,
+    "max_time_seconds": 5.0,
+    "exhaustive_cross_check_max_optional_nodes": 8
+  },
+  "selection_policy": {
+    "stage_rules": {
+      "disposable_distribution_statistics": {
+        "penalty": 10,
+        "benefits": {
+          "distribution_profile_requested": 110,
+          "mean_consistency_requested": 130,
+          "formal_or_high_stakes": 30
+        },
+        "required_if_any": ["distribution_profile_requested", "mean_consistency_requested"]
+      },
+      "mean_consistency_audit": {
+        "penalty": 5,
+        "benefits": {
+          "mean_consistency_requested": 150,
+          "formal_or_high_stakes": 30
+        },
+        "eligible_all": ["mean_consistency_requested"],
+        "required_if_any": ["mean_consistency_requested"],
+        "requires_selected": ["disposable_distribution_statistics"]
+      },
+      "policy_target_audit": {
+        "penalty": 5,
+        "benefits": {
+          "policy_targets_available": 160,
+          "formal_or_high_stakes": 20
+        },
+        "eligible_all": ["policy_targets_available"],
+        "required_if_any": ["policy_targets_available"]
+      }
+    }
+  }
+}

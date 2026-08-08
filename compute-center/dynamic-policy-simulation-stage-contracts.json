@@ -1,0 +1,71 @@
+{
+  "schema_version": "compute-dynamic-policy-simulation-stage-contracts-v1",
+  "status": "controlled-preview",
+  "family": "policy-simulation",
+  "contracts": {
+    "policy_microsimulation": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "type": "object",
+      "required": ["mode", "population", "tax_revenue", "transfer_cost", "net_fiscal_balance", "mean_disposable_income", "gini_before", "gini_after", "poverty_rate_before", "poverty_rate_after", "individual_results"],
+      "properties": {
+        "mode": {"const": "policy_microsimulation"},
+        "population": {"type": "integer", "minimum": 10},
+        "tax_revenue": {"type": "number"},
+        "transfer_cost": {"type": "number"},
+        "net_fiscal_balance": {"type": "number"},
+        "mean_disposable_income": {"type": "number"},
+        "gini_before": {"type": "number", "minimum": 0.0},
+        "gini_after": {"type": "number", "minimum": 0.0},
+        "poverty_rate_before": {"type": "number", "minimum": 0.0, "maximum": 1.0},
+        "poverty_rate_after": {"type": "number", "minimum": 0.0, "maximum": 1.0},
+        "individual_results": {"type": "array", "minItems": 10, "items": {"type": "number"}}
+      },
+      "additionalProperties": true
+    },
+    "disposable_distribution_statistics": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "type": "object",
+      "required": ["count", "mean", "median", "standard_deviation_population", "minimum", "maximum", "percentiles"],
+      "properties": {
+        "count": {"type": "integer", "minimum": 10},
+        "mean": {"type": "number"},
+        "median": {"type": "number"},
+        "standard_deviation_population": {"type": "number", "minimum": 0.0},
+        "minimum": {"type": "number"},
+        "maximum": {"type": "number"},
+        "percentiles": {"type": "object"}
+      },
+      "additionalProperties": true
+    },
+    "mean_consistency_audit": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "type": "object",
+      "required": ["mode", "candidate_count", "passed", "failed", "status", "rows", "decision_support_only"],
+      "properties": {
+        "mode": {"const": "benchmark_comparison"},
+        "candidate_count": {"const": 1},
+        "passed": {"type": "integer", "minimum": 0, "maximum": 1},
+        "failed": {"type": "integer", "minimum": 0, "maximum": 1},
+        "status": {"enum": ["PASS", "FAIL"]},
+        "rows": {"type": "array", "minItems": 1, "maxItems": 1},
+        "decision_support_only": {"const": true}
+      },
+      "additionalProperties": true
+    },
+    "policy_target_audit": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "type": "object",
+      "required": ["mode", "candidate_count", "passed", "failed", "status", "rows", "decision_support_only"],
+      "properties": {
+        "mode": {"const": "benchmark_comparison"},
+        "candidate_count": {"type": "integer", "minimum": 1, "maximum": 3},
+        "passed": {"type": "integer", "minimum": 0, "maximum": 3},
+        "failed": {"type": "integer", "minimum": 0, "maximum": 3},
+        "status": {"enum": ["PASS", "FAIL"]},
+        "rows": {"type": "array", "minItems": 1, "maxItems": 3},
+        "decision_support_only": {"const": true}
+      },
+      "additionalProperties": true
+    }
+  }
+}

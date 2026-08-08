@@ -1,0 +1,57 @@
+{
+  "schema_version": "compute-dynamic-policy-simulation-capability-graph-v1",
+  "status": "controlled-preview",
+  "family": "policy-simulation",
+  "selection_engine": "ortools-cp-sat",
+  "graph_engine": "networkx",
+  "safety": {
+    "dynamic_operation_discovery_allowed": false,
+    "ticket_supplied_nodes_allowed": false,
+    "ticket_supplied_edges_allowed": false,
+    "ticket_supplied_code_allowed": false,
+    "cycles_allowed": false,
+    "automatic_parallel_execution": false,
+    "branching_allowed": true,
+    "execution_remains_strict_serial": true
+  },
+  "node_order": [
+    "policy_microsimulation",
+    "disposable_distribution_statistics",
+    "mean_consistency_audit",
+    "policy_target_audit"
+  ],
+  "nodes": {
+    "policy_microsimulation": {
+      "operation": "finance_decision_analysis",
+      "mode": "policy_microsimulation",
+      "adapter": "policy_ticket_to_microsimulation",
+      "required": true,
+      "result_required": true
+    },
+    "disposable_distribution_statistics": {
+      "operation": "descriptive_statistics",
+      "adapter": "microsimulation_to_disposable_statistics",
+      "required": false,
+      "result_required": false
+    },
+    "mean_consistency_audit": {
+      "operation": "finance_decision_analysis",
+      "mode": "benchmark_comparison",
+      "adapter": "policy_stats_to_mean_consistency_audit",
+      "required": false,
+      "result_required": false
+    },
+    "policy_target_audit": {
+      "operation": "finance_decision_analysis",
+      "mode": "benchmark_comparison",
+      "adapter": "microsimulation_to_policy_target_audit",
+      "required": false,
+      "result_required": false
+    }
+  },
+  "precedence": [
+    ["policy_microsimulation", "disposable_distribution_statistics"],
+    ["disposable_distribution_statistics", "mean_consistency_audit"],
+    ["policy_microsimulation", "policy_target_audit"]
+  ]
+}
