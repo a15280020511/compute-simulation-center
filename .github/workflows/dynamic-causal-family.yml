@@ -9,6 +9,10 @@ on:
       - "compute-center/dynamic_causal_policy_planner.py"
       - "compute-center/dynamic-causal-policy.json"
       - "compute-center/dynamic-causal-capability-graph.json"
+      - "compute-center/capability_environment.py"
+      - "compute-center/causal_policy_gateway.py"
+      - "compute-center/causal_policy_worker.py"
+      - "compute-center/requirements-causal.txt"
       - "compute-center/operation-contract-registry.json"
       - "compute-center/tool_registry.py"
       - "compute-center/validate_dynamic_causal.py"
@@ -39,14 +43,48 @@ jobs:
             compute-center/requirements.txt
             compute-center/requirements-ortools.txt
             compute-center/requirements-causal.txt
-      - name: Install core, orchestration, and causal dependencies
+      - name: Install core and orchestration dependencies only
         run: |
           set -euo pipefail
           python -m pip install --disable-pip-version-check --no-input \
             -r compute-center/requirements.txt \
-            -r compute-center/requirements-ortools.txt \
-            -r compute-center/requirements-causal.txt
+            -r compute-center/requirements-ortools.txt
           python -m pip check
+      - name: Prepare causal isolated runtime through production planning hook
+        working-directory: compute-center
+        run: |
+          set -euo pipefail
+          cat > /tmp/dynamic-causal-env-ticket.json <<'JSON'
+          {
+            "task_id": "dynamic-causal-env-ci",
+            "operation": "causal_policy_evaluation",
+            "inputs": {
+              "mode": "backdoor_adjustment",
+              "treatment": [0, 1],
+              "outcome": [0.0, 1.0],
+              "confounders": {"x": [0.0, 1.0]}
+            },
+            "pipeline": {
+              "pipeline_id": "dynamic-auto-v1",
+              "stage_id": "dynamic",
+              "sequence_reason": "prepare isolated causal runtime",
+              "upstream_refs": []
+            }
+          }
+          JSON
+          python tool_registry.py plan --ticket /tmp/dynamic-causal-env-ticket.json > /tmp/dynamic-causal-runtime-plan.json
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          plan = json.loads(Path('/tmp/dynamic-causal-runtime-plan.json').read_text(encoding='utf-8'))
+          prep = plan['capability_environment_preparation']
+          assert prep['status'] == 'PASS'
+          assert prep['isolated'] is True
+          assert prep['versions']['dowhy'] == '0.14'
+          assert prep['versions']['scipy'] == '1.15.3'
+          assert [Path(item).name for item in plan['requirements']] == ['requirements-ortools.txt']
+          assert Path(plan['isolated_environment']['interpreter']).is_file()
+          PY
       - name: Compile dynamic family implementation
         working-directory: compute-center
         run: |
@@ -56,6 +94,9 @@ jobs:
             dynamic_family_engine.py \
             dynamic_causal_adapters.py \
             dynamic_causal_policy_planner.py \
+            capability_environment.py \
+            causal_policy_gateway.py \
+            causal_policy_worker.py \
             dynamic_time_series_planner.py \
             dynamic_pipeline_planner.py \
             pipeline_adapters.py \
