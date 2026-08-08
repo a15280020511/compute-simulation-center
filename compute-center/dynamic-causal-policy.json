@@ -1,0 +1,83 @@
+{
+  "schema_version": "compute-dynamic-causal-policy-v1",
+  "status": "controlled-preview",
+  "family": "causal-policy",
+  "declared_operation": "causal_policy_evaluation",
+  "planner": "ortools-cp-sat",
+  "graph_engine": "networkx",
+  "network_policy": "deny",
+  "model_calls": 0,
+  "objective_text_routing_allowed": false,
+  "structured_signals_only": true,
+  "dynamic_operation_discovery_allowed": false,
+  "ticket_supplied_code_allowed": false,
+  "automatic_parallel_execution": false,
+  "cycles_allowed": false,
+  "maximum_stages": 4,
+  "allowed_operations": [
+    "descriptive_statistics",
+    "causal_policy_evaluation"
+  ],
+  "allowed_adapters": [
+    "causal_outcome_to_descriptive_statistics",
+    "causal_to_alternate_estimate",
+    "causal_to_placebo_refutation",
+    "causal_to_primary_estimate"
+  ],
+  "solver_policy": {
+    "require_optimal_status": true,
+    "max_time_seconds": 2.0,
+    "num_search_workers": 1,
+    "random_seed": 20260808,
+    "exhaustive_cross_check_max_optional_nodes": 10
+  },
+  "selection_policy": {
+    "minimum_dynamic_rows": 8,
+    "placebo_minimum_rows": 20,
+    "stage_rules": {
+      "outcome_statistics": {
+        "operation": "descriptive_statistics",
+        "penalty": 15,
+        "benefits": {
+          "causal_diagnostics_requested": 50,
+          "formal_decision": 20,
+          "high_stakes": 20
+        },
+        "eligible_all": ["causal_input_valid"],
+        "required_if_any": [],
+        "required_if_all": []
+      },
+      "alternate_estimate": {
+        "operation": "causal_policy_evaluation",
+        "penalty": 35,
+        "benefits": {
+          "estimator_cross_check_requested": 90,
+          "formal_decision": 40,
+          "high_stakes": 50,
+          "confounders_present": 10
+        },
+        "eligible_all": ["causal_input_valid", "confounders_present"],
+        "required_if_any": ["estimator_cross_check_requested", "high_stakes"],
+        "required_if_all": []
+      },
+      "placebo_refutation": {
+        "operation": "causal_policy_evaluation",
+        "penalty": 45,
+        "benefits": {
+          "placebo_requested": 100,
+          "formal_decision": 25,
+          "high_stakes": 60,
+          "placebo_eligible": 10
+        },
+        "eligible_all": ["causal_input_valid", "placebo_eligible"],
+        "required_if_any": ["placebo_requested", "high_stakes"],
+        "required_if_all": []
+      }
+    }
+  },
+  "quality_gate": {
+    "alternate_relative_difference_warn": 1.0,
+    "require_placebo_pass_when_selected": true,
+    "reject_causal_claim_on_primary_gate_failure": true
+  }
+}
