@@ -1,0 +1,48 @@
+{
+  "schema_version": "compute-dynamic-causal-capability-graph-v1",
+  "status": "controlled-preview",
+  "family": "causal-policy",
+  "node_order": [
+    "outcome_statistics",
+    "causal_estimate",
+    "placebo_refutation"
+  ],
+  "nodes": {
+    "outcome_statistics": {
+      "operation": "descriptive_statistics",
+      "adapter": "causal_outcome_to_descriptive_statistics",
+      "required": false,
+      "result_required": false
+    },
+    "causal_estimate": {
+      "operation": "causal_policy_evaluation",
+      "adapter": "causal_ticket_to_estimate",
+      "required": true,
+      "result_required": true
+    },
+    "placebo_refutation": {
+      "operation": "causal_policy_evaluation",
+      "adapter": "causal_ticket_to_placebo_refutation",
+      "required": false,
+      "result_required": false,
+      "fixed_parameters": {
+        "repetitions": 200,
+        "seed": 0,
+        "alpha": 0.05
+      }
+    }
+  },
+  "precedence": [
+    ["outcome_statistics", "causal_estimate"],
+    ["causal_estimate", "placebo_refutation"]
+  ],
+  "safety": {
+    "dynamic_operation_discovery_allowed": false,
+    "ticket_supplied_nodes_allowed": false,
+    "ticket_supplied_edges_allowed": false,
+    "ticket_supplied_code_allowed": false,
+    "cycles_allowed": false,
+    "automatic_parallel_execution": false,
+    "full_graph_is_single_serial_chain": true
+  }
+}
