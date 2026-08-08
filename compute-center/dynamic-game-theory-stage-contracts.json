@@ -1,0 +1,67 @@
+{
+  "schema_version": "compute-dynamic-game-theory-stage-contracts-v1",
+  "status": "controlled-preview",
+  "family": "game-theory",
+  "contracts": {
+    "policy_evaluation": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "type": "object",
+      "required": ["mode", "game_id", "action_count", "expected_utility", "row_policy", "column_policy", "payoff_tensor", "engine", "user_defined_game_code_allowed"],
+      "properties": {
+        "mode": {"const": "open_spiel_policy_evaluation"},
+        "game_id": {"enum": ["matrix_rps", "matrix_pd"]},
+        "action_count": {"type": "integer", "minimum": 2, "maximum": 20},
+        "expected_utility": {"type": "array", "minItems": 2, "maxItems": 2, "items": {"type": "number"}},
+        "row_policy": {"type": "array", "minItems": 2, "maxItems": 20, "items": {"type": "number"}},
+        "column_policy": {"type": "array", "minItems": 2, "maxItems": 20, "items": {"type": "number"}},
+        "payoff_tensor": {"type": "array", "minItems": 2, "maxItems": 20},
+        "engine": {"type": "object"},
+        "user_defined_game_code_allowed": {"const": false}
+      },
+      "additionalProperties": true
+    },
+    "pure_equilibria": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "type": "object",
+      "required": ["mode", "shape", "pure_equilibria", "game_title", "engine"],
+      "properties": {
+        "mode": {"const": "pygambit_pure_equilibria"},
+        "shape": {"type": "array", "minItems": 2, "maxItems": 2, "items": {"type": "integer", "minimum": 2, "maximum": 30}},
+        "pure_equilibria": {"type": "array", "maxItems": 900},
+        "game_title": {"type": "string"},
+        "engine": {"type": "object"}
+      },
+      "additionalProperties": true
+    },
+    "equilibrium_count_audit": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "type": "object",
+      "required": ["mode", "candidate_count", "passed", "failed", "status", "rows", "decision_support_only"],
+      "properties": {
+        "mode": {"const": "benchmark_comparison"},
+        "candidate_count": {"const": 1},
+        "passed": {"type": "integer", "minimum": 0, "maximum": 1},
+        "failed": {"type": "integer", "minimum": 0, "maximum": 1},
+        "status": {"enum": ["PASS", "FAIL"]},
+        "rows": {"type": "array", "minItems": 1, "maxItems": 1},
+        "decision_support_only": {"const": true}
+      },
+      "additionalProperties": true
+    },
+    "expected_utility_audit": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "type": "object",
+      "required": ["mode", "candidate_count", "passed", "failed", "status", "rows", "decision_support_only"],
+      "properties": {
+        "mode": {"const": "benchmark_comparison"},
+        "candidate_count": {"const": 2},
+        "passed": {"type": "integer", "minimum": 0, "maximum": 2},
+        "failed": {"type": "integer", "minimum": 0, "maximum": 2},
+        "status": {"enum": ["PASS", "FAIL"]},
+        "rows": {"type": "array", "minItems": 2, "maxItems": 2},
+        "decision_support_only": {"const": true}
+      },
+      "additionalProperties": true
+    }
+  }
+}
