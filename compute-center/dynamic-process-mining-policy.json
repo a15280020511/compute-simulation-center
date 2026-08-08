@@ -1,0 +1,66 @@
+{
+  "schema_version": "compute-dynamic-process-mining-policy-v1",
+  "status": "controlled-preview",
+  "family": "process-mining",
+  "declared_operation": "finance_decision_analysis",
+  "declared_mode": "pm4py_directly_follows",
+  "planner": "ortools-cp-sat",
+  "graph_engine": "networkx",
+  "network_policy": "deny",
+  "model_calls": 0,
+  "objective_text_routing_allowed": false,
+  "structured_signals_only": true,
+  "dynamic_operation_discovery_allowed": false,
+  "ticket_supplied_code_allowed": false,
+  "automatic_parallel_execution": false,
+  "cycles_allowed": false,
+  "branching_allowed": true,
+  "maximum_stages": 4,
+  "allowed_operations": ["finance_decision_analysis", "large_scale_data_intelligence"],
+  "allowed_entry_modes": ["pm4py_directly_follows"],
+  "allowed_adapters": [
+    "process_ticket_to_pm4py",
+    "dfg_to_graph_summary",
+    "process_graph_to_consistency_audit",
+    "process_to_target_audit"
+  ],
+  "solver_policy": {
+    "require_optimal_status": true,
+    "num_search_workers": 1,
+    "random_seed": 0,
+    "max_time_seconds": 5.0,
+    "exhaustive_cross_check_max_optional_nodes": 8
+  },
+  "selection_policy": {
+    "stage_rules": {
+      "workflow_graph_summary": {
+        "penalty": 10,
+        "benefits": {
+          "graph_summary_requested": 100,
+          "topology_consistency_requested": 120,
+          "formal_or_high_stakes": 25
+        },
+        "required_if_any": ["graph_summary_requested", "topology_consistency_requested"]
+      },
+      "topology_consistency_audit": {
+        "penalty": 5,
+        "benefits": {
+          "topology_consistency_requested": 160,
+          "formal_or_high_stakes": 20
+        },
+        "eligible_all": ["topology_consistency_requested"],
+        "required_if_any": ["topology_consistency_requested"],
+        "requires_selected": ["workflow_graph_summary"]
+      },
+      "process_target_audit": {
+        "penalty": 5,
+        "benefits": {
+          "process_targets_available": 150,
+          "formal_or_high_stakes": 20
+        },
+        "eligible_all": ["process_targets_available"],
+        "required_if_any": ["process_targets_available"]
+      }
+    }
+  }
+}
