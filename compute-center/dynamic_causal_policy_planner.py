@@ -7,6 +7,7 @@ from collections.abc import Mapping, Sequence
 from pathlib import Path
 from typing import Any, Callable
 
+from dynamic_causal_adapters import install_causal_adapters
 from dynamic_family_engine import (
     FamilyDefinition,
     StructuredFamilyError,
@@ -16,6 +17,8 @@ from dynamic_family_engine import (
     run_structured_family,
 )
 from dynamic_family_router import resolve_dynamic_family
+
+install_causal_adapters()
 
 HERE = Path(__file__).resolve().parent
 FAMILY = "causal-policy"
